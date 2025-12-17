@@ -5511,6 +5511,8 @@ with app.app_context():
         
  @app.route('/debug-gcal')
 @login_required
+@app.route('/debug-gcal')
+@login_required
 def debug_gcal():
     """Route de debug Google Calendar"""
     debug_info = {
@@ -5520,20 +5522,18 @@ def debug_gcal():
         'env': os.environ.get('RENDER', 'local')
     }
     
-    # Test connexion
     try:
         service = get_calendar_service()
         if service:
-            # Test requête simple
             calendars = service.calendarList().list(maxResults=1).execute()
-            debug_info['service_status'] = '✅ Connecté'
+            debug_info['service_status'] = 'OK Connecte'
             debug_info['test_call'] = 'SUCCESS'
             debug_info['calendars_count'] = len(calendars.get('items', []))
         else:
-            debug_info['service_status'] = '❌ Service None'
+            debug_info['service_status'] = 'Service None'
             debug_info['help'] = 'Allez sur /google-auth pour vous authentifier'
     except Exception as e:
-        debug_info['service_status'] = f'❌ Erreur: {str(e)}'
+        debug_info['service_status'] = f'Erreur: {str(e)}'
         debug_info['error_trace'] = str(e)
         debug_info['help'] = 'Allez sur /google-auth pour vous authentifier'
     
