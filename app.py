@@ -4219,26 +4219,46 @@ def get_calendar_service():
         return None
 
     creds = None
-    # Le fichier token.json stocke les tokens d'accès de l'utilisateur
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    
+    # Chercher credentials.json dans plusieurs emplacements (Render + local)
+    credentials_path = None
+    for path in ['/etc/secrets/credentials.json', 'credentials.json']:
+        if os.path.exists(path):
+            credentials_path = path
+            print(f"✅ Fichier credentials trouvé : {path}")
+            break
+    
+    if not credentials_path:
+        print("❌ Fichier credentials.json introuvable")
+        return None
+    
+    # Chercher token.json
+    token_path = '/tmp/token.json' if os.environ.get('RENDER') else 'token.json'
+    
+    # Charger les credentials existants
+    if os.path.exists(token_path):
+        try:
+            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+        except Exception as e:
+            print(f"⚠️ Erreur chargement token : {e}")
+            creds = None
 
-    # Si pas de credentials valides, demander à l'utilisateur de se connecter
+    # Si pas de credentials valides
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            if not os.path.exists('credentials.json'):
+            try:
+                creds.refresh(Request())
+                with open(token_path, 'w') as token:
+                    token.write(creds.to_json())
+            except Exception as e:
+                print(f"⚠️ Erreur refresh token : {e}")
                 return None
-            flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-
-        # Sauvegarder les credentials pour la prochaine fois
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
+        else:
+            # Pas de token valide - l'utilisateur doit s'authentifier via /google-auth
+            print("⚠️ Authentification requise via /google-auth")
+            return None
 
     return build('calendar', 'v3', credentials=creds)
-
 
 def get_filtered_calendars(service):
     """
@@ -5064,7 +5084,85 @@ def delete_gcal_event(prestation_id):
     except Exception as e:
         return False, f"Erreur: {str(e)}"
 
+# ============================================================================
+# ROUTES OAUTH GOOGLE CALENDAR (pour le web)
+# ============================================================================
 
+@app.route('/google-auth')
+def google_auth():
+    """Démarrer l'authentification Google OAuth"""
+    if not GOOGLE_CALENDAR_AVAILABLE:
+        flash('❌ Modules Google Calendar non installés', 'error')
+        return redirect(url_for('index'))
+    
+    credentials_path = None
+    for path in ['/etc/secrets/credentials.json', 'credentials.json']:
+        if os.path.exists(path):
+            credentials_path = path
+            break
+    
+    if not credentials_path:
+        flash('❌ Fichier credentials.json introuvable', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        flow = Flow.from_client_secrets_file(
+            credentials_path, 
+            scopes=SCOPES,
+            redirect_uri='https://gestion-ets.onrender.com/oauth2callback'
+        )
+        
+        authorization_url, state = flow.authorization_url(
+            access_type='offline',
+            include_granted_scopes='true',
+            prompt='consent'
+        )
+        
+        session['oauth_state'] = state
+        return redirect(authorization_url)
+    
+    except Exception as e:
+        flash(f'❌ Erreur OAuth : {str(e)}', 'error')
+        return redirect(url_for('index'))
+
+
+@app.route('/oauth2callback')
+def oauth2callback():
+    """Callback après authentification Google"""
+    if not GOOGLE_CALENDAR_AVAILABLE:
+        flash('❌ Modules Google Calendar non installés', 'error')
+        return redirect(url_for('index'))
+    
+    credentials_path = None
+    for path in ['/etc/secrets/credentials.json', 'credentials.json']:
+        if os.path.exists(path):
+            credentials_path = path
+            break
+    
+    if not credentials_path:
+        flash('❌ Fichier credentials.json introuvable', 'error')
+        return redirect(url_for('index'))
+    
+    try:
+        flow = Flow.from_client_secrets_file(
+            credentials_path,
+            scopes=SCOPES,
+            redirect_uri='https://gestion-ets.onrender.com/oauth2callback'
+        )
+        
+        flow.fetch_token(authorization_response=request.url)
+        creds = flow.credentials
+        
+        token_path = '/tmp/token.json' if os.environ.get('RENDER') else 'token.json'
+        with open(token_path, 'w') as token:
+            token.write(creds.to_json())
+        
+        flash('✅ Authentification Google Calendar réussie !', 'success')
+        return redirect(url_for('gcal_config'))
+    
+    except Exception as e:
+        flash(f'❌ Erreur callback OAuth : {str(e)}', 'error')
+        return redirect(url_for('index'))
 # ============================================================================
 # ROUTES GOOGLE CALENDAR
 # ============================================================================
