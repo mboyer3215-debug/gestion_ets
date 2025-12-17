@@ -4304,7 +4304,6 @@ def creer_evenement_avec_rappels_personnalises(prestation, client, calendar_id='
 # ============================================================================
 # ANCIENNES FONCTIONS GOOGLE CALENDAR (À CONSERVER POUR COMPATIBILITÉ)
 # ============================================================================
-
 def get_calendar_service():
     """Retourne le service Google Calendar (avec authentification)"""
     if not GOOGLE_CALENDAR_AVAILABLE:
@@ -4312,25 +4311,31 @@ def get_calendar_service():
 
     creds = None
     
-    # Chercher credentials.json dans plusieurs emplacements (Render + local)
+    # Chercher credentials.json
     credentials_path = None
     for path in ['/etc/secrets/credentials.json', 'credentials.json']:
         if os.path.exists(path):
             credentials_path = path
-            print(f"✅ Fichier credentials trouvé : {path}")
+            print(f"✅ Credentials trouvés : {path}")
             break
     
     if not credentials_path:
         print("❌ Fichier credentials.json introuvable")
         return None
     
-    # Chercher token.json
-    token_path = '/tmp/token.json' if os.environ.get('RENDER') else 'token.json'
+    # Chercher token.json (priorité aux secrets persistants)
+    token_path = None
+    for path in ['/etc/secrets/token.json', 'token.json', '/tmp/token.json']:
+        if os.path.exists(path):
+            token_path = path
+            print(f"✅ Token trouvé : {path}")
+            break
     
     # Charger les credentials existants
-    if os.path.exists(token_path):
+    if token_path:
         try:
             creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+            print(f"✅ Token chargé depuis {token_path}")
         except Exception as e:
             print(f"⚠️ Erreur chargement token : {e}")
             creds = None
@@ -4339,11 +4344,16 @@ def get_calendar_service():
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             try:
+                print("🔄 Rafraîchissement du token...")
                 creds.refresh(Request())
-                with open(token_path, 'w') as token:
+                
+                # Sauvegarder le token rafraîchi
+                save_path = '/etc/secrets/token.json' if os.path.exists('/etc/secrets/') else '/tmp/token.json'
+                with open(save_path, 'w') as token:
                     token.write(creds.to_json())
+                print(f"✅ Token rafraîchi et sauvegardé : {save_path}")
             except Exception as e:
-                print(f"⚠️ Erreur refresh token : {e}")
+                print(f"❌ Erreur refresh token : {e}")
                 return None
         else:
             # Pas de token valide - l'utilisateur doit s'authentifier via /google-auth
@@ -5536,6 +5546,35 @@ def debug_gcal():
         debug_info['help'] = 'Allez sur /google-auth pour vous authentifier'
     
     return jsonify(debug_info)
+
+@app.route('/export-token')
+@login_required
+def export_token():
+    """Télécharger le token Google actuel"""
+    # Chercher le token dans tous les emplacements possibles
+    token_paths = ['/etc/secrets/token.json', '/tmp/token.json', 'token.json']
+    
+    for token_path in token_paths:
+        if os.path.exists(token_path):
+            try:
+                with open(token_path, 'r') as f:
+                    token_content = f.read()
+                
+                from flask import Response
+                return Response(
+                    token_content,
+                    mimetype='application/json',
+                    headers={
+                        'Content-Disposition': 'attachment; filename=token.json'
+                    }
+                )
+            except Exception as e:
+                continue
+    
+    return jsonify({
+        'error': 'Token introuvable',
+        'help': 'Authentifiez-vous d\'abord via /google-auth'
+    }), 404
 
 
 if __name__ == '__main__':
