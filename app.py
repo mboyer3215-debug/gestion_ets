@@ -836,7 +836,6 @@ def login_required(f):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Page de connexion"""
-    # Si déjà connecté, rediriger vers l'accueil
     if 'user_id' in session:
         return redirect(url_for('index'))
     
@@ -844,20 +843,26 @@ def login():
         username = request.form.get('username', '').strip()
         password = request.form.get('password', '')
         
-        user = Utilisateur.query.filter_by(username=username, actif=True).first()
-        
-        if user and user.check_password(password):
-            session['user_id'] = user.id
-            session['username'] = user.username
-            session['user_role'] = user.role
-            user.derniere_connexion = datetime.utcnow()
-            db.session.commit()
-            flash(f'Bienvenue {user.nom or user.username} !', 'success')
-            return redirect(url_for('index'))
-        else:
-            flash('Nom d\'utilisateur ou mot de passe incorrect.', 'error')
+        try:
+            user = Utilisateur.query.filter_by(username=username, actif=True).first()
+            
+            if user and user.check_password(password):
+                session['user_id'] = user.id
+                session['username'] = user.username
+                session['user_role'] = user.role
+                user.derniere_connexion = datetime.utcnow()
+                db.session.commit()
+                flash(f'Bienvenue {user.nom or user.username} !', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('Nom d\'utilisateur ou mot de passe incorrect.', 'error')
+        except Exception as e:
+            flash(f'Erreur de connexion : {str(e)}', 'error')
     
     return render_template('login.html')
+
+Exécuter
+
 @app.route('/logout')
 def logout():
     """Déconnexion"""
@@ -871,10 +876,13 @@ def check_login():
     # Routes publiques (sans authentification)
     public_routes = ['login', 'logout', 'static', 'oauth2callback', 'google_auth']
     
-    if request.endpoint and request.endpoint not in public_routes:
-        if 'user_id' not in session:
-            return redirect(url_for('login'))
-
+    # Ne pas vérifier si c'est une route publique
+    if request.endpoint and request.endpoint in public_routes:
+        return None
+    
+    # Vérifier si l'utilisateur est connecté
+    if request.endpoint and 'user_id' not in session:
+        return redirect(url_for('login'))
 @app.route('/')
 @login_required
 def index():
