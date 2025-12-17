@@ -5509,8 +5509,6 @@ with app.app_context():
     except:
         pass
         
- @app.route('/debug-gcal')
-@login_required
 @app.route('/debug-gcal')
 @login_required
 def debug_gcal():
