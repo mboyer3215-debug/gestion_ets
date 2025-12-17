@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Saisie Paiement - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-6 fw-bold text-success">
+            <i class="fas fa-money-bill-wave"></i> Enregistrer un paiement
+        </h1>
+        <p class="text-muted">
+            {% if paiement %}
+                Modifier le paiement {{ paiement.numero_paiement }}
+            {% else %}
+                Nouveau paiement pour la facture {{ facture.reference_facture }}
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<!-- Informations facture -->
+{% if facture %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="fas fa-file-invoice"></i> Informations Facture</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Référence:</strong> {{ facture.reference_facture }}<br>
+                        <strong>Date facture:</strong> {{ facture.date_facture.strftime('%d/%m/%Y') if facture.date_facture else '-' }}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Client:</strong>
+                        {% if facture.prestation and facture.prestation.client %}
+                            {{ facture.prestation.client.nom }}
+                            {% if facture.prestation.client.entreprise %}
+                                ({{ facture.prestation.client.entreprise }})
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Montant TTC:</strong> <span class="text-success fs-5">{{ "%.2f"|format(facture.total_ttc or 0) }} €</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Formulaire de saisie -->
+<form method="POST">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-edit"></i> Informations du paiement</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Numéro paiement (readonly) -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Numéro de paiement</label>
+                            <input type="text" class="form-control"
+                                   value="{{ paiement.numero_paiement if paiement else 'Auto-généré' }}"
+                                   readonly>
+                        </div>
+
+                        <!-- Numéro facture (readonly) -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Numéro de facture</label>
+                            <input type="text" class="form-control"
+                                   value="{{ facture.reference_facture if facture else (paiement.numero_facture if paiement else '-') }}"
+                                   readonly>
+                        </div>
+
+                        <!-- Date butoir (readonly, calculée automatiquement) -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Date butoir</label>
+                            <input type="date" class="form-control bg-light"
+                                   value="{{ paiement.date_butoir.strftime('%Y-%m-%d') if paiement and paiement.date_butoir else (date_butoir_calculee.strftime('%Y-%m-%d') if date_butoir_calculee else '') }}"
+                                   readonly>
+                            {% if (paiement and paiement.date_butoir) or date_butoir_calculee %}
+                                <small class="text-muted">
+                                    Délai: {{ facture.prestation.client.delai_paiement_jours if facture and facture.prestation and facture.prestation.client else 30 }} jours
+                                </small>
+                            {% endif %}
+                        </div>
+
+                        <!-- Date paiement -->
+                        <div class="col-md-4">
+                            <label for="date_paiement" class="form-label fw-bold">
+                                Date du paiement <span class="text-danger">*</span>
+                            </label>
+                            <input type="date" class="form-control" id="date_paiement" name="date_paiement"
+                                   value="{{ paiement.date_paiement.strftime('%Y-%m-%d') if paiement and paiement.date_paiement else datetime.now().strftime('%Y-%m-%d') }}"
+                                   required>
+                        </div>
+
+                        <!-- Mode de paiement -->
+                        <div class="col-md-4">
+                            <label for="mode_paiement" class="form-label fw-bold">
+                                Mode de paiement <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="mode_paiement" name="mode_paiement" required>
+                                <option value="">-- Sélectionner --</option>
+                                <option value="Virement" {% if paiement and paiement.mode_paiement == 'Virement' %}selected{% endif %}>Virement</option>
+                                <option value="Chèque" {% if paiement and paiement.mode_paiement == 'Chèque' %}selected{% endif %}>Chèque</option>
+                                <option value="CB" {% if paiement and paiement.mode_paiement == 'CB' %}selected{% endif %}>Carte Bancaire</option>
+                                <option value="Espèces" {% if paiement and paiement.mode_paiement == 'Espèces' %}selected{% endif %}>Espèces</option>
+                                <option value="Prélèvement" {% if paiement and paiement.mode_paiement == 'Prélèvement' %}selected{% endif %}>Prélèvement</option>
+                            </select>
+                        </div>
+
+                        <!-- Montant total -->
+                        <div class="col-md-4">
+                            <label for="montant_total" class="form-label fw-bold">
+                                Montant total à payer <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" class="form-control" id="montant_total" name="montant_total"
+                                       value="{{ paiement.montant_total if paiement else (facture.total_ttc if facture else 0) }}"
+                                       required>
+                                <span class="input-group-text">€</span>
+                            </div>
+                        </div>
+
+                        <!-- Montant payé -->
+                        <div class="col-md-6">
+                            <label for="montant_paye" class="form-label fw-bold">
+                                Montant payé <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" step="0.01" class="form-control" id="montant_paye" name="montant_paye"
+                                       value="{{ paiement.montant_paye if paiement else (facture.total_ttc if facture else 0) }}"
+                                       required>
+                                <span class="input-group-text">€</span>
+                            </div>
+                            <small class="text-muted">Par défaut: montant total. Modifiez si paiement partiel</small>
+                        </div>
+
+                        <!-- Restant à payer (calculé automatiquement) -->
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Restant à payer</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light" id="restant_a_payer" readonly>
+                                <span class="input-group-text">€</span>
+                            </div>
+                            <small class="text-muted">Montant restant dû</small>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="col-12">
+                            <label for="notes" class="form-label fw-bold">Notes / Remarques</label>
+                            <textarea class="form-control" id="notes" name="notes" rows="3">{{ paiement.notes if paiement else '' }}</textarea>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Boutons -->
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save"></i> Enregistrer le paiement
+                            </button>
+                            <a href="{{ url_for('prestation_detail', prestation_id=facture.prestation_id) if facture else url_for('index') }}"
+                               class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Calcul automatique du restant à payer
+function calculerRestant() {
+    const montantTotal = parseFloat(document.getElementById('montant_total').value) || 0;
+    const montantPaye = parseFloat(document.getElementById('montant_paye').value) || 0;
+    const restant = montantTotal - montantPaye;
+
+    document.getElementById('restant_a_payer').value = restant.toFixed(2);
+
+    // Changer la couleur selon le statut
+    const inputRestant = document.getElementById('restant_a_payer');
+    if (restant <= 0) {
+        inputRestant.classList.remove('text-danger', 'text-warning');
+        inputRestant.classList.add('text-success');
+    } else if (restant < montantTotal) {
+        inputRestant.classList.remove('text-danger', 'text-success');
+        inputRestant.classList.add('text-warning');
+    } else {
+        inputRestant.classList.remove('text-success', 'text-warning');
+        inputRestant.classList.add('text-danger');
+    }
+}
+
+// Écouter les changements
+document.getElementById('montant_total').addEventListener('input', calculerRestant);
+document.getElementById('montant_paye').addEventListener('input', calculerRestant);
+
+// Calculer au chargement
+calculerRestant();
+
+// Bouton pour remplir montant payé avec le montant total
+document.getElementById('montant_paye').addEventListener('dblclick', function() {
+    this.value = document.getElementById('montant_total').value;
+    calculerRestant();
+});
+</script>
+{% endblock %}

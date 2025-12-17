@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestion Entreprise{% endblock %}</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #5D5CDE;
+            --secondary-color: #4CAF50;
+            --danger-color: #F44336;
+            --warning-color: #FF9800;
+            --dark-color: #2C3E50;
+            --light-bg: #F8F9FA;
+            --sidebar-width: 260px;
+            --sidebar-collapsed-width: 0px;
+            --header-height: 60px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-bg);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Header horizontal minimal */
+        .top-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: var(--header-height);
+            background: linear-gradient(135deg, var(--primary-color) 0%, #7B7AE8 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1030;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .menu-toggle-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 18px;
+        }
+
+        .menu-toggle-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .header-title {
+            color: white;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-icon {
+            position: relative;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+        }
+
+        .header-icon:hover {
+            background: rgba(255,255,255,0.3);
+            color: white;
+        }
+
+        .header-icon .badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        /* Sidebar vertical */
+        .sidebar {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            width: var(--sidebar-width);
+            height: calc(100vh - var(--header-height));
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 1020;
+            overflow-y: auto;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar-overlay {
+            position: fixed;
+            top: var(--header-height);
+            left: 0;
+            width: 100%;
+            height: calc(100vh - var(--header-height));
+            background: rgba(0,0,0,0.5);
+            z-index: 1010;
+            display: none;
+        }
+
+        .sidebar-overlay.show {
+            display: block;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 20px 0;
+            margin: 0;
+        }
+
+        .sidebar-menu li {
+            margin: 0;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: var(--dark-color);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar-menu a:hover {
+            background: #F0F0FF;
+            border-left-color: var(--primary-color);
+        }
+
+        .sidebar-menu a.active {
+            background: #E8E8FF;
+            border-left-color: var(--primary-color);
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+
+        .sidebar-menu a i {
+            width: 25px;
+            margin-right: 12px;
+            text-align: center;
+        }
+
+        .sidebar-menu a .badge {
+            margin-left: auto;
+            background: var(--danger-color);
+            color: white;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 12px;
+        }
+
+        /* Menu déroulant dans sidebar */
+        .sidebar-submenu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .sidebar-submenu.open {
+            max-height: 500px;
+        }
+
+        .sidebar-submenu a {
+            padding-left: 57px !important;
+            font-size: 0.9rem;
+        }
+
+        .menu-parent {
+            cursor: pointer;
+        }
+
+        .menu-parent .arrow {
+            margin-left: auto;
+            transition: transform 0.3s;
+        }
+
+        .menu-parent.open .arrow {
+            transform: rotate(90deg);
+        }
+
+        /* Main content */
+        .main-content {
+            margin-top: var(--header-height);
+            padding: 30px 20px;
+            min-height: calc(100vh - var(--header-height) - 200px);
+        }
+
+        /* Cartes */
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #7B7AE8 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+
+        /* Boutons */
+        .btn-primary {
+            background: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 25px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #4948C7;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(93, 92, 222, 0.3);
+        }
+
+        .btn-success {
+            background: var(--secondary-color);
+            border: none;
+            border-radius: 8px;
+        }
+
+        .btn-success:hover {
+            background: #45a049;
+        }
+
+        .btn-danger {
+            background: var(--danger-color);
+            border: none;
+            border-radius: 8px;
+        }
+
+        .btn-warning {
+            background: var(--warning-color);
+            border: none;
+            border-radius: 8px;
+        }
+
+        /* Table */
+        .table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table thead {
+            background: var(--dark-color);
+            color: white;
+        }
+
+        .table tbody tr {
+            transition: background 0.2s;
+        }
+
+        .table tbody tr:hover {
+            background: #F0F0FF;
+        }
+
+        /* Badges */
+        .badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        /* Stats cards */
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-card .icon {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .stat-card .number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--dark-color);
+        }
+
+        .stat-card .label {
+            color: #6c757d;
+            font-size: 1rem;
+            margin-top: 10px;
+        }
+
+        /* Alerts */
+        .alert {
+            border-radius: 10px;
+            border: none;
+        }
+
+        /* Footer nouveau design */
+        footer {
+            background: white;
+            border-top: 2px solid #E8E8FF;
+            padding: 30px 0;
+            margin-top: 50px;
+        }
+
+        .footer-section {
+            margin-bottom: 20px;
+        }
+
+        .footer-section h6 {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+        }
+
+        .footer-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #F8F9FA;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .footer-info i {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+
+        .footer-info-text {
+            flex: 1;
+        }
+
+        .footer-info-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin: 0;
+        }
+
+        .footer-info-value {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--dark-color);
+        }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #FFF9E6;
+            border-left: 3px solid var(--warning-color);
+            border-radius: 5px;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+        }
+
+        .task-item i {
+            color: var(--warning-color);
+        }
+
+        .task-priority-high {
+            background: #FFE6E6;
+            border-left-color: var(--danger-color);
+        }
+
+        .task-priority-high i {
+            color: var(--danger-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: 1rem;
+            }
+
+            .stat-card {
+                margin-bottom: 15px;
+            }
+
+            .stat-card .number {
+                font-size: 2rem;
+            }
+
+            .main-content {
+                padding: 20px 15px;
+            }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- Header horizontal minimal -->
+    <div class="top-header">
+        <div class="header-content">
+            <div class="header-left">
+                <button class="menu-toggle-btn" id="menuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 class="header-title">
+                    <i class="fas fa-briefcase"></i> Gestion Entreprise
+                </h1>
+            </div>
+            <div class="header-right">
+                <!-- Bouton Quitter -->
+                <a href="#" onclick="confirmerQuitter(event)" class="header-icon" title="Quitter l'application">
+                    <i class="fas fa-power-off"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay pour fermer sidebar en cliquant à côté -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Sidebar vertical -->
+    <nav class="sidebar" id="sidebar">
+        <ul class="sidebar-menu">
+            <li>
+                <a href="{{ url_for('index') }}" class="{% if request.endpoint == 'index' %}active{% endif %}">
+                    <i class="fas fa-home"></i>
+                    <span>Accueil</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('prestations') }}" class="{% if 'prestation' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-tasks"></i>
+                    <span>Prestations</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('clients') }}" class="{% if 'client' in request.endpoint and request.endpoint != 'prospection' %}active{% endif %}">
+                    <i class="fas fa-users"></i>
+                    <span>Clients</span>
+                </a>
+            </li>
+            <li>
+                <a class="menu-parent {% if request.endpoint in ['prospection', 'liste_prospects'] %}open{% endif %}" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-search-location"></i>
+                    <span>Prospection</span>
+                    <i class="fas fa-chevron-right arrow"></i>
+                </a>
+                <ul class="sidebar-submenu {% if request.endpoint in ['prospection', 'liste_prospects'] %}open{% endif %}">
+                    <li>
+                        <a href="{{ url_for('prospection') }}" class="{% if request.endpoint == 'prospection' %}active{% endif %}">
+                            <i class="fas fa-search"></i>
+                            <span>Recherche</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('liste_prospects') }}" class="{% if request.endpoint == 'liste_prospects' %}active{% endif %}">
+                            <i class="fas fa-users"></i>
+                            <span>Liste prospects</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <a class="menu-parent {% if request.endpoint in ['factures_en_cours', 'factures_en_retard', 'paiements_en_retard', 'paiements_recus'] %}open{% endif %}" onclick="toggleSubmenu(this)">
+                    <i class="fas fa-calculator"></i>
+                    <span>Comptabilité</span>
+                    <i class="fas fa-chevron-right arrow"></i>
+                </a>
+                <ul class="sidebar-submenu {% if request.endpoint in ['factures_en_cours', 'factures_en_retard', 'paiements_en_retard', 'paiements_recus'] %}open{% endif %}">
+                    <li>
+                        <a href="{{ url_for('factures_en_cours') }}" class="{% if request.endpoint == 'factures_en_cours' %}active{% endif %}">
+                            <i class="fas fa-file-invoice"></i>
+                            <span>Factures en cours</span>
+                            {% if factures_en_cours_count > 0 %}
+                            <span class="badge bg-info">{{ factures_en_cours_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('factures_en_retard') }}" class="{% if request.endpoint == 'factures_en_retard' %}active{% endif %}">
+                            <i class="fas fa-file-invoice-dollar"></i>
+                            <span>Factures en retard</span>
+                            {% if factures_retard_count > 0 %}
+                            <span class="badge">{{ factures_retard_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('paiements_en_retard') }}" class="{% if request.endpoint == 'paiements_en_retard' %}active{% endif %}">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Paiements en retard</span>
+                            {% if paiements_retard_count > 0 %}
+                            <span class="badge">{{ paiements_retard_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('paiements_recus') }}" class="{% if request.endpoint == 'paiements_recus' %}active{% endif %}">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Paiements reçus</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li>
+                <a href="{{ url_for('statistiques') }}" class="{% if request.endpoint == 'statistiques' %}active{% endif %}">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Statistiques</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('entreprise') }}" class="{% if 'entreprise' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-building"></i>
+                    <span>Entreprise</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('sauvegarde_liste') }}" class="{% if 'sauvegarde' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-database"></i>
+                    <span>Sauvegardes</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('notifications_historique') }}" class="{% if 'notifications' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('gcal_config') }}" class="{% if 'gcal' in request.endpoint %}active{% endif %}">
+                    <i class="fab fa-google"></i>
+                    <span>Google Calendar</span>
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('indisponibilite') }}" class="{% if request.endpoint == 'indisponibilite' %}active{% endif %}">
+                    <i class="fas fa-calendar-times"></i>
+                    <span>Indisponibilité</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Messages flash -->
+    <div class="main-content">
+        <div class="container-fluid">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Contenu principal -->
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script pour le menu sidebar -->
+    <script>
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+        // Toggle sidebar
+        menuToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('open');
+            sidebarOverlay.classList.toggle('show');
+        });
+
+        // Fermer sidebar en cliquant sur l'overlay
+        sidebarOverlay.addEventListener('click', function() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('show');
+        });
+
+        // Fermer sidebar en cliquant sur un lien (mobile)
+        if (window.innerWidth < 992) {
+            document.querySelectorAll('.sidebar-menu a').forEach(link => {
+                link.addEventListener('click', function() {
+                    // Ne pas fermer pour les menus parents
+                    if (!link.classList.contains('menu-parent')) {
+                        sidebar.classList.remove('open');
+                        sidebarOverlay.classList.remove('show');
+                    }
+                });
+            });
+        }
+
+        // Toggle submenu
+        function toggleSubmenu(element) {
+            element.classList.toggle('open');
+            const submenu = element.nextElementSibling;
+            if (submenu && submenu.classList.contains('sidebar-submenu')) {
+                submenu.classList.toggle('open');
+            }
+        }
+    </script>
+
+    <!-- Script pour confirmation de fermeture -->
+    <script>
+        function confirmerQuitter(event) {
+            event.preventDefault();
+
+            // Créer une modale de confirmation personnalisée
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.id = 'modalQuitter';
+            modal.setAttribute('tabindex', '-1');
+            modal.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning text-white">
+                            <h5 class="modal-title">
+                                <i class="fas fa-exclamation-triangle"></i> Confirmer la fermeture
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="mb-3">Êtes-vous sûr de vouloir quitter l'application ?</p>
+                            <p class="text-muted small mb-0">
+                                <i class="fas fa-info-circle"></i>
+                                L'application s'arrêtera complètement. Vous devrez la redémarrer manuellement pour y accéder à nouveau.
+                            </p>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times"></i> Annuler
+                            </button>
+                            <button type="button" class="btn btn-warning" onclick="quitterApplication()">
+                                <i class="fas fa-power-off"></i> Quitter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            const modalInstance = new bootstrap.Modal(modal);
+            modalInstance.show();
+
+            // Supprimer la modale du DOM après fermeture
+            modal.addEventListener('hidden.bs.modal', function() {
+                modal.remove();
+            });
+        }
+
+        function quitterApplication() {
+            // Masquer la modale
+            const modal = document.getElementById('modalQuitter');
+            if (modal) {
+                const modalInstance = bootstrap.Modal.getInstance(modal);
+                modalInstance.hide();
+            }
+
+            // Afficher un message de fermeture
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.9);
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: white;
+                font-size: 24px;
+                font-family: Arial, sans-serif;
+            `;
+            overlay.innerHTML = `
+                <div style="text-align: center;">
+                    <i class="fas fa-save fa-3x mb-3 fa-spin"></i>
+                    <p>Sauvegarde automatique en cours...</p>
+                    <p style="font-size: 16px; color: #ccc;">Puis fermeture de l'application</p>
+                    <p style="font-size: 14px; color: #999; margin-top: 20px;">Vous pouvez fermer cette fenêtre dans quelques secondes</p>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+
+            // Appeler la route de fermeture
+            fetch('/quitter', { method: 'POST' })
+                .then(() => {
+                    // Attendre 3 secondes puis afficher message de fermeture complète
+                    setTimeout(() => {
+                        overlay.innerHTML = `
+                            <div style="text-align: center;">
+                                <i class="fas fa-check-circle fa-3x mb-3" style="color: #4CAF50;"></i>
+                                <p>✅ Sauvegarde terminée !</p>
+                                <p style="font-size: 16px; color: #ccc;">Application arrêtée</p>
+                                <p style="font-size: 14px; color: #999; margin-top: 20px;">Vous pouvez fermer cette fenêtre</p>
+                            </div>
+                        `;
+                        // Tenter de fermer la fenêtre (ne fonctionnera que si ouverte par JS)
+                        setTimeout(() => {
+                            window.close();
+                        }, 500);
+                    }, 3000);
+                })
+                .catch(err => {
+                    console.error('Erreur lors de la fermeture:', err);
+                    overlay.innerHTML = `
+                        <div style="text-align: center;">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3" style="color: #FF9800;"></i>
+                            <p>⚠️ Erreur lors de la fermeture</p>
+                            <p style="font-size: 14px; color: #ccc;">Fermez manuellement cette fenêtre</p>
+                        </div>
+                    `;
+                });
+        }
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

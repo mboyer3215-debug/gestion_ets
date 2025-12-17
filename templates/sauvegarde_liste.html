@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Sauvegardes - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h1 class="display-5 fw-bold text-dark mb-0">
+                <i class="fas fa-database text-primary"></i> Sauvegardes
+            </h1>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-md-none">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+        <p class="text-muted">Restaurer une sauvegarde précédente</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary me-2 d-none d-md-inline-block">
+            <i class="fas fa-home"></i> Retour tableau de bord
+        </a>
+        <a href="{{ url_for('sauvegarde_creer') }}" class="btn btn-success">
+            <i class="fas fa-save"></i> Créer une sauvegarde
+        </a>
+    </div>
+</div>
+
+<!-- Avertissement -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Attention :</strong> La restauration d'une sauvegarde remplacera toutes vos données actuelles.
+            Une copie de la base actuelle sera sauvegardée dans <code>gestion_entreprise_OLD.db</code> avant la restauration.
+        </div>
+    </div>
+</div>
+
+<!-- Sauvegardes enregistrées -->
+{% if sauvegardes_db %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-history"></i> Sauvegardes enregistrées ({{ sauvegardes_db|length }})
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Nom du fichier</th>
+                                <th>Taille</th>
+                                <th>Google Drive</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sauvegarde in sauvegardes_db %}
+                            <tr>
+                                <td>
+                                    <strong>{{ sauvegarde.date_sauvegarde.strftime('%d/%m/%Y') }}</strong><br>
+                                    <small class="text-muted">{{ sauvegarde.date_sauvegarde.strftime('%H:%M') }}</small>
+                                </td>
+                                <td>{{ sauvegarde.nom_fichier }}</td>
+                                <td>{{ "%.2f"|format(sauvegarde.taille_octets / 1024) }} Ko</td>
+                                <td>
+                                    {% if sauvegarde.statut_gdrive == 'Success' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-cloud"></i> Oui
+                                        </span>
+                                    {% elif sauvegarde.statut_gdrive == 'Failed' %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times"></i> Échec
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('sauvegarde_restaurer', sauvegarde_id=sauvegarde.id) }}"
+                                       class="btn btn-sm btn-primary"
+                                       onclick="return confirm('Êtes-vous sûr de vouloir restaurer cette sauvegarde ? Toutes les données actuelles seront remplacées.');">
+                                        <i class="fas fa-undo"></i> Restaurer
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Fichiers de sauvegarde disponibles -->
+{% if sauvegardes_fichiers %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-folder-open"></i> Fichiers de sauvegarde disponibles ({{ sauvegardes_fichiers|length }})
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    Fichiers de sauvegarde trouvés dans le dossier <code>Sauvegardes/</code>
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Nom du fichier</th>
+                                <th>Taille</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fichier in sauvegardes_fichiers %}
+                            <tr>
+                                <td>
+                                    <strong>{{ fichier.date.strftime('%d/%m/%Y') }}</strong><br>
+                                    <small class="text-muted">{{ fichier.date.strftime('%H:%M') }}</small>
+                                </td>
+                                <td>{{ fichier.nom }}</td>
+                                <td>{{ "%.2f"|format(fichier.taille / 1024) }} Ko</td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('sauvegarde_restaurer_fichier') }}" class="d-inline"
+                                          onsubmit="return confirm('Êtes-vous sûr de vouloir restaurer cette sauvegarde ? Toutes les données actuelles seront remplacées.');">
+                                        <input type="hidden" name="nom_fichier" value="{{ fichier.nom }}">
+                                        <button type="submit" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-undo"></i> Restaurer
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not sauvegardes_db and not sauvegardes_fichiers %}
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i>
+            Aucune sauvegarde disponible. Créez votre première sauvegarde en cliquant sur le bouton ci-dessus.
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

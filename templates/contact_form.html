@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Modifier' if contact else 'Nouveau' }} contact - {{ client.nom }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="display-6 fw-bold text-dark">
+            <i class="fas fa-user-tie text-primary"></i>
+            {{ 'Modifier' if contact else 'Nouveau' }} contact
+        </h1>
+        <p class="text-muted mb-0">
+            Client : <a href="{{ url_for('client_detail', client_id=client.id) }}" class="text-decoration-none"><strong>{{ client.prenom }} {{ client.nom }}</strong></a>
+            {% if client.entreprise %}
+                <span class="text-muted">- {{ client.entreprise }}</span>
+            {% endif %}
+        </p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <form method="POST" action="{{ url_for('contact_modifier', contact_id=contact.id) if contact else url_for('contact_nouveau', client_id=client.id) }}">
+            <!-- Informations générales -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="fas fa-user"></i> Informations générales
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nom" class="form-label">Nom <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="nom" name="nom"
+                                   value="{{ contact.nom if contact else '' }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="prenom" class="form-label">Prénom</label>
+                            <input type="text" class="form-control" id="prenom" name="prenom"
+                                   value="{{ contact.prenom if contact else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="poste" class="form-label">Poste / Fonction</label>
+                        <input type="text" class="form-control" id="poste" name="poste"
+                               value="{{ contact.poste if contact else '' }}"
+                               placeholder="Ex: Responsable formation, DRH, etc.">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coordonnées -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <i class="fas fa-phone"></i> Coordonnées
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="tel_fixe" class="form-label">Téléphone fixe</label>
+                            <input type="tel" class="form-control" id="tel_fixe" name="tel_fixe"
+                                   value="{{ contact.tel_fixe if contact else '' }}"
+                                   placeholder="Ex: 01 23 45 67 89">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="tel_portable" class="form-label">Téléphone portable</label>
+                            <input type="tel" class="form-control" id="tel_portable" name="tel_portable"
+                                   value="{{ contact.tel_portable if contact else '' }}"
+                                   placeholder="Ex: 06 12 34 56 78">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               value="{{ contact.email if contact else '' }}"
+                               placeholder="prenom.nom@entreprise.fr">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <i class="fas fa-sticky-note"></i> Notes
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes additionnelles</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"
+                                  placeholder="Informations supplémentaires...">{{ contact.notes if contact else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boutons -->
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{{ url_for('client_detail', client_id=client.id) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Annuler
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> {{ 'Modifier' if contact else 'Créer' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

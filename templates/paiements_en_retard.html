@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Paiements en retard - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold text-warning">
+                    <i class="fas fa-exclamation-triangle"></i> Paiements en retard
+                </h1>
+                <p class="text-muted mb-0">Paiements dont la date butoir est dépassée</p>
+            </div>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-home"></i> Retour accueil
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-money-bill-wave fa-3x text-warning mb-3"></i>
+                <h3 class="fw-bold text-warning">{{ paiements|length }}</h3>
+                <p class="text-muted mb-0">Paiements en retard</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-danger">
+            <div class="card-body text-center">
+                <i class="fas fa-euro-sign fa-3x text-danger mb-3"></i>
+                <h3 class="fw-bold text-danger">{{ "%.2f"|format(total) }} €</h3>
+                <p class="text-muted mb-0">Montant total en retard</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                <h3 class="fw-bold text-warning">
+                    {% if paiements %}
+                        {{ (paiements|sum(attribute='jours_retard') / paiements|length)|int }} jours
+                    {% else %}
+                        0 jours
+                    {% endif %}
+                </h3>
+                <p class="text-muted mb-0">Retard moyen</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des paiements en retard -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Liste des paiements en retard ({{ paiements|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if paiements %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>N° Paiement</th>
+                                <th>N° Facture</th>
+                                <th>Client</th>
+                                <th>Prestation</th>
+                                <th>Date butoir</th>
+                                <th class="text-center">Jours de retard</th>
+                                <th class="text-center">Relances</th>
+                                <th class="text-end">Montant restant</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for paiement in paiements %}
+                            <tr class="{% if paiement.jours_retard > 60 %}table-danger{% elif paiement.jours_retard > 30 %}table-warning{% endif %}">
+                                <td><strong class="text-primary">{{ paiement.numero_paiement or '-' }}</strong></td>
+                                <td>{{ paiement.numero_facture or '-' }}</td>
+                                <td>
+                                    {% if paiement.prestation and paiement.prestation.client %}
+                                        <a href="{{ url_for('client_detail', client_id=paiement.prestation.client.id) }}" class="text-decoration-none">
+                                            {{ paiement.prestation.client.nom }}
+                                            {% if paiement.prestation.client.entreprise %}
+                                                <br><small class="text-muted">{{ paiement.prestation.client.entreprise }}</small>
+                                            {% endif %}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if paiement.prestation %}
+                                        <a href="{{ url_for('prestation_detail', prestation_id=paiement.prestation.id) }}" class="text-decoration-none">
+                                            {{ paiement.prestation.titre }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-calendar-times"></i>
+                                        {{ paiement.date_butoir.strftime('%d/%m/%Y') if paiement.date_butoir else '-' }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge {% if paiement.jours_retard > 60 %}bg-danger{% elif paiement.jours_retard > 30 %}bg-warning{% else %}bg-secondary{% endif %} fs-6">
+                                        {{ paiement.jours_retard }} jours
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">
+                                        {{ paiement.nb_relances or 0 }} relance(s)
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <strong class="text-danger">
+                                        {{ "%.2f"|format((paiement.montant_total or 0) - (paiement.montant_paye or 0)) }} €
+                                    </strong>
+                                    {% if paiement.statut == 'Partiel' %}
+                                        <br><small class="text-muted">Payé: {{ "%.2f"|format(paiement.montant_paye or 0) }} €</small>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ url_for('paiement_saisie', paiement_id=paiement.id) }}" class="btn btn-outline-success" title="Enregistrer un paiement">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </a>
+                                        <button class="btn btn-outline-warning" title="Envoyer une relance" onclick="envoyerRelance({{ paiement.id }})">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <th colspan="7" class="text-end">TOTAL EN RETARD :</th>
+                                <th class="text-end"><strong class="text-danger">{{ "%.2f"|format(total) }} €</strong></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="alert alert-warning mt-3">
+                    <h6><i class="fas fa-info-circle"></i> Légende</h6>
+                    <ul class="mb-0">
+                        <li><span class="badge bg-secondary">Moins de 30 jours</span> : Retard modéré</li>
+                        <li><span class="badge bg-warning">30 à 60 jours</span> : Retard important - Relance recommandée</li>
+                        <li><span class="badge bg-danger">Plus de 60 jours</span> : Retard critique - Action urgente requise</li>
+                    </ul>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> Excellente nouvelle ! Aucun paiement en retard.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function envoyerRelance(paiementId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.setAttribute('tabindex', '-1');
+    modal.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-dark">
+                    <h5 class="modal-title">
+                        <i class="fas fa-paper-plane"></i> Envoyer une relance de paiement
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Êtes-vous sûr de vouloir envoyer une relance pour ce paiement ?</p>
+                    <p class="text-muted small">Un email sera envoyé au client pour lui rappeler le paiement en attente.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-warning" onclick="confirmerRelance(${paiementId})">
+                        <i class="fas fa-paper-plane"></i> Envoyer
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    const modalInstance = new bootstrap.Modal(modal);
+    modalInstance.show();
+
+    modal.addEventListener('hidden.bs.modal', function() {
+        modal.remove();
+    });
+}
+
+function confirmerRelance(paiementId) {
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="toast show bg-success text-white" role="alert">
+            <div class="toast-body">
+                <i class="fas fa-check-circle"></i> Relance envoyée avec succès
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 3000);
+
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(m => {
+        const modalInstance = bootstrap.Modal.getInstance(m);
+        if (modalInstance) modalInstance.hide();
+    });
+}
+</script>
+{% endblock %}

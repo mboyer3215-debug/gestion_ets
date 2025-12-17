@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Calendrier - Gestion Entreprise{% endblock %}
+
+{% block extra_css %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' >
+<style>
+    #calendar {
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+
+    .fc-event {
+        cursor: pointer;
+    }
+
+    .fc .fc-button-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .fc .fc-button-primary:hover {
+        background-color: #4948C7;
+        border-color: #4948C7;
+    }
+
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+        background-color: #4948C7;
+        border-color: #4948C7;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h1 class="display-5 fw-bold text-dark mb-0">
+                <i class="fas fa-calendar text-primary"></i> Calendrier
+            </h1>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-md-none">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+        <p class="text-muted">Vue d'ensemble de vos prestations</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary me-2 d-none d-md-inline-block">
+            <i class="fas fa-home"></i> Retour accueil
+        </a>
+        <a href="{{ url_for('prestation_nouvelle') }}" class="btn btn-success btn-lg">
+            <i class="fas fa-plus"></i> Nouvelle prestation
+        </a>
+    </div>
+</div>
+
+<div id='calendar'></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/locales/fr.global.min.js'></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'fr',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            buttonText: {
+                today: "Aujourd'hui",
+                month: 'Mois',
+                week: 'Semaine',
+                day: 'Jour'
+            },
+            events: '{{ url_for("api_prestations_calendrier") }}',
+            eventClick: function(info) {
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                    return false;
+                }
+            },
+            height: 'auto',
+            eventTimeFormat: {
+                hour: '2-digit',
+                minute: '2-digit',
+                meridiem: false
+            }
+        });
+
+        calendar.render();
+    });
+</script>
+{% endblock %}

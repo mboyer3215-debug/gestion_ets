@@ -1,0 +1,331 @@
+{% extends "base.html" %}
+
+{% block title %}Prospection - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h1 class="display-5 fw-bold text-dark mb-0">
+                <i class="fas fa-search-location text-primary"></i> Prospection
+            </h1>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-md-none">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+        <p class="text-muted">Recherchez de nouveaux clients potentiels par zone et secteur d'activité</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-none d-md-inline-block">
+            <i class="fas fa-home"></i> Tableau de bord
+        </a>
+    </div>
+</div>
+
+<!-- Formulaire de recherche -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <i class="fas fa-filter"></i> Critères de recherche
+    </div>
+    <div class="card-body">
+        <form id="formRecherche">
+            <div class="row">
+                <div class="col-md-9 mb-3">
+                    <label for="zone_recherche" class="form-label fw-bold">Recherche <span class="text-danger">*</span></label>
+                    <input type="text"
+                           class="form-control"
+                           id="zone_recherche"
+                           name="zone_recherche"
+                           placeholder="Ex: Leclerc Toulouse, Collège 33, Restaurant Occitanie..."
+                           required>
+                    <small class="text-muted"><i class="fas fa-info-circle"></i> Tapez un nom d'entreprise, un type de lieu, une ville, un département ou une région</small>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-search"></i> Rechercher
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Résultats -->
+<div class="card">
+    <div class="card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-list"></i> Résultats <span id="count-resultats" class="badge bg-primary">0</span></h5>
+            <button id="btn-exporter" class="btn btn-sm btn-outline-primary" style="display: none;">
+                <i class="fas fa-file-excel"></i> Exporter
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="loading" style="display: none;" class="text-center py-5">
+            <i class="fas fa-spinner fa-spin fa-3x text-primary"></i>
+            <p class="mt-3">Recherche en cours...</p>
+        </div>
+
+        <div id="resultats-vide" class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Utilisez le formulaire ci-dessus pour rechercher des entreprises
+        </div>
+
+        <div id="resultats-container" style="display: none;">
+            <div class="table-responsive">
+                <table class="table table-hover" id="table-resultats">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all"></th>
+                            <th>Nom</th>
+                            <th>Adresse</th>
+                            <th>Ville</th>
+                            <th>Téléphone</th>
+                            <th>Secteur</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-resultats">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-3">
+                <button id="btn-creer-clients" class="btn btn-primary" disabled>
+                    <i class="fas fa-user-plus"></i> Créer les prospects sélectionnés (<span id="count-selection">0</span>)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let entreprisesResultats = [];
+let selectionEntreprises = new Set();
+
+const formRecherche = document.getElementById('formRecherche');
+const loading = document.getElementById('loading');
+const resultatsVide = document.getElementById('resultats-vide');
+const resultatsContainer = document.getElementById('resultats-container');
+const tbodyResultats = document.getElementById('tbody-resultats');
+const countResultats = document.getElementById('count-resultats');
+const countSelection = document.getElementById('count-selection');
+const btnCreerClients = document.getElementById('btn-creer-clients');
+const selectAll = document.getElementById('select-all');
+
+// ============================================================================
+// RECHERCHE
+// ============================================================================
+formRecherche.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const query = document.getElementById('zone_recherche').value.trim();
+
+    if (!query) {
+        showMessage('Veuillez saisir une recherche', 'warning');
+        return;
+    }
+
+    // Afficher le loading
+    loading.style.display = 'block';
+    resultatsVide.style.display = 'none';
+    resultatsContainer.style.display = 'none';
+    selectionEntreprises.clear();
+
+    try {
+        // Utiliser l'API rechercher-entreprise qui supporte la recherche flexible
+        const url = `/api/rechercher-entreprise?q=${encodeURIComponent(query)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        loading.style.display = 'none';
+
+        if (!data.success || !data.entreprises || data.entreprises.length === 0) {
+            resultatsVide.innerHTML = '<i class="fas fa-info-circle"></i> Aucune entreprise trouvée pour ces critères';
+            resultatsVide.style.display = 'block';
+            return;
+        }
+
+        // Afficher les résultats
+        entreprisesResultats = data.entreprises;
+        afficherResultats(data.entreprises);
+        countResultats.textContent = data.count || data.entreprises.length;
+        resultatsContainer.style.display = 'block';
+
+    } catch (error) {
+        loading.style.display = 'none';
+        resultatsVide.innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i> Erreur lors de la recherche';
+        resultatsVide.style.display = 'block';
+        console.error('Erreur:', error);
+    }
+});
+
+function afficherResultats(entreprises) {
+    tbodyResultats.innerHTML = '';
+
+    entreprises.forEach((entreprise, index) => {
+        const row = document.createElement('tr');
+
+        // Construire l'adresse complète
+        let adresseComplete = '';
+        if (entreprise.adresse) {
+            adresseComplete = entreprise.adresse;
+        }
+        if (entreprise.code_postal || entreprise.ville) {
+            adresseComplete += (adresseComplete ? ', ' : '') +
+                              (entreprise.code_postal ? entreprise.code_postal + ' ' : '') +
+                              (entreprise.ville || '');
+        }
+
+        row.innerHTML = `
+            <td><input type="checkbox" class="entreprise-checkbox" data-index="${index}"></td>
+            <td><strong>${entreprise.nom}</strong></td>
+            <td>${adresseComplete || '-'}</td>
+            <td>${entreprise.code_postal || ''} ${entreprise.ville || ''}</td>
+            <td>${entreprise.telephone || '-'}</td>
+            <td><span class="badge bg-info">Prospect</span></td>
+            <td>
+                <button class="btn btn-sm btn-success btn-creer-client" data-index="${index}">
+                    <i class="fas fa-user-plus"></i> Créer prospect
+                </button>
+            </td>
+        `;
+        tbodyResultats.appendChild(row);
+    });
+
+    // Event listeners pour les checkboxes
+    document.querySelectorAll('.entreprise-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelection);
+    });
+
+    // Event listeners pour créer un prospect individuel
+    document.querySelectorAll('.btn-creer-client').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const index = parseInt(this.dataset.index);
+            creerProspect(entreprisesResultats[index]);
+        });
+    });
+}
+
+// Sélection
+selectAll.addEventListener('change', function() {
+    document.querySelectorAll('.entreprise-checkbox').forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+    updateSelection();
+});
+
+function updateSelection() {
+    selectionEntreprises.clear();
+    document.querySelectorAll('.entreprise-checkbox:checked').forEach(checkbox => {
+        selectionEntreprises.add(parseInt(checkbox.dataset.index));
+    });
+
+    const count = selectionEntreprises.size;
+    countSelection.textContent = count;
+    btnCreerClients.disabled = count === 0;
+}
+
+// Créer les prospects sélectionnés
+btnCreerClients.addEventListener('click', async function() {
+    if (selectionEntreprises.size === 0) return;
+
+    showConfirm(`Créer ${selectionEntreprises.size} nouveau(x) prospect(s) ?`, async function() {
+        const entreprisesSelectionnees = Array.from(selectionEntreprises).map(index => entreprisesResultats[index]);
+
+        let nbCreated = 0;
+        for (const entreprise of entreprisesSelectionnees) {
+            const created = await creerProspect(entreprise, false);
+            if (created) nbCreated++;
+        }
+
+        showMessage(`${nbCreated} prospect(s) créé(s) avec succès !`, 'success');
+        setTimeout(() => {
+            window.location.href = '/liste-prospects';
+        }, 1500);
+    });
+});
+
+async function creerProspect(entreprise, redirect = true) {
+    try {
+        const formData = new FormData();
+        formData.append('entreprise', entreprise.nom);
+        formData.append('email', entreprise.email || '');
+        formData.append('telephone', entreprise.telephone || '');
+
+        // Construire l'adresse complète
+        let adresseComplete = '';
+        if (entreprise.adresse) {
+            adresseComplete = entreprise.adresse;
+        }
+
+        formData.append('adresse', adresseComplete);
+        formData.append('code_postal', entreprise.code_postal || '');
+        formData.append('ville', entreprise.ville || '');
+        formData.append('notes', `Source: Prospection - ${new Date().toLocaleDateString('fr-FR')}`);
+        formData.append('delai_paiement_jours', '30');
+
+        // IMPORTANT: Marquer comme prospect
+        formData.append('statut_client', 'Prospect');
+
+        const response = await fetch('/client/nouveau', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (redirect && response.ok) {
+            window.location.href = '/liste-prospects';
+        }
+
+        return response.ok;
+
+    } catch (error) {
+        console.error('Erreur création prospect:', error);
+        return false;
+    }
+}
+
+// Fonctions pour remplacer alert() et confirm()
+function showMessage(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 3000);
+}
+
+function showConfirm(message, onConfirm) {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade show d-block';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmation</h5>
+                </div>
+                <div class="modal-body">${message}</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-action="cancel">Annuler</button>
+                    <button type="button" class="btn btn-primary" data-action="confirm">Confirmer</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelector('[data-action="cancel"]').onclick = () => modal.remove();
+    modal.querySelector('[data-action="confirm"]').onclick = () => {
+        modal.remove();
+        onConfirm();
+    };
+}
+</script>
+{% endblock %}

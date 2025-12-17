@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion du tarif - {{ prestation.titre }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h1 class="display-6 fw-bold text-dark mb-0">
+                <i class="fas fa-euro-sign text-success"></i> Gestion du tarif
+            </h1>
+        </div>
+        <p class="text-muted mb-0">
+            <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="text-decoration-none">
+                {{ prestation.titre }}
+            </a>
+        </p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-calculator"></i> Calcul du tarif</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('prestation_tarif', prestation_id=prestation.id) }}">
+                    <!-- Tarif de la prestation -->
+                    <div class="mb-4">
+                        <label for="tarif_total" class="form-label fw-bold">
+                            <i class="fas fa-briefcase text-primary"></i> Tarif de la prestation (€)
+                        </label>
+                        <input type="number" step="0.01" class="form-control" id="tarif_total" name="tarif_total"
+                               value="{{ prestation.tarif_total if prestation.tarif_total else '' }}"
+                               placeholder="0.00">
+                        <small class="text-muted">Tarif de base pour la prestation</small>
+                    </div>
+
+                    <!-- Frais de fournitures -->
+                    <div class="mb-4">
+                        <label for="frais_fournitures" class="form-label fw-bold">
+                            <i class="fas fa-box text-warning"></i> Frais de fournitures (€)
+                        </label>
+                        <input type="number" step="0.01" class="form-control" id="frais_fournitures" name="frais_fournitures"
+                               value="{{ prestation.frais_fournitures if prestation.frais_fournitures else '' }}"
+                               placeholder="0.00">
+                        <small class="text-muted">Matériel, supports de formation, etc.</small>
+                    </div>
+
+                    <!-- Frais de déplacement -->
+                    <div class="mb-4">
+                        <label for="frais_deplacement" class="form-label fw-bold">
+                            <i class="fas fa-car text-info"></i> Frais de déplacement (€)
+                        </label>
+                        <input type="number" step="0.01" class="form-control" id="frais_deplacement" name="frais_deplacement"
+                               value="{{ prestation.frais_deplacement if prestation.frais_deplacement else '' }}"
+                               placeholder="0.00">
+                        <small class="text-muted">
+                            {% if prestation.distance_km %}
+                                Distance : {{ "%.1f"|format(prestation.distance_km) }} km
+                            {% endif %}
+                        </small>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Total calculé -->
+                    <div class="mb-4 p-3 bg-light rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-calculator text-success"></i> Total</h5>
+                            <h4 class="mb-0 text-success fw-bold" id="total_calcule">
+                                {{ "%.2f"|format((prestation.tarif_total or 0) + (prestation.frais_fournitures or 0) + (prestation.frais_deplacement or 0)) }} €
+                            </h4>
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-save"></i> Enregistrer le tarif
+                        </button>
+                        <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Calcul automatique du total
+    const tarifTotal = document.getElementById('tarif_total');
+    const fraisFournitures = document.getElementById('frais_fournitures');
+    const fraisDeplacement = document.getElementById('frais_deplacement');
+    const totalCalcule = document.getElementById('total_calcule');
+
+    function calculerTotal() {
+        const tarif = parseFloat(tarifTotal.value) || 0;
+        const fournitures = parseFloat(fraisFournitures.value) || 0;
+        const deplacement = parseFloat(fraisDeplacement.value) || 0;
+        const total = tarif + fournitures + deplacement;
+        totalCalcule.textContent = total.toFixed(2) + ' €';
+    }
+
+    tarifTotal.addEventListener('input', calculerTotal);
+    fraisFournitures.addEventListener('input', calculerTotal);
+    fraisDeplacement.addEventListener('input', calculerTotal);
+</script>
+{% endblock %}

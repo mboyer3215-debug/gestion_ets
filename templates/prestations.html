@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Prestations - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h1 class="display-5 fw-bold text-dark mb-0">
+                <i class="fas fa-tasks text-primary"></i> Prestations
+            </h1>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-md-none">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+        <p class="text-muted">Gérez vos formations et services</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('index') }}" class="btn btn-secondary me-2 d-none d-md-inline-block fw-normal">
+            <i class="fas fa-home"></i> Accueil
+        </a>
+        <a href="{{ url_for('prestation_nouvelle') }}" class="btn btn-primary fw-normal">
+            <i class="fas fa-plus"></i> Nouvelle prestation
+        </a>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('prestations', statut='all') }}"
+               class="btn {% if filtre_statut == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="fas fa-list"></i> Toutes
+            </a>
+            <a href="{{ url_for('prestations', statut='Planifiée') }}"
+               class="btn {% if filtre_statut == 'Planifiée' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                <i class="fas fa-clock"></i> Planifiées
+            </a>
+            <a href="{{ url_for('prestations', statut='En cours') }}"
+               class="btn {% if filtre_statut == 'En cours' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                <i class="fas fa-spinner"></i> En cours
+            </a>
+            <a href="{{ url_for('prestations', statut='Terminée') }}"
+               class="btn {% if filtre_statut == 'Terminée' %}btn-success{% else %}btn-outline-success{% endif %}">
+                <i class="fas fa-check"></i> Terminées
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list"></i> Liste des prestations
+    </div>
+    <div class="card-body">
+        {% if prestations %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Titre</th>
+                            <th>Client</th>
+                            <th>Lieu</th>
+                            <th>Tarif</th>
+                            <th>Statut</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prestation in prestations %}
+                        <tr style="font-size: 0.875rem;">
+                            <td>{{ prestation.date_debut.strftime('%d/%m/%Y') }}</td>
+                            <td>{{ prestation.titre }}</td>
+                            <td>
+                                {% if prestation.client %}
+                                    <a href="{{ url_for('client_detail', client_id=prestation.client.id) }}">
+                                        {{ prestation.client.nom }}
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td>{{ prestation.lieu or '-' }}</td>
+                            <td>
+                                {% if prestation.tarif_total or prestation.frais_fournitures or prestation.frais_deplacement %}
+                                    {{ "%.2f"|format((prestation.tarif_total or 0) + (prestation.frais_fournitures or 0) + (prestation.frais_deplacement or 0)) }}€
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if prestation.statut == 'Planifiée' %}
+                                    <span class="badge bg-primary">{{ prestation.statut }}</span>
+                                {% elif prestation.statut == 'En cours' %}
+                                    <span class="badge bg-warning">{{ prestation.statut }}</span>
+                                {% elif prestation.statut == 'Terminée' %}
+                                    <span class="badge bg-success">{{ prestation.statut }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ prestation.statut }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}"
+                                       class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1.5;" title="Voir">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('prestation_modifier', prestation_id=prestation.id) }}"
+                                       class="btn" style="background-color: #ff8c00; color: white; border-color: #ff8c00; padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1.5;" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle"></i> Aucune prestation trouvée. Cliquez sur "Nouvelle prestation" pour en ajouter une.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

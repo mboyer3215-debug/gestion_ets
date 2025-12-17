@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+
+{% block title %}Liste des prospects - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h1 class="display-5 fw-bold text-dark mb-0">
+                <i class="fas fa-users text-info"></i> Liste des prospects
+            </h1>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-md-none">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+        <p class="text-muted">Gérez vos prospects et transformez-les en clients</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('export_prospects_csv') }}" class="btn btn-success me-2 d-none d-md-inline-block fw-normal">
+            <i class="fas fa-file-excel"></i> Export CSV
+        </a>
+        <a href="{{ url_for('prospection') }}" class="btn btn-secondary me-2 d-none d-md-inline-block fw-normal">
+            <i class="fas fa-search"></i> Recherche
+        </a>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary d-none d-md-inline-block fw-normal">
+            <i class="fas fa-home"></i> Accueil
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-light">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Prospects <span class="badge bg-info">{{ prospects|length }}</span></h5>
+    </div>
+    <div class="card-body">
+        <!-- Barre de recherche -->
+        <div class="mb-3">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchProspect" class="form-control" placeholder="Rechercher un prospect (nom, entreprise, email, téléphone, ville)...">
+            </div>
+        </div>
+
+        <!-- Filtres avancés -->
+        <div class="card mb-3 bg-light">
+            <div class="card-body py-2">
+                <div class="row align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label mb-1 small"><i class="fas fa-map-marker-alt"></i> Ville</label>
+                        <select id="filterVille" class="form-select form-select-sm">
+                            <option value="">Toutes les villes</option>
+                            {% for ville in villes_disponibles %}
+                                <option value="{{ ville }}">{{ ville }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1 small"><i class="fas fa-calendar"></i> Période</label>
+                        <select id="filterPeriode" class="form-select form-select-sm">
+                            <option value="">Toutes les périodes</option>
+                            <option value="7">7 derniers jours</option>
+                            <option value="30">30 derniers jours</option>
+                            <option value="90">3 derniers mois</option>
+                            <option value="180">6 derniers mois</option>
+                            <option value="365">Cette année</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label mb-1 small"><i class="fas fa-sort"></i> Trier par</label>
+                        <select id="sortBy" class="form-select form-select-sm">
+                            <option value="date-desc">Plus récent d'abord</option>
+                            <option value="date-asc">Plus ancien d'abord</option>
+                            <option value="nom-asc">Nom A-Z</option>
+                            <option value="nom-desc">Nom Z-A</option>
+                            <option value="ville-asc">Ville A-Z</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-sm btn-secondary w-100" onclick="resetFilters()">
+                            <i class="fas fa-redo"></i> Réinitialiser
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if prospects %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="prospectsTable">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="select-all"></th>
+                            <th>Nom</th>
+                            <th>Email</th>
+                            <th>Téléphone</th>
+                            <th>Ville</th>
+                            <th>Date ajout</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prospect in prospects %}
+                        <tr style="font-size: 0.875rem;">
+                            <td><input type="checkbox" class="prospect-checkbox" data-id="{{ prospect.id }}"></td>
+                            <td>
+                                <strong>
+                                    {% if prospect.prenom %}{{ prospect.prenom }} {% endif %}{{ prospect.nom }}
+                                </strong>
+                                {% if prospect.entreprise and prospect.entreprise != prospect.nom %}
+                                    <br><small class="text-muted">{{ prospect.entreprise }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if prospect.email %}
+                                    <a href="mailto:{{ prospect.email }}">{{ prospect.email }}</a>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td style="white-space: nowrap;">
+                                {% if prospect.telephone %}
+                                    <a href="tel:{{ prospect.telephone }}">{{ prospect.telephone }}</a>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ prospect.ville or '-' }}</td>
+                            <td style="white-space: nowrap;">
+                                <small class="text-muted">{{ prospect.date_creation.strftime('%d/%m/%Y') if prospect.date_creation else '-' }}</small>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a href="{{ url_for('client_detail', client_id=prospect.id) }}"
+                                       class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1.5;" title="Voir">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('client_modifier', client_id=prospect.id) }}"
+                                       class="btn" style="background-color: #ff8c00; color: white; border-color: #ff8c00; padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1.5;" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn btn-success" style="padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1.5;" title="Convertir en client" onclick="convertirEnClient({{ prospect.id }}, '{{ prospect.nom }}')">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-3">
+                <button id="btn-actions" class="btn btn-primary btn-sm" disabled>
+                    <i class="fas fa-users"></i> Actions sur la sélection (<span id="count-selection">0</span>)
+                </button>
+                <div class="btn-group ms-2" id="actions-group" style="display: none;">
+                    <button class="btn btn-info btn-sm" onclick="envoyerEmailSelection()">
+                        <i class="fas fa-envelope"></i> Envoyer email
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="convertirSelection()">
+                        <i class="fas fa-check"></i> Convertir en clients
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="supprimerSelection()">
+                        <i class="fas fa-trash"></i> Supprimer
+                    </button>
+                </div>
+            </div>
+        {% else %}
+            <div class="alert alert-info mb-0">
+                <i class="fas fa-info-circle"></i> Aucun prospect enregistré. Utilisez la <a href="{{ url_for('prospection') }}">recherche de prospection</a> pour en ajouter.
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Stocker les données des prospects pour le filtrage et le tri
+let prospectsData = [];
+
+// Initialiser les données au chargement
+document.addEventListener('DOMContentLoaded', function() {
+    const rows = document.querySelectorAll('#prospectsTable tbody tr');
+    rows.forEach(row => {
+        const dateText = row.querySelector('td:nth-child(6) small')?.textContent.trim();
+        const dateParts = dateText ? dateText.split('/') : null;
+        const dateCreation = dateParts ? new Date(dateParts[2], dateParts[1] - 1, dateParts[0]) : null;
+
+        prospectsData.push({
+            element: row,
+            nom: row.querySelector('td:nth-child(2) strong')?.textContent.trim() || '',
+            email: row.querySelector('td:nth-child(3)')?.textContent.trim() || '',
+            telephone: row.querySelector('td:nth-child(4)')?.textContent.trim() || '',
+            ville: row.querySelector('td:nth-child(5)')?.textContent.trim() || '',
+            dateCreation: dateCreation,
+            searchText: row.textContent.toLowerCase()
+        });
+    });
+});
+
+// Recherche en temps réel
+document.getElementById('searchProspect').addEventListener('keyup', applyFilters);
+
+// Filtres avancés
+document.getElementById('filterVille').addEventListener('change', applyFilters);
+document.getElementById('filterPeriode').addEventListener('change', applyFilters);
+document.getElementById('sortBy').addEventListener('change', applyFilters);
+
+function applyFilters() {
+    const searchTerm = document.getElementById('searchProspect').value.toLowerCase();
+    const filterVille = document.getElementById('filterVille').value;
+    const filterPeriode = parseInt(document.getElementById('filterPeriode').value);
+    const sortBy = document.getElementById('sortBy').value;
+
+    // Date limite pour le filtre de période
+    let dateLimite = null;
+    if (filterPeriode) {
+        dateLimite = new Date();
+        dateLimite.setDate(dateLimite.getDate() - filterPeriode);
+    }
+
+    // Filtrer les prospects
+    let filteredProspects = prospectsData.filter(prospect => {
+        // Filtre de recherche
+        if (searchTerm && !prospect.searchText.includes(searchTerm)) {
+            return false;
+        }
+
+        // Filtre par ville
+        if (filterVille && prospect.ville !== filterVille) {
+            return false;
+        }
+
+        // Filtre par période
+        if (dateLimite && prospect.dateCreation) {
+            if (prospect.dateCreation < dateLimite) {
+                return false;
+            }
+        }
+
+        return true;
+    });
+
+    // Trier les prospects
+    filteredProspects.sort((a, b) => {
+        switch(sortBy) {
+            case 'date-desc':
+                if (!a.dateCreation) return 1;
+                if (!b.dateCreation) return -1;
+                return b.dateCreation - a.dateCreation;
+            case 'date-asc':
+                if (!a.dateCreation) return 1;
+                if (!b.dateCreation) return -1;
+                return a.dateCreation - b.dateCreation;
+            case 'nom-asc':
+                return a.nom.localeCompare(b.nom);
+            case 'nom-desc':
+                return b.nom.localeCompare(a.nom);
+            case 'ville-asc':
+                return a.ville.localeCompare(b.ville);
+            default:
+                return 0;
+        }
+    });
+
+    // Masquer tous les prospects
+    prospectsData.forEach(p => p.element.style.display = 'none');
+
+    // Afficher les prospects filtrés dans l'ordre trié
+    const tbody = document.querySelector('#prospectsTable tbody');
+    filteredProspects.forEach(prospect => {
+        prospect.element.style.display = '';
+        tbody.appendChild(prospect.element);
+    });
+}
+
+function resetFilters() {
+    document.getElementById('searchProspect').value = '';
+    document.getElementById('filterVille').value = '';
+    document.getElementById('filterPeriode').value = '';
+    document.getElementById('sortBy').value = 'date-desc';
+    applyFilters();
+}
+
+// Gestion de la sélection
+const selectAll = document.getElementById('select-all');
+const checkboxes = document.querySelectorAll('.prospect-checkbox');
+const btnActions = document.getElementById('btn-actions');
+const actionsGroup = document.getElementById('actions-group');
+const countSelection = document.getElementById('count-selection');
+
+if (selectAll) {
+    selectAll.addEventListener('change', function() {
+        checkboxes.forEach(cb => cb.checked = this.checked);
+        updateSelection();
+    });
+}
+
+checkboxes.forEach(cb => {
+    cb.addEventListener('change', updateSelection);
+});
+
+function updateSelection() {
+    const selected = document.querySelectorAll('.prospect-checkbox:checked');
+    const count = selected.length;
+
+    countSelection.textContent = count;
+    btnActions.disabled = count === 0;
+    actionsGroup.style.display = count > 0 ? 'inline-block' : 'none';
+}
+
+// Convertir un prospect en client
+function convertirEnClient(prospectId, prospectNom) {
+    showConfirmDialog(`Convertir "${prospectNom}" en client confirmé ?`, function() {
+        fetch(`/api/prospect/${prospectId}/convertir`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage('Prospect converti en client avec succès !', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showMessage('Erreur lors de la conversion', 'danger');
+            }
+        })
+        .catch(err => {
+            showMessage('Erreur lors de la conversion', 'danger');
+            console.error(err);
+        });
+    });
+}
+
+// Convertir plusieurs prospects
+function convertirSelection() {
+    const selected = Array.from(document.querySelectorAll('.prospect-checkbox:checked'))
+                          .map(cb => cb.dataset.id);
+
+    if (selected.length === 0) return;
+
+    showConfirmDialog(`Convertir ${selected.length} prospect(s) en clients ?`, function() {
+        Promise.all(selected.map(id =>
+            fetch(`/api/prospect/${id}/convertir`, { method: 'POST' })
+                .then(r => r.json())
+        ))
+        .then(() => {
+            showMessage(`${selected.length} prospect(s) converti(s) en clients !`, 'success');
+            setTimeout(() => location.reload(), 1000);
+        })
+        .catch(err => {
+            showMessage('Erreur lors de la conversion', 'danger');
+            console.error(err);
+        });
+    });
+}
+
+// Supprimer les prospects sélectionnés
+function supprimerSelection() {
+    const selected = Array.from(document.querySelectorAll('.prospect-checkbox:checked'))
+                          .map(cb => cb.dataset.id);
+
+    if (selected.length === 0) return;
+
+    showConfirmDialog(`Supprimer définitivement ${selected.length} prospect(s) ?`, function() {
+        Promise.all(selected.map(id =>
+            fetch(`/client/${id}/supprimer`, { method: 'POST' })
+                .then(r => r.json())
+        ))
+        .then(() => {
+            showMessage(`${selected.length} prospect(s) supprimé(s) !`, 'success');
+            setTimeout(() => location.reload(), 1000);
+        })
+        .catch(err => {
+            showMessage('Erreur lors de la suppression', 'danger');
+            console.error(err);
+        });
+    });
+}
+
+// Envoyer email aux prospects sélectionnés
+function envoyerEmailSelection() {
+    const selected = Array.from(document.querySelectorAll('.prospect-checkbox:checked'));
+
+    if (selected.length === 0) return;
+
+    // Collecter les emails des prospects sélectionnés
+    const emails = [];
+    selected.forEach(cb => {
+        const row = cb.closest('tr');
+        const emailLink = row.querySelector('a[href^="mailto:"]');
+        if (emailLink) {
+            const email = emailLink.getAttribute('href').replace('mailto:', '');
+            if (email) emails.push(email);
+        }
+    });
+
+    if (emails.length === 0) {
+        showMessage('Aucun email trouvé pour les prospects sélectionnés', 'warning');
+        return;
+    }
+
+    // Ouvrir le client email avec BCC pour confidentialité
+    const mailtoLink = `mailto:?bcc=${emails.join(',')}&subject=&body=`;
+    window.location.href = mailtoLink;
+
+    showMessage(`${emails.length} email(s) ajouté(s) en copie cachée (BCC)`, 'info');
+}
+
+// Afficher une modale de confirmation
+function showConfirmDialog(message, onConfirm) {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade show d-block';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmation</h5>
+                    <button type="button" class="btn-close" data-action="cancel"></button>
+                </div>
+                <div class="modal-body">${message}</div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-action="cancel">Annuler</button>
+                    <button type="button" class="btn btn-primary" data-action="confirm">Confirmer</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    modal.querySelectorAll('[data-action="cancel"]').forEach(btn => {
+        btn.onclick = () => modal.remove();
+    });
+    modal.querySelector('[data-action="confirm"]').onclick = () => {
+        modal.remove();
+        onConfirm();
+    };
+}
+
+// Afficher un message
+function showMessage(message, type = 'info') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    setTimeout(() => alertDiv.remove(), 3000);
+}
+</script>
+
+{% endblock %}

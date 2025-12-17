@@ -1,0 +1,994 @@
+{% extends "base.html" %}
+
+{% block title %}{{ prestation.titre }} - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h1 class="display-6 fw-bold text-dark mb-0">
+                <i class="fas fa-file-alt text-primary"></i> {{ prestation.titre }}
+            </h1>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-md-none">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+        <p class="text-muted mb-0">
+            {% if prestation.theme_prestation %}
+            <span class="badge bg-success">{{ prestation.theme_prestation }}</span>
+            {% endif %}
+            {% if prestation.type_prestation %}
+            <span class="badge bg-info">{{ prestation.type_prestation }}</span>
+            {% endif %}
+            {% if prestation.statut == 'Planifiée' %}
+                <span class="badge bg-primary">{{ prestation.statut }}</span>
+            {% elif prestation.statut == 'En cours' %}
+                <span class="badge bg-warning">{{ prestation.statut }}</span>
+            {% elif prestation.statut == 'Terminée' %}
+                <span class="badge bg-success">{{ prestation.statut }}</span>
+            {% else %}
+                <span class="badge bg-secondary">{{ prestation.statut }}</span>
+            {% endif %}
+        </p>
+    </div>
+    <div class="col-md-4 text-md-end mt-3 mt-md-0">
+        <a href="{{ url_for('prestations') }}" class="btn btn-secondary me-2 d-none d-md-inline-block">
+            <i class="fas fa-list"></i> Liste
+        </a>
+        <a href="{{ url_for('prestation_modifier', prestation_id=prestation.id) }}" class="btn me-2" style="background-color: #ff8c00; color: white; border-color: #ff8c00;">
+            <i class="fas fa-edit"></i> Modifier
+        </a>
+        <form method="POST" action="{{ url_for('prestation_supprimer', prestation_id=prestation.id) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette prestation ?');">
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Supprimer
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- INFORMATIONS PRINCIPALES - PLEINE LARGEUR -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Informations principales</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- COLONNE GAUCHE -->
+                    <div class="col-md-6">
+                        <dl class="row mb-2">
+                            <dt class="col-sm-5">Client :</dt>
+                            <dd class="col-sm-7">
+                                {% if prestation.client %}
+                                    <a href="{{ url_for('client_detail', client_id=prestation.client.id) }}" class="text-decoration-none">
+                                        <strong>{% if prestation.client.prenom %}{{ prestation.client.prenom }} {% endif %}{{ prestation.client.nom }}</strong>
+                                        {% if prestation.client.entreprise and prestation.client.entreprise != prestation.client.nom %}<br><small class="text-muted">({{ prestation.client.entreprise }})</small>{% endif %}
+                                    </a>
+                                {% endif %}
+                            </dd>
+
+                            <dt class="col-sm-5">Thème :</dt>
+                            <dd class="col-sm-7">
+                                {% if prestation.theme_prestation %}
+                                    <span class="badge bg-success">{{ prestation.theme_prestation }}</span>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </dd>
+
+                            {% if prestation.type_prestation %}
+                            <dt class="col-sm-5">Type :</dt>
+                            <dd class="col-sm-7">{{ prestation.type_prestation }}</dd>
+                            {% endif %}
+
+                            {% if prestation.description %}
+                            <dt class="col-sm-5">Description :</dt>
+                            <dd class="col-sm-7"><small class="text-muted">{{ prestation.description }}</small></dd>
+                            {% endif %}
+
+                            <dt class="col-sm-5">Créée le :</dt>
+                            <dd class="col-sm-7"><small class="text-muted">{{ prestation.date_creation.strftime('%d/%m/%Y à %H:%M') if prestation.date_creation else '-' }}</small></dd>
+
+                            <dt class="col-sm-5">Synchro Google :</dt>
+                            <dd class="col-sm-7">
+                                {% if prestation.gcal_synced and prestation.gcal_event_id %}
+                                    <i class="fas fa-check-circle text-success"></i> <small class="text-success">Synchronisée</small>
+                                {% else %}
+                                    <i class="fas fa-times-circle text-danger"></i> <small class="text-muted">Non synchronisée</small>
+                                {% endif %}
+                            </dd>
+                        </dl>
+                    </div>
+
+                    <!-- COLONNE DROITE -->
+                    <div class="col-md-6">
+                        <dl class="row mb-2">
+                            <dt class="col-sm-5">Date de début :</dt>
+                            <dd class="col-sm-7">{{ prestation.date_debut.strftime('%d/%m/%Y à %H:%M') if prestation.date_debut else '-' }}</dd>
+
+                            <dt class="col-sm-5">Date de fin :</dt>
+                            <dd class="col-sm-7">{{ prestation.date_fin.strftime('%d/%m/%Y à %H:%M') if prestation.date_fin else '-' }}</dd>
+
+                            {% if prestation.creneau %}
+                            <dt class="col-sm-5">Créneau :</dt>
+                            <dd class="col-sm-7"><span class="badge bg-info">{{ prestation.creneau }}</span></dd>
+                            {% endif %}
+
+                            {% if prestation.duree_heures %}
+                            <dt class="col-sm-5">Durée :</dt>
+                            <dd class="col-sm-7">{{ prestation.duree_heures }}h</dd>
+                            {% endif %}
+
+                            {% if prestation.nb_stagiaires %}
+                            <dt class="col-sm-5">Stagiaires :</dt>
+                            <dd class="col-sm-7"><i class="fas fa-user-graduate text-primary"></i> {{ prestation.nb_stagiaires }}</dd>
+                            {% endif %}
+
+                            {% if prestation.nb_repas %}
+                            <dt class="col-sm-5">Repas :</dt>
+                            <dd class="col-sm-7"><i class="fas fa-utensils text-warning"></i> {{ prestation.nb_repas }}</dd>
+                            {% endif %}
+
+                            {% if prestation.nb_hebergements %}
+                            <dt class="col-sm-5">Hébergements :</dt>
+                            <dd class="col-sm-7"><i class="fas fa-bed text-info"></i> <strong>{{ prestation.nb_hebergements }}</strong></dd>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- PAVÉ DEMANDEUR - SI INFO DEMANDEUR PRÉSENTE -->
+                {% if prestation.demandeur or prestation.date_demande or prestation.reference_commande or prestation.adresse_prestation %}
+                <hr class="my-3">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="p-3 bg-light rounded">
+                            <h6 class="text-primary mb-3"><i class="fas fa-user-tie"></i> Informations demandeur</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <dl class="row mb-0">
+                                        {% if prestation.demandeur %}
+                                        <dt class="col-sm-5">Demandeur :</dt>
+                                        <dd class="col-sm-7"><strong>{{ prestation.demandeur }}</strong></dd>
+                                        {% endif %}
+
+                                        {% if prestation.date_demande %}
+                                        <dt class="col-sm-5">Date demande :</dt>
+                                        <dd class="col-sm-7">{{ prestation.date_demande.strftime('%d/%m/%Y') }}</dd>
+                                        {% endif %}
+
+                                        {% if prestation.reference_commande %}
+                                        <dt class="col-sm-5">Référence :</dt>
+                                        <dd class="col-sm-7">
+                                            <a href="{{ url_for('ouvrir_commande', prestation_id=prestation.id) }}"
+                                               class="btn btn-sm btn-outline-primary"
+                                               title="Ouvrir le bon de commande">
+                                                <i class="fas fa-file-pdf"></i> {{ prestation.reference_commande }}
+                                            </a>
+                                        </dd>
+                                        {% endif %}
+                                    </dl>
+                                </div>
+				<!-- Statut (modifiable) -->
+<div class="mb-3">
+    <label class="form-label fw-bold">
+        <i class="fas fa-info-circle text-primary"></i> Statut de la prestation
+    </label>
+    <form method="POST" action="{{ url_for('modifier_statut_prestation', prestation_id=prestation.id) }}" class="d-inline">
+        <div class="d-flex align-items-center gap-2">
+            <select class="form-select" name="nouveau_statut" id="statut_prestation" style="max-width: 250px;">
+                <option value="Planifiée" {% if prestation.statut == 'Planifiée' %}selected{% endif %}>📅 Planifiée</option>
+                <option value="En cours" {% if prestation.statut == 'En cours' %}selected{% endif %}>⚙️ En cours</option>
+                <option value="Terminée" {% if prestation.statut == 'Terminée' %}selected{% endif %}>✅ Terminée</option>
+                <option value="Annulée" {% if prestation.statut == 'Annulée' %}selected{% endif %}>❌ Annulée</option>
+            </select>
+            <button type="submit" class="btn btn-sm btn-primary">
+                <i class="fas fa-save"></i> Modifier
+            </button>
+        </div>
+    </form>
+    <small class="text-muted d-block mt-1">
+        <i class="fas fa-magic"></i> Mise à jour automatique: "Terminée" si date dépassée
+    </small>
+</div>
+
+                                <div class="col-md-6">
+                                    {% if prestation.adresse_prestation %}
+                                    <p class="mb-0">
+                                        <i class="fas fa-home text-primary"></i>
+                                        <strong>Adresse :</strong><br>
+                                        <span class="ms-4">{{ prestation.adresse_prestation }}</span>
+                                        {% if prestation.code_postal_prestation or prestation.ville_prestation %}
+                                        <br><span class="ms-4 text-muted">{{ prestation.code_postal_prestation }} {{ prestation.ville_prestation }}</span>
+                                        {% endif %}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- ADRESSE ET DISTANCE - PLEINE LARGEUR -->
+                {% if prestation.lieu or prestation.distance_km %}
+                <hr class="my-3">
+                <div class="row">
+                    <div class="col-md-8">
+                        {% if prestation.lieu %}
+                        <p class="mb-2">
+                            <i class="fas fa-map-marker-alt text-danger"></i>
+                            <strong>Lieu :</strong> {{ prestation.lieu }}
+                        </p>
+                        {% endif %}
+
+                        {% if prestation.distance_km %}
+                        <p class="mb-0">
+                            <i class="fas fa-route text-success"></i>
+                            <strong>Distance :</strong> <span class="text-primary fw-bold">{{ "%.1f"|format(prestation.distance_km) }} km</span>
+                            {% if prestation.duree_trajet_minutes %}
+                                (trajet :
+                                {% if prestation.duree_trajet_minutes >= 60 %}
+                                    {{ (prestation.duree_trajet_minutes // 60)|int }}h {{ (prestation.duree_trajet_minutes % 60)|int }}min
+                                {% else %}
+                                    {{ prestation.duree_trajet_minutes }} min
+                                {% endif %})
+                            {% endif %}
+                        </p>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-4 text-end">
+                        {% if prestation.adresse_prestation and prestation.ville_prestation %}
+                        <button type="button" id="btn_google_maps" class="btn btn-primary btn-sm w-100"
+                                data-destination="{{ prestation.adresse_prestation }}, {{ prestation.code_postal_prestation }} {{ prestation.ville_prestation }}">
+                            <i class="fas fa-map-marked-alt"></i> Itinéraire Google Maps
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- COMMENTAIRES -->
+                {% if prestation.commentaires %}
+                <hr class="my-3">
+                <div class="row">
+                    <div class="col-12">
+                        <p class="mb-0">
+                            <i class="fas fa-comment-alt text-info"></i>
+                            <strong>Commentaires :</strong><br>
+                            <span class="ms-4">{{ prestation.commentaires }}</span>
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SESSIONS MULTIPLES - PLEINE LARGEUR -->
+{% if prestation.sessions and prestation.sessions|length > 0 %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt"></i> Sessions de formation ({{ prestation.sessions|length }})</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Date de début</th>
+                                <th>Date de fin</th>
+                                <th>Durée</th>
+                                <th>Journée entière</th>
+                                <th>Google Calendar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in prestation.sessions %}
+                            <tr>
+                                <td><strong>Session {{ loop.index }}</strong></td>
+                                <td>
+                                    <i class="fas fa-calendar text-primary"></i>
+                                    {{ session.date_debut.strftime('%d/%m/%Y à %H:%M') if session.date_debut else '-' }}
+                                </td>
+                                <td>{{ session.date_fin.strftime('%d/%m/%Y à %H:%M') if session.date_fin else '-' }}</td>
+                                <td>
+                                    {% if session.duree_heures %}
+                                        <span class="badge bg-success">{{ session.duree_heures }}h</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if session.journee_complete %}
+                                        <i class="fas fa-check-circle text-success"></i> Oui
+                                    {% else %}
+                                        <i class="fas fa-times-circle text-muted"></i> Non
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if session.gcal_synced and session.gcal_event_id %}
+                                        <i class="fas fa-check-circle text-success"></i> <small class="text-success">Synchronisée</small>
+                                    {% else %}
+                                        <i class="fas fa-times-circle text-muted"></i> <small class="text-muted">Non sync.</small>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if prestation.sessions|length > 1 %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle"></i>
+                    Cette prestation comporte <strong>{{ prestation.sessions|length }} sessions</strong> sur des dates non consécutives.
+                    Chaque session apparaît séparément dans le calendrier.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- INFORMATIONS FINANCIÈRES - PLEINE LARGEUR -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-euro-sign"></i> Informations financières</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- COLONNE GAUCHE : Tarifs -->
+                    <div class="col-md-6">
+                        <h6 class="text-success mb-3"><i class="fas fa-calculator"></i> Détail des tarifs</h6>
+                        <dl class="row mb-0">
+                            {% if prestation.tarif_total %}
+                            <dt class="col-sm-5">Tarif prestation :</dt>
+                            <dd class="col-sm-7"><strong class="text-success">{{ "%.2f"|format(prestation.tarif_total) }} €</strong></dd>
+                            {% endif %}
+
+                            {% if prestation.frais_fournitures %}
+                            <dt class="col-sm-5">Frais fournitures :</dt>
+                            <dd class="col-sm-7">{{ "%.2f"|format(prestation.frais_fournitures) }} €</dd>
+                            {% endif %}
+
+                            {% if prestation.frais_deplacement %}
+                            <dt class="col-sm-5">Frais déplacement :</dt>
+                            <dd class="col-sm-7">{{ "%.2f"|format(prestation.frais_deplacement) }} €</dd>
+                            {% endif %}
+
+                            {% if prestation.tarif_total or prestation.frais_fournitures or prestation.frais_deplacement %}
+                            <dt class="col-sm-5">Total :</dt>
+                            <dd class="col-sm-7">
+                                <strong class="text-success fs-5">
+                                    {{ "%.2f"|format((prestation.tarif_total or 0) + (prestation.frais_fournitures or 0) + (prestation.frais_deplacement or 0)) }} €
+                                </strong>
+                            </dd>
+                            {% else %}
+                            <p class="text-muted"><i class="fas fa-info-circle"></i> Aucun tarif défini</p>
+                            {% endif %}
+                        </dl>
+                    </div>
+
+                                        <!-- COLONNE DROITE : Statuts et Actions -->
+                    <div class="col-md-6">
+                        <h6 class="text-success mb-3"><i class="fas fa-file-invoice"></i> Statuts et Actions</h6>
+
+                        <!-- Statut Facture + Bouton -->
+                        <div class="d-flex gap-2 mb-3">
+                            <div style="flex: 0 0 200px; min-width: 200px; max-width: 200px;">
+                                <label for="statut_facture" class="form-label small fw-bold mb-1">Statut facture :</label>
+                                <select class="form-select form-select-sm statut-select" style="width: 100% !important;" id="statut_facture" data-prestation-id="{{ prestation.id }}" data-type="facture">
+                                    <option value="" {% if not prestation.statut_facture %}selected{% endif %} style="color: #999;">-- Sélectionner --</option>
+                                    <option value="Non envoyée" {% if prestation.statut_facture == "Non envoyée" %}selected{% endif %}>Non envoyée</option>
+                                    <option value="Envoyée" {% if prestation.statut_facture == "Envoyée" %}selected{% endif %}>Envoyée</option>
+                                    <option value="En retard" {% if prestation.statut_facture == "En retard" %}selected{% endif %}>En retard</option>
+                                    <option value="Payée" {% if prestation.statut_facture == "Payée" %}selected{% endif %}>Payée</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1 1 auto;">
+                                <label class="form-label small fw-bold mb-1">&nbsp;</label>
+                                {% if prestation.statut_facture == "En retard" %}
+                                    <a href="{{ url_for('facture_saisie', prestation_id=prestation.id) }}" class="btn btn-danger btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-file-invoice me-1"></i>Facture
+                                    </a>
+                                {% elif prestation.statut_facture == "Non envoyée" %}
+                                    <a href="{{ url_for('facture_saisie', prestation_id=prestation.id) }}" class="btn btn-warning btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-file-invoice me-1"></i>Facture
+                                    </a>
+                                {% elif prestation.statut_facture == "Envoyée" %}
+                                    <a href="{{ url_for('facture_saisie', prestation_id=prestation.id) }}" class="btn btn-success btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-file-invoice me-1"></i>Facture
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('facture_saisie', prestation_id=prestation.id) }}" class="btn btn-primary btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-file-invoice me-1"></i>Facture
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Statut Devis + Bouton -->
+                        <div class="d-flex gap-2 mb-3">
+                            <div style="flex: 0 0 200px; min-width: 200px; max-width: 200px;">
+                                <label for="statut_devis" class="form-label small fw-bold mb-1">Statut devis :</label>
+                                <select class="form-select form-select-sm statut-select" style="width: 100% !important;" id="statut_devis" data-prestation-id="{{ prestation.id }}" data-type="devis">
+                                    <option value="" {% if not prestation.statut_devis %}selected{% endif %} style="color: #999;">-- Sélectionner --</option>
+                                    <option value="Non envoyé" {% if prestation.statut_devis == "Non envoyé" %}selected{% endif %}>Non envoyé</option>
+                                    <option value="Envoyé" {% if prestation.statut_devis == "Envoyé" %}selected{% endif %}>Envoyé</option>
+                                    <option value="Accepté" {% if prestation.statut_devis == "Accepté" %}selected{% endif %}>Accepté</option>
+                                    <option value="Refusé" {% if prestation.statut_devis == "Refusé" %}selected{% endif %}>Refusé</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1 1 auto;">
+                                <label class="form-label small fw-bold mb-1">&nbsp;</label>
+                                {% if prestation.statut_devis == "Non envoyé" %}
+                                    <a href="{{ url_for('devis_saisie', prestation_id=prestation.id) }}" class="btn btn-warning btn-sm w-100" style="background-color: #ffc107; height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-file-contract me-1"></i>Devis
+                                    </a>
+                                {% elif prestation.statut_devis == "Envoyé" %}
+                                    <a href="{{ url_for('devis_saisie', prestation_id=prestation.id) }}" class="btn btn-warning btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-file-contract me-1"></i>Devis
+                                    </a>
+                                {% elif prestation.statut_devis == "Refusé" %}
+                                    <a href="{{ url_for('devis_saisie', prestation_id=prestation.id) }}" class="btn btn-danger btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-file-contract me-1"></i>Devis
+                                    </a>
+                                {% elif prestation.statut_devis == "Accepté" %}
+                                    <a href="{{ url_for('devis_saisie', prestation_id=prestation.id) }}" class="btn btn-success btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-file-contract me-1"></i>Devis
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('devis_saisie', prestation_id=prestation.id) }}" class="btn btn-primary btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-file-contract me-1"></i>Devis
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Statut Paiement + Bouton -->
+                        <div class="d-flex gap-2">
+                            <div style="flex: 0 0 200px; min-width: 200px; max-width: 200px;">
+                                <label for="statut_paiement" class="form-label small fw-bold mb-1">Statut paiement :</label>
+                                <select class="form-select form-select-sm statut-select" style="width: 100% !important;" id="statut_paiement" data-prestation-id="{{ prestation.id }}" data-type="paiement">
+                                    <option value="" {% if not prestation.statut_paiement %}selected{% endif %} style="color: #999;">-- Sélectionner --</option>
+                                    <option value="En attente" {% if prestation.statut_paiement == "En attente" %}selected{% endif %}>En attente</option>
+                                    <option value="En retard" {% if prestation.statut_paiement == "En retard" %}selected{% endif %}>En retard</option>
+                                    <option value="Partiel" {% if prestation.statut_paiement == "Partiel" %}selected{% endif %}>Partiel</option>
+                                    <option value="Payé" {% if prestation.statut_paiement == "Payé" %}selected{% endif %}>Payé</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1 1 auto;">
+                                <label class="form-label small fw-bold mb-1">&nbsp;</label>
+                                {% if prestation.statut_paiement == "En attente" %}
+                                    <a href="{{ url_for('paiement_saisie') }}?prestation_id={{ prestation.id }}" class="btn btn-warning btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-money-bill-wave me-1"></i>Paiement
+                                    </a>
+                                {% elif prestation.statut_paiement == "Payé" %}
+                                    <a href="{{ url_for('paiement_saisie') }}?prestation_id={{ prestation.id }}" class="btn btn-success btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-money-bill-wave me-1"></i>Paiement
+                                    </a>
+                                {% elif prestation.statut_paiement == "Partiel" %}
+                                    <a href="{{ url_for('paiement_saisie') }}?prestation_id={{ prestation.id }}" class="btn btn-warning btn-sm w-100" style="text-decoration: line-through; height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-money-bill-wave me-1"></i>Paiement
+                                    </a>
+                                {% elif prestation.statut_paiement == "En retard" %}
+                                    <a href="{{ url_for('paiement_saisie') }}?prestation_id={{ prestation.id }}" class="btn btn-danger btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-money-bill-wave me-1"></i>Paiement
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('paiement_saisie') }}?prestation_id={{ prestation.id }}" class="btn btn-primary btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-money-bill-wave me-1"></i>Paiement
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <!-- Section Gestion des tarifs détaillés -->
+                <div class="row">
+                    <div class="col-12">
+                        <button class="btn btn-success w-100" type="button" data-bs-toggle="collapse" data-bs-target="#tarifsCollapse" aria-expanded="false" aria-controls="tarifsCollapse">
+                            <i class="fas fa-calculator"></i> Gérer les tarifs détaillés
+                        </button>
+
+                        <div class="collapse mt-3" id="tarifsCollapse">
+                            <form method="POST" action="{{ url_for('prestation_sauvegarder_tarifs', prestation_id=prestation.id) }}" id="form_tarifs">
+                                <!-- Section 1: Lignes de déplacement -->
+                                <div class="card mb-3 border-primary">
+                                    <div class="card-header bg-primary bg-opacity-10">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0"><i class="fas fa-car"></i> Frais de déplacement</h6>
+                                            <span class="badge bg-primary" id="total-deplacement-badge">0.00 €</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-hover mb-2">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th style="width: 15%;">Code</th>
+                                                        <th style="width: 30%;">Type</th>
+                                                        <th style="width: 15%;">Qté</th>
+                                                        <th style="width: 18%;">PU HT</th>
+                                                        <th style="width: 18%;">Total HT</th>
+                                                        <th style="width: 4%;"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="lignes-deplacement">
+                                                    <!-- Les lignes seront ajoutées dynamiquement -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="ajouterLigneDeplacement()">
+                                            <i class="fas fa-plus"></i> Ajouter une ligne
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Section 2: Lignes de fourniture -->
+                                <div class="card mb-3 border-warning">
+                                    <div class="card-header bg-warning bg-opacity-10">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0"><i class="fas fa-box"></i> Frais de fourniture</h6>
+                                            <span class="badge bg-warning text-dark" id="total-fourniture-badge">0.00 €</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-hover mb-2">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th style="width: 15%;">Code</th>
+                                                        <th style="width: 30%;">Type</th>
+                                                        <th style="width: 15%;">Qté</th>
+                                                        <th style="width: 18%;">PU HT</th>
+                                                        <th style="width: 18%;">Total HT</th>
+                                                        <th style="width: 4%;"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="lignes-fourniture">
+                                                    <!-- Les lignes seront ajoutées dynamiquement -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-warning" onclick="ajouterLigneFourniture()">
+                                            <i class="fas fa-plus"></i> Ajouter une ligne
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Section 3: Lignes de prestation -->
+                                <div class="card mb-3 border-info">
+                                    <div class="card-header bg-info bg-opacity-10">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0"><i class="fas fa-tasks"></i> Tarif prestation</h6>
+                                            <span class="badge bg-info" id="total-prestation-badge">0.00 €</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-2">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-hover mb-2">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th style="width: 15%;">Code</th>
+                                                        <th style="width: 30%;">Type</th>
+                                                        <th style="width: 15%;">Qté</th>
+                                                        <th style="width: 18%;">PU HT</th>
+                                                        <th style="width: 18%;">Total HT</th>
+                                                        <th style="width: 4%;"></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="lignes-prestation">
+                                                    <!-- Les lignes seront ajoutées dynamiquement -->
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-info" onclick="ajouterLignePrestation()">
+                                            <i class="fas fa-plus"></i> Ajouter une ligne
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fas fa-save"></i> Sauvegarder les tarifs
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DOCUMENTS - PLEINE LARGEUR -->
+{% if prestation.documents %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="fas fa-file"></i> Documents ({{ prestation.documents|length }})</h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for doc in prestation.documents %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-file-alt text-primary"></i>
+                            <strong>{{ doc.nom }}</strong>
+                            {% if doc.description %}
+                            <br><small class="text-muted">{{ doc.description }}</small>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <a href="{{ url_for('document_telecharger', document_id=doc.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-download"></i>
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- -->
+<script>
+    // Données des lignes de tarifs générées côté serveur
+    window.PRESTATION_LIGNES_DEPLACEMENT = [
+        {% if prestation and prestation.lignes_tarif_deplacement %}
+            {% for ligne in prestation.lignes_tarif_deplacement %}
+                {code: {{ (ligne.code | tojson) if ligne.code else '""' }}, type: {{ (ligne.type | tojson) if ligne.type else '""' }}, nbre: {{ ligne.nbre or 1 }}, pu_ht: {{ ligne.pu_ht or 0 }}}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        {% endif %}
+    ];
+    window.PRESTATION_LIGNES_FOURNITURE = [
+        {% if prestation and prestation.lignes_tarif_fourniture %}
+            {% for ligne in prestation.lignes_tarif_fourniture %}
+                {code: {{ (ligne.code | tojson) if ligne.code else '""' }}, type: {{ (ligne.type | tojson) if ligne.type else '""' }}, nbre: {{ ligne.nbre or 1 }}, pu_ht: {{ ligne.pu_ht or 0 }}}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        {% endif %}
+    ];
+    window.PRESTATION_LIGNES_PRESTATION = [
+        {% if prestation and prestation.lignes_tarif_prestation %}
+            {% for ligne in prestation.lignes_tarif_prestation %}
+                {code: {{ (ligne.code | tojson) if ligne.code else '""' }}, type: {{ (ligne.type | tojson) if ligne.type else '""' }}, nbre: {{ ligne.nbre or 1 }}, pu_ht: {{ ligne.pu_ht or 0 }}}{% if not loop.last %},{% endif %}
+            {% endfor %}
+        {% endif %}
+    ];
+</script>
+<!-- -->
+
+<script>
+    // Bouton Google Maps
+    const btnGoogleMaps = document.getElementById('btn_google_maps');
+    if (btnGoogleMaps) {
+        btnGoogleMaps.addEventListener('click', function() {
+            const destination = this.getAttribute('data-destination');
+
+            // Récupérer l'adresse de l'entreprise depuis l'API
+            fetch('/api/entreprise/adresse')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const origin = data.adresse;
+                        const url = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(destination)}&travelmode=driving`;
+                        window.open(url, '_blank');
+                    } else {
+                        console.error('Adresse entreprise non configurée');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                });
+        });
+    }
+
+
+    // Gestion des changements de statuts (AJAX)
+    const statutSelects = document.querySelectorAll('.statut-select');
+
+    statutSelects.forEach(select => {
+        select.addEventListener('change', function() {
+            const prestationId = this.getAttribute('data-prestation-id');
+            const type = this.getAttribute('data-type');
+            const nouveauStatut = this.value;
+
+            // Envoyer la requête AJAX
+            fetch(`/api/prestation/${prestationId}/statut`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: type,
+                    statut: nouveauStatut
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Mettre à jour la couleur du bouton instantanément
+                    const container = this.closest('.d-flex');
+                    const bouton = container.querySelector('a[href]');
+
+                    // Retirer toutes les classes de couleur
+                    bouton.classList.remove('btn-primary', 'btn-warning', 'btn-danger', 'btn-success', 'btn-info');
+
+                    // Ajouter la nouvelle classe selon le statut
+                    if (type === 'facture') {
+                        if (nouveauStatut === 'En retard') {
+                            bouton.classList.add('btn-danger');
+                        } else if (nouveauStatut === 'Non envoyée') {
+                            bouton.classList.add('btn-warning');
+                        } else if (nouveauStatut === 'Envoyée') {
+                            bouton.classList.add('btn-success');
+                        } else {
+                            bouton.classList.add('btn-primary');
+                        }
+                    } else if (type === 'devis') {
+                        if (nouveauStatut === 'Non envoyé') {
+                            bouton.classList.add('btn-warning');
+                            bouton.style.backgroundColor = '#ffc107';
+                        } else if (nouveauStatut === 'Envoyé') {
+                            bouton.classList.add('btn-warning');
+                            bouton.style.backgroundColor = '';
+                        } else if (nouveauStatut === 'Refusé') {
+                            bouton.classList.add('btn-danger');
+                            bouton.style.backgroundColor = '';
+                        } else if (nouveauStatut === 'Accepté') {
+                            bouton.classList.add('btn-success');
+                            bouton.style.backgroundColor = '';
+                        } else {
+                            bouton.classList.add('btn-primary');
+                            bouton.style.backgroundColor = '';
+                        }
+                    } else if (type === 'paiement') {
+                        if (nouveauStatut === 'En attente') {
+                            bouton.classList.add('btn-warning');
+                            bouton.style.textDecoration = '';
+                        } else if (nouveauStatut === 'Payé') {
+                            bouton.classList.add('btn-success');
+                            bouton.style.textDecoration = '';
+                        } else if (nouveauStatut === 'Partiel') {
+                            bouton.classList.add('btn-warning');
+                            bouton.style.textDecoration = 'line-through';
+                        } else if (nouveauStatut === 'En retard') {
+                            bouton.classList.add('btn-danger');
+                            bouton.style.textDecoration = '';
+                        } else {
+                            bouton.classList.add('btn-primary');
+                            bouton.style.textDecoration = '';
+                        }
+                    }
+
+                    // Afficher un message de confirmation temporaire
+                    const toast = document.createElement('div');
+                    toast.className = 'position-fixed bottom-0 end-0 p-3';
+                    toast.style.zIndex = '9999';
+                    toast.innerHTML = `
+                        <div class="toast show bg-success text-white" role="alert">
+                            <div class="toast-body">
+                                <i class="fas fa-check-circle"></i> Statut ${type} mis à jour : ${nouveauStatut}
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(toast);
+
+                    // Retirer le toast après 3 secondes
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 3000);
+                } else {
+                    // Afficher un message d'erreur
+                    const toast = document.createElement('div');
+                    toast.className = 'position-fixed bottom-0 end-0 p-3';
+                    toast.style.zIndex = '9999';
+                    toast.innerHTML = `
+                        <div class="toast show bg-danger text-white" role="alert">
+                            <div class="toast-body">
+                                <i class="fas fa-exclamation-circle"></i> Erreur lors de la mise à jour du statut
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(toast);
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 3000);
+                }
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                // Afficher un message d'erreur
+                const toast = document.createElement('div');
+                toast.className = 'position-fixed bottom-0 end-0 p-3';
+                toast.style.zIndex = '9999';
+                toast.innerHTML = `
+                    <div class="toast show bg-danger text-white" role="alert">
+                        <div class="toast-body">
+                            <i class="fas fa-exclamation-circle"></i> Erreur lors de la mise à jour du statut
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+            });
+        });
+    });
+
+    // ============================================================================
+    // GESTION DES TARIFS DÉTAILLÉS
+    // ============================================================================
+
+    // Compteurs pour les lignes
+    let compteurDeplacement = 0;
+    let compteurFourniture = 0;
+    let compteurPrestation = 0;
+
+    // Ajouter une ligne de déplacement
+    function ajouterLigneDeplacement(code = '', type = '', nbre = 1, pu_ht = 0) {
+        const tbody = document.getElementById('lignes-deplacement');
+        const id = ++compteurDeplacement;
+
+        const tr = document.createElement('tr');
+        tr.id = `deplacement-${id}`;
+        tr.innerHTML = `
+            <td><input type="text" class="form-control form-control-sm text-base" name="deplacement_code[]" value="${code}" placeholder="REP, KM"></td>
+            <td><input type="text" class="form-control form-control-sm text-base" name="deplacement_type[]" value="${type}" placeholder="REPAS, PROXIMITE"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="deplacement_nbre[]" value="${nbre}" onchange="calculerLigneDeplacement(${id})" min="0"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="deplacement_pu_ht[]" value="${pu_ht}" onchange="calculerLigneDeplacement(${id})" min="0"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm bg-light text-base" name="deplacement_pt_ht[]" value="${(nbre * pu_ht).toFixed(2)}" readonly></td>
+            <td><button type="button" class="btn btn-sm btn-danger" onclick="supprimerLigne('deplacement-${id}')"><i class="fas fa-trash"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+        calculerTotaux();
+    }
+
+    // Ajouter une ligne de fourniture
+    function ajouterLigneFourniture(code = '', type = '', nbre = 1, pu_ht = 0) {
+        const tbody = document.getElementById('lignes-fourniture');
+        const id = ++compteurFourniture;
+
+        const tr = document.createElement('tr');
+        tr.id = `fourniture-${id}`;
+        tr.innerHTML = `
+            <td><input type="text" class="form-control form-control-sm text-base" name="fourniture_code[]" value="${code}" placeholder="INCENDIE"></td>
+            <td><input type="text" class="form-control form-control-sm text-base" name="fourniture_type[]" value="${type}" placeholder="EXTINCTEUR_EAU"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="fourniture_nbre[]" value="${nbre}" onchange="calculerLigneFourniture(${id})" min="0"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="fourniture_pu_ht[]" value="${pu_ht}" onchange="calculerLigneFourniture(${id})" min="0"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm bg-light text-base" name="fourniture_pt_ht[]" value="${(nbre * pu_ht).toFixed(2)}" readonly></td>
+            <td><button type="button" class="btn btn-sm btn-danger" onclick="supprimerLigne('fourniture-${id}')"><i class="fas fa-trash"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+        calculerTotaux();
+    }
+
+    // Ajouter une ligne de prestation
+    function ajouterLignePrestation(code = '', type = '', nbre = 1, pu_ht = 0) {
+        const tbody = document.getElementById('lignes-prestation');
+        const id = ++compteurPrestation;
+
+        const tr = document.createElement('tr');
+        tr.id = `prestation-${id}`;
+        tr.innerHTML = `
+            <td><input type="text" class="form-control form-control-sm text-base" name="prestation_code[]" value="${code}" placeholder="INCENDIE"></td>
+            <td><input type="text" class="form-control form-control-sm text-base" name="prestation_type[]" value="${type}" placeholder="EPI"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="prestation_nbre[]" value="${nbre}" onchange="calculerLignePrestation(${id})" min="0"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="prestation_pu_ht[]" value="${pu_ht}" onchange="calculerLignePrestation(${id})" min="0"></td>
+            <td><input type="number" step="0.01" class="form-control form-control-sm bg-light text-base" name="prestation_pt_ht[]" value="${(nbre * pu_ht).toFixed(2)}" readonly></td>
+            <td><button type="button" class="btn btn-sm btn-danger" onclick="supprimerLigne('prestation-${id}')"><i class="fas fa-trash"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+        calculerTotaux();
+    }
+
+    // Supprimer une ligne
+    function supprimerLigne(id) {
+        const ligne = document.getElementById(id);
+        if (ligne) {
+            ligne.remove();
+            calculerTotaux();
+        }
+    }
+
+    // Calculer le total d'une ligne de déplacement
+    function calculerLigneDeplacement(id) {
+        const tr = document.getElementById(`deplacement-${id}`);
+        const inputs = tr.querySelectorAll('input[type="number"]');
+        const nbre = parseFloat(inputs[0].value) || 0;
+        const pu = parseFloat(inputs[1].value) || 0;
+        inputs[2].value = (nbre * pu).toFixed(2);
+        calculerTotaux();
+    }
+
+    // Calculer le total d'une ligne de fourniture
+    function calculerLigneFourniture(id) {
+        const tr = document.getElementById(`fourniture-${id}`);
+        const inputs = tr.querySelectorAll('input[type="number"]');
+        const nbre = parseFloat(inputs[0].value) || 0;
+        const pu = parseFloat(inputs[1].value) || 0;
+        inputs[2].value = (nbre * pu).toFixed(2);
+        calculerTotaux();
+    }
+
+    // Calculer le total d'une ligne de prestation
+    function calculerLignePrestation(id) {
+        const tr = document.getElementById(`prestation-${id}`);
+        const inputs = tr.querySelectorAll('input[type="number"]');
+        const nbre = parseFloat(inputs[0].value) || 0;
+        const pu = parseFloat(inputs[1].value) || 0;
+        inputs[2].value = (nbre * pu).toFixed(2);
+        calculerTotaux();
+    }
+
+    // Calculer les totaux globaux
+    function calculerTotaux() {
+        // Calculer total déplacement
+        let totalDeplacement = 0;
+        document.querySelectorAll('#lignes-deplacement input[name="deplacement_pt_ht[]"]').forEach(input => {
+            totalDeplacement += parseFloat(input.value) || 0;
+        });
+
+        // Calculer total fourniture
+        let totalFourniture = 0;
+        document.querySelectorAll('#lignes-fourniture input[name="fourniture_pt_ht[]"]').forEach(input => {
+            totalFourniture += parseFloat(input.value) || 0;
+        });
+
+        // Calculer total prestation
+        let totalPrestation = 0;
+        document.querySelectorAll('#lignes-prestation input[name="prestation_pt_ht[]"]').forEach(input => {
+            totalPrestation += parseFloat(input.value) || 0;
+        });
+
+        // Mettre à jour les badges
+        document.getElementById('total-deplacement-badge').textContent = totalDeplacement.toFixed(2) + ' €';
+        document.getElementById('total-fourniture-badge').textContent = totalFourniture.toFixed(2) + ' €';
+        document.getElementById('total-prestation-badge').textContent = totalPrestation.toFixed(2) + ' €';
+    }
+
+    // Charger les lignes existantes depuis la prestation
+    function chargerLignesExistantes() {
+        // Les données sont chargées depuis les variables globales définies plus haut
+        window.PRESTATION_LIGNES_DEPLACEMENT.forEach(ligne => {
+            ajouterLigneDeplacement(ligne.code || '', ligne.type || '', ligne.nbre || 1, ligne.pu_ht || 0);
+        });
+
+        window.PRESTATION_LIGNES_FOURNITURE.forEach(ligne => {
+            ajouterLigneFourniture(ligne.code || '', ligne.type || '', ligne.nbre || 1, ligne.pu_ht || 0);
+        });
+
+        window.PRESTATION_LIGNES_PRESTATION.forEach(ligne => {
+            ajouterLignePrestation(ligne.code || '', ligne.type || '', ligne.nbre || 1, ligne.pu_ht || 0);
+        });
+    }
+
+    // Initialiser au chargement du collapse
+    document.getElementById('tarifsCollapse').addEventListener('shown.bs.collapse', function () {
+        if (compteurDeplacement === 0 && compteurFourniture === 0 && compteurPrestation === 0) {
+            chargerLignesExistantes();
+        }
+    });
+</script>
+{% endblock %}

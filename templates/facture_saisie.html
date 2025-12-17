@@ -1,0 +1,908 @@
+{% extends "base.html" %}
+
+{% block title %}Saisie Facture - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold text-info">
+                    <i class="fas fa-file-invoice"></i> {% if facture %}Modifier la facture{% else %}Créer une facture{% endif %}
+                </h1>
+                <p class="text-muted">Prestation : {{ prestation.titre }}</p>
+                {% if facture %}
+                <p class="text-success fw-bold">
+                    <i class="fas fa-check-circle"></i> Facture {{ facture.reference_facture }} - Créée le {{ facture.date_facture.strftime('%d/%m/%Y') if facture.date_facture else '-' }}
+                </p>
+                {% endif %}
+            </div>
+            <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left"></i> Retour à la prestation
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Alerte si une facture existe déjà -->
+{% if facture_existante and not facture %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning d-flex justify-content-between align-items-center" role="alert">
+            <div>
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>Attention !</strong> Une facture existe déjà pour cette prestation ({{ facture_existante.reference_facture }}).
+            </div>
+            <div>
+                <a href="{{ url_for('facture_saisie', prestation_id=prestation.id, facture_id=facture_existante.id) }}" class="btn btn-warning btn-sm me-2">
+                    <i class="fas fa-edit"></i> Modifier l'existante
+                </a>
+                <a href="{{ url_for('facture_saisie', prestation_id=prestation.id, nouvelle='oui') }}" class="btn btn-success btn-sm">
+                    <i class="fas fa-plus"></i> Créer une nouvelle facture
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Informations prestation -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0"><i class="fas fa-info-circle"></i> Informations Prestation</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Client:</strong><br>
+                        {{ prestation.client.entreprise if prestation.client else '-' }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Date prestation:</strong><br>
+                        {{ prestation.date_debut.strftime('%d/%m/%Y') if prestation.date_debut else '-' }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Type:</strong><br>
+                        {{ prestation.type_prestation or '-' }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Délai paiement:</strong><br>
+                        {{ prestation.client.delai_paiement_jours if prestation.client else 30 }} jours
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulaire -->
+<form method="POST" id="form_facture">
+    <div class="row">
+        <!-- COLONNE GAUCHE : Informations générales -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fas fa-file"></i> Informations de la facture</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Référence (auto-générée ou affichée si facture existe) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Référence facture</label>
+                        <input type="text" class="form-control {% if facture %}bg-success text-white fw-bold{% else %}bg-light{% endif %}" id="reference_facture" readonly
+                               value="{% if facture %}{{ facture.reference_facture }}{% endif %}">
+                        <small class="text-muted">{% if facture %}Facture créée{% else %}Générée automatiquement au format FA-YYYY-MM-NNN{% endif %}</small>
+                    </div>
+
+                    <!-- Date facture (auto-remplie ou depuis facture existante) -->
+                    <div class="mb-3">
+                        <label for="date_facture" class="form-label fw-bold">
+                            Date de la facture <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" class="form-control" id="date_facture" name="date_facture"
+                               value="{% if facture %}{{ facture.date_facture.strftime('%Y-%m-%d') }}{% else %}{{ datetime.now().strftime('%Y-%m-%d') }}{% endif %}" required>
+                    </div>
+
+                    <!-- Date envoi -->
+                    <div class="mb-3">
+                        <label for="date_envoi" class="form-label fw-bold">Date d'envoi</label>
+                        <input type="date" class="form-control" id="date_envoi" name="date_envoi"
+                               value="{% if facture and facture.date_envoi %}{{ facture.date_envoi.strftime('%Y-%m-%d') }}{% endif %}">
+                        <small class="text-muted">Sera remplie automatiquement lors de l'envoi</small>
+                    </div>
+
+                    <!-- Email destinataire -->
+                    <div class="mb-3">
+                        <label for="mail_envoi" class="form-label fw-bold">Email destinataire</label>
+                        <input type="email" class="form-control" id="mail_envoi" name="mail_envoi"
+                               value="{% if facture and facture.mail_envoi %}{{ facture.mail_envoi }}{% elif prestation.client %}{{ prestation.client.email }}{% endif %}"
+                               placeholder="client@exemple.fr">
+                    </div>
+
+                    <!-- Domiciliation bancaire (récupéré de l'entreprise) -->
+                    <div class="mb-3">
+                        <label for="domiciliation_bancaire" class="form-label fw-bold">Domiciliation bancaire</label>
+                        <input type="text" class="form-control bg-light" id="domiciliation_bancaire" name="rib"
+                               value="{{ entreprise.domiciliation_bancaire if entreprise and entreprise.domiciliation_bancaire else 'Non configuré' }}" readonly>
+                        <small class="text-muted">Récupéré depuis les informations de l'entreprise</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLONNE DROITE : Calcul du prix -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-calculator"></i> Calcul du prix</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Bouton pour recharger depuis la prestation -->
+                    <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+                        <span><i class="fas fa-sync"></i> Les tarifs ont été modifiés dans la prestation ?</span>
+                        <button type="button" class="btn btn-sm btn-info" onclick="rechargerDepuisPrestation()">
+                            <i class="fas fa-download"></i> Recharger depuis la prestation
+                        </button>
+                    </div>
+
+                    <!-- Section 1: Lignes de déplacement -->
+                    <div class="card mb-3 border-primary">
+                        <div class="card-header bg-primary bg-opacity-10">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="fas fa-car"></i> Frais de déplacement</h6>
+                                <span class="badge bg-primary" id="total-deplacement-badge">0.00 €</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-2" id="table-deplacement">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 15%;">Code</th>
+                                            <th style="width: 30%;">Type</th>
+                                            <th style="width: 15%;">Qté</th>
+                                            <th style="width: 18%;">PU HT</th>
+                                            <th style="width: 18%;">Total HT</th>
+                                            <th style="width: 4%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lignes-deplacement">
+                                        <!-- Les lignes seront ajoutées dynamiquement -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="ajouterLigneDeplacement()">
+                                <i class="fas fa-plus"></i> Ajouter une ligne
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Lignes de fourniture -->
+                    <div class="card mb-3 border-warning">
+                        <div class="card-header bg-warning bg-opacity-10">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="fas fa-box"></i> Frais de fourniture</h6>
+                                <span class="badge bg-warning text-dark" id="total-fourniture-badge">0.00 €</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-2" id="table-fourniture">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 15%;">Code</th>
+                                            <th style="width: 30%;">Type</th>
+                                            <th style="width: 15%;">Qté</th>
+                                            <th style="width: 18%;">PU HT</th>
+                                            <th style="width: 18%;">Total HT</th>
+                                            <th style="width: 4%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lignes-fourniture">
+                                        <!-- Les lignes seront ajoutées dynamiquement -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="ajouterLigneFourniture()">
+                                <i class="fas fa-plus"></i> Ajouter une ligne
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Lignes de prestation -->
+                    <div class="card mb-3 border-info">
+                        <div class="card-header bg-info bg-opacity-10">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="fas fa-tasks"></i> Tarif prestation</h6>
+                                <span class="badge bg-info" id="total-prestation-badge">0.00 €</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-2" id="table-prestation">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 15%;">Code</th>
+                                            <th style="width: 30%;">Type</th>
+                                            <th style="width: 15%;">Qté</th>
+                                            <th style="width: 18%;">PU HT</th>
+                                            <th style="width: 18%;">Total HT</th>
+                                            <th style="width: 4%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lignes-prestation">
+                                        <!-- Les lignes seront ajoutées dynamiquement -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="ajouterLignePrestation()">
+                                <i class="fas fa-plus"></i> Ajouter une ligne
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Acompte -->
+                    <div class="mb-3">
+                        <label for="acompte_prix_ht" class="form-label fw-bold">Acompte HT</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" class="form-control" id="acompte_prix_ht" name="acompte_prix_ht"
+                                   value="{% if facture %}{{ facture.acompte_prix_ht or 0 }}{% else %}0{% endif %}" onchange="calculerTotaux()">
+                            <span class="input-group-text">€</span>
+                        </div>
+                        <small class="text-muted">Montant déjà versé à déduire</small>
+                    </div>
+
+                    <!-- Remise -->
+                    <div class="mb-3">
+                        <label for="remise_ht" class="form-label fw-bold">Remise HT</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" class="form-control" id="remise_ht" name="remise_ht"
+                                   value="{% if facture %}{{ facture.remise_ht or 0 }}{% else %}0{% endif %}" onchange="calculerTotaux()">
+                            <span class="input-group-text">€</span>
+                        </div>
+                    </div>
+
+                    <!-- Majoration -->
+                    <div class="mb-3">
+                        <label for="majoration" class="form-label fw-bold">Majoration HT</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" class="form-control" id="majoration" name="majoration"
+                                   value="{% if facture %}{{ facture.majoration or 0 }}{% else %}0{% endif %}" onchange="calculerTotaux()">
+                            <span class="input-group-text">€</span>
+                        </div>
+                        <small class="text-muted">Frais supplémentaires</small>
+                    </div>
+
+                    <!-- TVA -->
+                    <div class="mb-3">
+                        <label for="tva_applicable" class="form-label fw-bold">TVA applicable</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" class="form-control" id="tva_applicable" name="tva_applicable"
+                                   value="{% if facture %}{{ facture.tva_applicable or 0 }}{% else %}0{% endif %}" onchange="calculerTotaux()">
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <small class="text-muted">0% par défaut (TVA non applicable art. 293 B du CGI)</small>
+                    </div>
+
+                    <hr>
+
+                    <!-- Total HT (calculé) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Total HT</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-success text-white fs-4 fw-bold" id="total_ht_display" readonly>
+                            <span class="input-group-text bg-success text-white">€</span>
+                        </div>
+                    </div>
+
+                    <!-- Total TTC (calculé) - AFFICHÉ UNIQUEMENT SI TVA > 0 -->
+                    <div class="mb-3" id="bloc_total_ttc" style="display: none;">
+                        <label class="form-label fw-bold">Total TTC</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-light fs-5 fw-bold text-success" id="total_ttc_display" readonly>
+                            <span class="input-group-text">€</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commentaire -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-comment"></i> Commentaire</h6>
+                </div>
+                <div class="card-body">
+                    <textarea class="form-control" id="commentaire" name="commentaire" rows="4"
+                              placeholder="Conditions de paiement, remarques...">{% if facture and facture.commentaire %}{{ facture.commentaire }}{% endif %}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boutons d'action -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="submit" class="btn btn-info btn-lg" name="action" value="{% if facture %}modifier{% else %}creer{% endif %}">
+                            <i class="fas fa-save"></i> {% if facture %}Enregistrer les modifications{% else %}Créer la facture{% endif %}
+                        </button>
+                        <button type="button" class="btn btn-primary btn-lg" onclick="marquerEnvoyerEtSoumettre()">
+                            <i class="fas fa-paper-plane"></i> Envoyer la facture
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-lg" onclick="imprimerFacture()">
+                            <i class="fas fa-print"></i> Impression
+                        </button>
+                        <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-times"></i> Annuler
+                        </a>
+                    </div>
+
+                    <div class="alert alert-info mt-3 mb-0">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> Si vous renseignez une date d'envoi, un paiement sera automatiquement créé avec une date butoir calculée selon le délai du client.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Champs cachés pour compatibilité -->
+    <input type="hidden" name="remise" value="0">
+    <input type="hidden" name="envoyer_email" id="envoyer_email" value="non">
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Compteurs pour les lignes
+let compteurDeplacement = 0;
+let compteurFourniture = 0;
+let compteurPrestation = 0;
+
+// Générer la référence de facture (aperçu) - seulement si pas de facture existante
+function genererReferenceFacture() {
+    const refField = document.getElementById('reference_facture');
+    if (!refField.value) {
+        const today = new Date();
+        const annee = today.getFullYear();
+        const mois = String(today.getMonth() + 1).padStart(2, '0');
+        refField.value = `FA-${annee}-${mois}-XXX (auto)`;
+    }
+}
+
+// Ajouter une ligne de déplacement
+function ajouterLigneDeplacement(code = '', type = '', nbre = 1, pu_ht = 0) {
+    const tbody = document.getElementById('lignes-deplacement');
+    const id = ++compteurDeplacement;
+
+    const tr = document.createElement('tr');
+    tr.id = `deplacement-${id}`;
+    tr.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm text-base" name="deplacement_code[]" value="${code}" placeholder="REP, KM"></td>
+        <td><input type="text" class="form-control form-control-sm text-base" name="deplacement_type[]" value="${type}" placeholder="REPAS, PROXIMITE"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="deplacement_nbre[]" value="${nbre}" onchange="calculerLigneDeplacement(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="deplacement_pu_ht[]" value="${pu_ht}" onchange="calculerLigneDeplacement(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm bg-light text-base" name="deplacement_pt_ht[]" value="${(nbre * pu_ht).toFixed(2)}" readonly></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="supprimerLigne('deplacement-${id}')"><i class="fas fa-trash"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    calculerTotaux();
+}
+
+// Ajouter une ligne de fourniture
+function ajouterLigneFourniture(code = '', type = '', nbre = 1, pu_ht = 0) {
+    const tbody = document.getElementById('lignes-fourniture');
+    const id = ++compteurFourniture;
+
+    const tr = document.createElement('tr');
+    tr.id = `fourniture-${id}`;
+    tr.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm text-base" name="fourniture_code[]" value="${code}" placeholder="INCENDIE"></td>
+        <td><input type="text" class="form-control form-control-sm text-base" name="fourniture_type[]" value="${type}" placeholder="EXTINCTEUR_EAU"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="fourniture_nbre[]" value="${nbre}" onchange="calculerLigneFourniture(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="fourniture_pu_ht[]" value="${pu_ht}" onchange="calculerLigneFourniture(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm bg-light text-base" name="fourniture_pt_ht[]" value="${(nbre * pu_ht).toFixed(2)}" readonly></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="supprimerLigne('fourniture-${id}')"><i class="fas fa-trash"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    calculerTotaux();
+}
+
+// Ajouter une ligne de prestation
+function ajouterLignePrestation(code = '', type = '', nbre = 1, pu_ht = 0) {
+    const tbody = document.getElementById('lignes-prestation');
+    const id = ++compteurPrestation;
+
+    const tr = document.createElement('tr');
+    tr.id = `prestation-${id}`;
+    tr.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm text-base" name="prestation_code[]" value="${code}" placeholder="INCENDIE"></td>
+        <td><input type="text" class="form-control form-control-sm text-base" name="prestation_type[]" value="${type}" placeholder="EPI"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="prestation_nbre[]" value="${nbre}" onchange="calculerLignePrestation(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="prestation_pu_ht[]" value="${pu_ht}" onchange="calculerLignePrestation(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm bg-light text-base" name="prestation_pt_ht[]" value="${(nbre * pu_ht).toFixed(2)}" readonly></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="supprimerLigne('prestation-${id}')"><i class="fas fa-trash"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    calculerTotaux();
+}
+
+// Supprimer une ligne
+function supprimerLigne(id) {
+    const ligne = document.getElementById(id);
+    if (ligne) {
+        ligne.remove();
+        calculerTotaux();
+    }
+}
+
+// Calculer le total d'une ligne de déplacement
+function calculerLigneDeplacement(id) {
+    const tr = document.getElementById(`deplacement-${id}`);
+    const inputs = tr.querySelectorAll('input[type="number"]');
+    const nbre = parseFloat(inputs[0].value) || 0;
+    const pu = parseFloat(inputs[1].value) || 0;
+    inputs[2].value = (nbre * pu).toFixed(2);
+    calculerTotaux();
+}
+
+// Calculer le total d'une ligne de fourniture
+function calculerLigneFourniture(id) {
+    const tr = document.getElementById(`fourniture-${id}`);
+    const inputs = tr.querySelectorAll('input[type="number"]');
+    const nbre = parseFloat(inputs[0].value) || 0;
+    const pu = parseFloat(inputs[1].value) || 0;
+    inputs[2].value = (nbre * pu).toFixed(2);
+    calculerTotaux();
+}
+
+// Calculer le total d'une ligne de prestation
+function calculerLignePrestation(id) {
+    const tr = document.getElementById(`prestation-${id}`);
+    const inputs = tr.querySelectorAll('input[type="number"]');
+    const nbre = parseFloat(inputs[0].value) || 0;
+    const pu = parseFloat(inputs[1].value) || 0;
+    inputs[2].value = (nbre * pu).toFixed(2);
+    calculerTotaux();
+}
+
+// Calculer les totaux globaux
+function calculerTotaux() {
+    // Calculer total déplacement
+    let totalDeplacement = 0;
+    document.querySelectorAll('#lignes-deplacement input[name="deplacement_pt_ht[]"]').forEach(input => {
+        totalDeplacement += parseFloat(input.value) || 0;
+    });
+
+    // Calculer total fourniture
+    let totalFourniture = 0;
+    document.querySelectorAll('#lignes-fourniture input[name="fourniture_pt_ht[]"]').forEach(input => {
+        totalFourniture += parseFloat(input.value) || 0;
+    });
+
+    // Calculer total prestation
+    let totalPrestation = 0;
+    document.querySelectorAll('#lignes-prestation input[name="prestation_pt_ht[]"]').forEach(input => {
+        totalPrestation += parseFloat(input.value) || 0;
+    });
+
+    // Mettre à jour les badges
+    document.getElementById('total-deplacement-badge').textContent = totalDeplacement.toFixed(2) + ' €';
+    document.getElementById('total-fourniture-badge').textContent = totalFourniture.toFixed(2) + ' €';
+    document.getElementById('total-prestation-badge').textContent = totalPrestation.toFixed(2) + ' €';
+
+    // Calculer le total HT et TTC
+    const acompte = parseFloat(document.getElementById('acompte_prix_ht').value) || 0;
+    const remise = parseFloat(document.getElementById('remise_ht').value) || 0;
+    const majoration = parseFloat(document.getElementById('majoration').value) || 0;
+    const tva = parseFloat(document.getElementById('tva_applicable').value) || 0;
+
+    const totalHT = totalDeplacement + totalFourniture + totalPrestation - acompte - remise + majoration;
+    const totalTTC = totalHT * (1 + tva / 100);
+
+    document.getElementById('total_ht_display').value = totalHT.toFixed(2);
+    document.getElementById('total_ttc_display').value = totalTTC.toFixed(2);
+
+    // Afficher le bloc Total TTC uniquement si TVA > 0
+    const blocTTC = document.getElementById('bloc_total_ttc');
+    if (tva > 0) {
+        blocTTC.style.display = 'block';
+    } else {
+        blocTTC.style.display = 'none';
+    }
+}
+
+// Bouton "Envoyer" - remplit automatiquement la date d'envoi ET soumet le formulaire
+function marquerEnvoyerEtSoumettre() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('date_envoi').value = today;
+
+    // Marquer qu'on veut envoyer l'email
+    document.getElementById('envoyer_email').value = 'oui';
+
+    // Toast de confirmation
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="toast show bg-success text-white" role="alert">
+            <div class="toast-body">
+                <i class="fas fa-check-circle"></i> Date d'envoi remplie - Envoi de la facture par email...
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+
+    // Soumettre le formulaire après un court délai
+    setTimeout(() => {
+        document.getElementById('form_facture').submit();
+    }, 500);
+}
+
+// Bouton "Impression" - Aperçu avant impression (format professionnel)
+function imprimerFacture() {
+    // Collecter toutes les lignes de déplacement
+    const lignesDeplacement = [];
+    document.querySelectorAll('#lignes-deplacement tr').forEach(tr => {
+        const inputs = tr.querySelectorAll('input');
+        if (inputs.length >= 5) {
+            lignesDeplacement.push({
+                code: inputs[0].value,
+                type: inputs[1].value,
+                nbre: parseFloat(inputs[2].value) || 0,
+                pu_ht: parseFloat(inputs[3].value) || 0,
+                pt_ht: parseFloat(inputs[4].value) || 0
+            });
+        }
+    });
+
+    // Collecter toutes les lignes de fourniture
+    const lignesFourniture = [];
+    document.querySelectorAll('#lignes-fourniture tr').forEach(tr => {
+        const inputs = tr.querySelectorAll('input');
+        if (inputs.length >= 5) {
+            lignesFourniture.push({
+                code: inputs[0].value,
+                type: inputs[1].value,
+                nbre: parseFloat(inputs[2].value) || 0,
+                pu_ht: parseFloat(inputs[3].value) || 0,
+                pt_ht: parseFloat(inputs[4].value) || 0
+            });
+        }
+    });
+
+    // Collecter toutes les lignes de prestation
+    const lignesPrestation = [];
+    document.querySelectorAll('#lignes-prestation tr').forEach(tr => {
+        const inputs = tr.querySelectorAll('input');
+        if (inputs.length >= 5) {
+            lignesPrestation.push({
+                code: inputs[0].value,
+                type: inputs[1].value,
+                nbre: parseFloat(inputs[2].value) || 0,
+                pu_ht: parseFloat(inputs[3].value) || 0,
+                pt_ht: parseFloat(inputs[4].value) || 0
+            });
+        }
+    });
+
+    // Calculer les totaux
+    let totalDeplacement = lignesDeplacement.reduce((sum, l) => sum + l.pt_ht, 0);
+    let totalFourniture = lignesFourniture.reduce((sum, l) => sum + l.pt_ht, 0);
+    let totalPrestation = lignesPrestation.reduce((sum, l) => sum + l.pt_ht, 0);
+
+    const acompte = parseFloat(document.getElementById('acompte_prix_ht').value) || 0;
+    const remise = parseFloat(document.getElementById('remise_ht').value) || 0;
+    const majoration = parseFloat(document.getElementById('majoration').value) || 0;
+    const tva = parseFloat(document.getElementById('tva_applicable').value) || 0;
+    const totalHT = totalDeplacement + totalFourniture + totalPrestation - acompte - remise + majoration;
+    const totalTTC = totalHT * (1 + tva / 100);
+
+    const dateFacture = document.getElementById('date_facture').value;
+    const commentaire = document.getElementById('commentaire').value;
+    const refFacture = document.getElementById('reference_facture').value;
+
+    const printWindow = window.open('', '', 'width=900,height=700');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Facture ${refFacture}</title>
+            <style>
+                @media print {
+                    .no-print { display: none !important; }
+                    @page { margin: 1cm; }
+                }
+                * { margin: 0; padding: 0; box-sizing: border-box; }
+                body { font-family: Arial, sans-serif; font-size: 11px; padding: 20px; }
+                .logo { max-width: 150px; max-height: 80px; }
+                .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+                .header-prestataire, .header-client, .header-logo { width: 32%; }
+                .header-logo { text-align: right; }
+                .header h2 { font-size: 14px; margin-bottom: 5px; margin-top: 0; text-transform: uppercase; font-weight: bold; }
+                .header p { margin: 2px 0; font-size: 10px; }
+                .facture-info { margin: 20px 0; }
+                .facture-info table { width: 100%; }
+                .facture-info td { padding: 3px; vertical-align: top; }
+                .facture-info .label { font-weight: bold; width: 120px; }
+                .section-title { background: #f0f0f0; padding: 5px; font-weight: bold; margin-top: 15px; }
+                table.details { width: 100%; border-collapse: collapse; margin: 10px 0; }
+                table.details th, table.details td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+                table.details th { background: #f5f5f5; font-weight: bold; }
+                table.details .right { text-align: right; }
+                table.details .center { text-align: center; }
+                .total-box { float: right; width: 250px; margin-top: 10px; }
+                .total-box table { width: 100%; border-collapse: collapse; }
+                .total-box td { padding: 5px; border: 1px solid #ddd; }
+                .total-box .label { background: #f5f5f5; font-weight: bold; }
+                .total-box .montant { text-align: right; font-weight: bold; }
+                .footer { margin-top: 30px; font-size: 9px; clear: both; border-top: 1px solid #ccc; padding-top: 10px; }
+                .footer p { margin: 3px 0; }
+                .clearfix { clear: both; }
+            </style>
+        </head>
+        <body>
+            <!-- En-tête avec logos et coordonnées -->
+            <div class="header">
+                <div class="header-prestataire">
+                    <h2>Prestataire</h2>
+                    {% if entreprise %}
+                    <p><strong>{{ entreprise.nom }}</strong></p>
+                    <p>{{ entreprise.adresse }}</p>
+                    <p>{{ entreprise.code_postal }} {{ entreprise.ville }}</p>
+                    <p>Tél: {{ entreprise.telephone or '-' }}</p>
+                    <p>Email: {{ entreprise.email or '-' }}</p>
+                    {% if entreprise.site_web %}<p>{{ entreprise.site_web }}</p>{% endif %}
+                    {% endif %}
+                </div>
+                <div class="header-client">
+                    <h2>Client</h2>
+                    {% if prestation.client %}
+                    <p><strong>{{ prestation.client.entreprise }}</strong></p>
+                    {% if prestation.client.adresse %}
+                    <p>{{ prestation.client.adresse }}</p>
+                    <p>{{ prestation.client.code_postal }} {{ prestation.client.ville }}</p>
+                    {% endif %}
+                    {% if prestation.client.telephone %}<p>Tél: {{ prestation.client.telephone }}</p>{% endif %}
+                    {% if prestation.client.email %}<p>Email: {{ prestation.client.email }}</p>{% endif %}
+                    {% endif %}
+                </div>
+                <div class="header-logo">
+                    {% if entreprise and entreprise.logo %}
+                    <img src="{{ entreprise.logo }}" alt="Logo" class="logo">
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Informations de facturation -->
+            <div class="facture-info">
+                <table>
+                    <tr>
+                        <td class="label">Facture du :</td>
+                        <td>${new Date(dateFacture).toLocaleDateString('fr-FR', {weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'})}</td>
+                        <td class="label">Référence :</td>
+                        <td><strong>${refFacture}</strong></td>
+                    </tr>
+                    <tr>
+                        <td class="label">Prestation :</td>
+                        <td>{{ prestation.titre or '-' }}</td>
+                        <td class="label">Date prestation :</td>
+                        <td>{{ prestation.date_debut.strftime('%d/%m/%Y') if prestation.date_debut else '-' }}</td>
+                    </tr>
+                    {% if prestation.lieu or prestation.adresse_prestation or prestation.code_postal_prestation or prestation.ville_prestation %}
+                    <tr>
+                        <td class="label">Lieu de prestation :</td>
+                        <td colspan="3">
+                            {% if prestation.lieu %}{{ prestation.lieu }}{% endif %}
+                            {% if prestation.adresse_prestation %}
+                                {% if prestation.lieu %} - {% endif %}{{ prestation.adresse_prestation }}
+                            {% endif %}
+                            {% if prestation.code_postal_prestation or prestation.ville_prestation %}
+                                , {{ prestation.code_postal_prestation }} {{ prestation.ville_prestation }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                </table>
+            </div>
+
+            <!-- Tableau des détails -->
+            <div class="section-title">Détails</div>
+            <table class="details">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Désignation</th>
+                        <th class="center" style="width: 15%;">Quantité</th>
+                        <th class="right" style="width: 20%;">Prix unitaire HT</th>
+                        <th class="right" style="width: 25%;">Prix total HT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${lignesDeplacement.length > 0 ? '<tr><td colspan="4" style="background: #f0f0f0; font-weight: bold;">DÉPLACEMENTS</td></tr>' : ''}
+                    ${lignesDeplacement.map(l => `
+                    <tr>
+                        <td>${l.code ? l.code + ' - ' : ''}${l.type}</td>
+                        <td class="center">${l.nbre}</td>
+                        <td class="right">${l.pu_ht.toFixed(2)} €</td>
+                        <td class="right">${l.pt_ht.toFixed(2)} €</td>
+                    </tr>`).join('')}
+                    ${lignesFourniture.length > 0 ? '<tr><td colspan="4" style="background: #f0f0f0; font-weight: bold;">FOURNITURES</td></tr>' : ''}
+                    ${lignesFourniture.map(l => `
+                    <tr>
+                        <td>${l.code ? l.code + ' - ' : ''}${l.type}</td>
+                        <td class="center">${l.nbre}</td>
+                        <td class="right">${l.pu_ht.toFixed(2)} €</td>
+                        <td class="right">${l.pt_ht.toFixed(2)} €</td>
+                    </tr>`).join('')}
+                    ${lignesPrestation.length > 0 ? '<tr><td colspan="4" style="background: #f0f0f0; font-weight: bold;">PRESTATIONS</td></tr>' : ''}
+                    ${lignesPrestation.map(l => `
+                    <tr>
+                        <td>${l.code ? l.code + ' - ' : ''}${l.type}</td>
+                        <td class="center">${l.nbre}</td>
+                        <td class="right">${l.pu_ht.toFixed(2)} €</td>
+                        <td class="right">${l.pt_ht.toFixed(2)} €</td>
+                    </tr>`).join('')}
+                    ${acompte > 0 ? `
+                    <tr>
+                        <td>Acompte déduit</td>
+                        <td class="center">-</td>
+                        <td class="right">-${acompte.toFixed(2)} €</td>
+                        <td class="right">-${acompte.toFixed(2)} €</td>
+                    </tr>` : ''}
+                    ${remise > 0 ? `
+                    <tr>
+                        <td>Remise</td>
+                        <td class="center">-</td>
+                        <td class="right">-${remise.toFixed(2)} €</td>
+                        <td class="right">-${remise.toFixed(2)} €</td>
+                    </tr>` : ''}
+                    ${majoration > 0 ? `
+                    <tr>
+                        <td>Majoration</td>
+                        <td class="center">1</td>
+                        <td class="right">${majoration.toFixed(2)} €</td>
+                        <td class="right">${majoration.toFixed(2)} €</td>
+                    </tr>` : ''}
+                </tbody>
+            </table>
+
+            <!-- Total à payer -->
+            <div class="total-box">
+                <table>
+                    <tr>
+                        <td class="label">Prix total HT</td>
+                        <td class="montant">${totalHT.toFixed(2)} €</td>
+                    </tr>
+                    ${tva > 0 ? `
+                    <tr>
+                        <td class="label">TVA (${tva}%)</td>
+                        <td class="montant">${(totalTTC - totalHT).toFixed(2)} €</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Prix total TTC</td>
+                        <td class="montant">${totalTTC.toFixed(2)} €</td>
+                    </tr>` : ''}
+                </table>
+            </div>
+
+            <div class="clearfix"></div>
+
+            <!-- Pied de page avec conditions -->
+            <div class="footer">
+                ${tva == 0 ? '<p><strong>TVA non applicable, art. 293 B du CGI</strong></p>' : ''}
+                <p>Délai de paiement : <strong>{{ prestation.client.delai_paiement_jours if prestation.client else 30 }} jours</strong></p>
+                <p>Pas d'escompte pour règlement anticipé.</p>
+                <p>Le taux de pénalité en cas de retard de paiement: 12%</p>
+                <p>BNP indemnité forfaitaire de 40 € en cas de frais de recouvrement en cas de retard de paiement.</p>
+                ${commentaire ? `<p><strong>Commentaire:</strong> ${commentaire}</p>` : ''}
+
+                <p style="margin-top: 10px;">
+                    <strong>Coordonnées bancaires:</strong><br>
+                    {% if entreprise %}
+                    {% if entreprise.domiciliation_bancaire %}Domiciliation bancaire: {{ entreprise.domiciliation_bancaire }}<br>{% endif %}
+                    {% if entreprise.iban %}IBAN: {{ entreprise.iban }}<br>{% endif %}
+                    {% if entreprise.bic %}BIC: {{ entreprise.bic }}<br>{% endif %}
+                    {% endif %}
+                </p>
+
+                <p style="margin-top: 10px;">
+                    {% if entreprise %}
+                    {% if entreprise.statut_juridique %}{{ entreprise.statut_juridique }}{% endif %}
+                    {% if entreprise.capital %} au capital de {{ "%.0f"|format(entreprise.capital) }} €{% endif %}
+                    {% if entreprise.siret %} - SIRET: {{ entreprise.siret }}{% endif %}
+                    {% if entreprise.rcs %} - RCS: {{ entreprise.rcs }}{% endif %}
+                    {% if entreprise.numero_nda %} - N° NDA: {{ entreprise.numero_nda }}{% endif %}
+                    {% endif %}
+                </p>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="no-print" style="text-align: center; margin-top: 30px;">
+                <button onclick="window.print()" style="padding: 10px 20px; margin: 5px; font-size: 14px; cursor: pointer;">
+                    🖨️ Imprimer
+                </button>
+                <button onclick="window.close()" style="padding: 10px 20px; margin: 5px; font-size: 14px; cursor: pointer;">
+                    ❌ Fermer
+                </button>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+}
+
+// Charger les lignes existantes depuis la facture (si en mode édition) ou depuis la prestation
+function chargerLignesExistantes() {
+    {% if facture and facture.lignes_deplacement|length > 0 or facture.lignes_fourniture|length > 0 or facture.lignes_prestation|length > 0 %}
+        // Charger les lignes de déplacement existantes depuis la facture
+        {% for ligne in facture.lignes_deplacement %}
+        ajouterLigneDeplacement('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+        {% endfor %}
+
+        // Charger les lignes de fourniture existantes depuis la facture
+        {% for ligne in facture.lignes_fourniture %}
+        ajouterLigneFourniture('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+        {% endfor %}
+
+        // Charger les lignes de prestation existantes depuis la facture
+        {% for ligne in facture.lignes_prestation %}
+        ajouterLignePrestation('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+        {% endfor %}
+    {% else %}
+        // Pas de lignes dans la facture, charger depuis la prestation
+        {% for ligne in prestation.lignes_tarif_deplacement %}
+        ajouterLigneDeplacement('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+        {% endfor %}
+
+        {% for ligne in prestation.lignes_tarif_fourniture %}
+        ajouterLigneFourniture('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+        {% endfor %}
+
+        {% for ligne in prestation.lignes_tarif_prestation %}
+        ajouterLignePrestation('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+        {% endfor %}
+    {% endif %}
+}
+
+// Fonction pour recharger depuis la prestation (bouton)
+function rechargerDepuisPrestation() {
+    // Vider toutes les lignes actuelles
+    document.getElementById('lignes-deplacement').innerHTML = '';
+    document.getElementById('lignes-fourniture').innerHTML = '';
+    document.getElementById('lignes-prestation').innerHTML = '';
+
+    // Réinitialiser les compteurs
+    compteurDeplacement = 0;
+    compteurFourniture = 0;
+    compteurPrestation = 0;
+
+    // Charger depuis la prestation
+    {% for ligne in prestation.lignes_tarif_deplacement %}
+    ajouterLigneDeplacement('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+    {% endfor %}
+
+    {% for ligne in prestation.lignes_tarif_fourniture %}
+    ajouterLigneFourniture('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+    {% endfor %}
+
+    {% for ligne in prestation.lignes_tarif_prestation %}
+    ajouterLignePrestation('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+    {% endfor %}
+
+    alert('Tarifs rechargés depuis la prestation !');
+}
+
+// Initialiser au chargement
+genererReferenceFacture();
+chargerLignesExistantes();
+calculerTotaux();
+</script>
+{% endblock %}

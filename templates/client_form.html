@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block title %}{% if client %}Modifier{% else %}Nouveau{% endif %} client - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 fw-bold text-dark">
+            <i class="fas fa-user-{% if client %}edit{% else %}plus{% endif %} text-primary"></i>
+            {% if client %}Modifier{% else %}Nouveau{% endif %} client
+        </h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 col-md-10 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i> Informations du client
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="entreprise" class="form-label">Nom du client / Entreprise <span class="text-danger">*</span></label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="entreprise" name="entreprise"
+                                   value="{{ client.nom if client else '' }}" required autocomplete="off">
+                            <div id="entreprise-suggestions" class="list-group position-absolute w-100" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
+                        </div>
+                        <small class="text-muted">
+                            <i class="fas fa-search"></i>
+                            Tapez au moins 3 caractères pour rechercher une entreprise existante
+                        </small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                   value="{{ client.email if client else '' }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="telephone" class="form-label">Téléphone</label>
+                            <input type="tel" class="form-control" id="telephone" name="telephone"
+                                   value="{{ client.telephone if client else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="adresse" class="form-label">Adresse</label>
+                        <textarea class="form-control" id="adresse" name="adresse" rows="2">{{ client.adresse if client else '' }}</textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="code_postal" class="form-label">Code postal</label>
+                            <input type="text" class="form-control" id="code_postal" name="code_postal"
+                                   value="{{ client.code_postal if client else '' }}">
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label for="ville" class="form-label">Ville</label>
+                            <input type="text" class="form-control" id="ville" name="ville"
+                                   value="{{ client.ville if client else '' }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3">{{ client.notes if client else '' }}</textarea>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h6 class="mb-3"><i class="fas fa-credit-card text-primary"></i> Paramètres de paiement</h6>
+
+                    <div class="mb-3">
+                        <label for="delai_paiement_jours" class="form-label">Délai de paiement (en jours)</label>
+                        <input type="number" class="form-control" id="delai_paiement_jours" name="delai_paiement_jours"
+                               value="{{ client.delai_paiement_jours if client and client.delai_paiement_jours else '30' }}"
+                               min="1" max="365">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Utilisé pour les rappels automatiques de paiement (par défaut : 30 jours)
+                        </small>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <h6 class="mb-3"><i class="fab fa-google text-info"></i> Google Calendar</h6>
+
+                    <div class="mb-3">
+                        <label for="calendrier_google" class="form-label">Calendrier Google dédié <span class="badge bg-info">Optionnel</span></label>
+                        <select class="form-select" id="calendrier_google" name="calendrier_google">
+                            <option value="">-- Calendrier principal (Michel Boyer) --</option>
+                            {% if calendriers %}
+                                {% for cal in calendriers %}
+                                    <option value="{{ cal.id }}"
+                                            {% if client and client.calendrier_google == cal.id %}selected{% endif %}>
+                                        {{ cal.summary }}{% if cal.primary %} (Principal){% endif %}
+                                    </option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Toutes les prestations de ce client seront synchronisées sur ce calendrier.
+                            Si non renseigné, elles iront sur le calendrier principal "Michel Boyer".
+                        </small>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('clients') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Autocomplétion entreprise avec Overpass API
+let rechercheTimeout;
+const entrepriseInput = document.getElementById('entreprise');
+const suggestionsDiv = document.getElementById('entreprise-suggestions');
+
+entrepriseInput.addEventListener('input', function() {
+    const query = this.value.trim();
+
+    // Cacher les suggestions si moins de 3 caractères
+    if (query.length < 3) {
+        suggestionsDiv.style.display = 'none';
+        return;
+    }
+
+    // Debounce : attendre 500ms après la dernière frappe
+    clearTimeout(rechercheTimeout);
+    rechercheTimeout = setTimeout(() => {
+        rechercherEntreprise(query);
+    }, 500);
+});
+
+// Cacher les suggestions si on clique ailleurs
+document.addEventListener('click', function(e) {
+    if (!suggestionsDiv.contains(e.target) && e.target !== entrepriseInput) {
+        suggestionsDiv.style.display = 'none';
+    }
+});
+
+async function rechercherEntreprise(query) {
+    try {
+        suggestionsDiv.innerHTML = '<div class="list-group-item text-muted"><i class="fas fa-spinner fa-spin"></i> Recherche en cours...</div>';
+        suggestionsDiv.style.display = 'block';
+
+        const response = await fetch(`/api/rechercher-entreprise?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        if (!data.success || !data.entreprises || data.entreprises.length === 0) {
+            suggestionsDiv.innerHTML = '<div class="list-group-item text-muted">Aucune entreprise trouvée</div>';
+            return;
+        }
+
+        // Afficher les suggestions
+        suggestionsDiv.innerHTML = '';
+        data.entreprises.forEach(entreprise => {
+            const item = document.createElement('a');
+            item.href = '#';
+            item.className = 'list-group-item list-group-item-action';
+            item.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">${entreprise.nom}</h6>
+                    <small class="text-muted">${entreprise.secteur}</small>
+                </div>
+                <p class="mb-1 small">${entreprise.adresse_complete || 'Adresse non renseignée'}</p>
+                <small class="text-muted">${entreprise.code_postal || ''} ${entreprise.ville || ''}</small>
+            `;
+
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                remplirFormulaire(entreprise);
+                suggestionsDiv.style.display = 'none';
+            });
+
+            suggestionsDiv.appendChild(item);
+        });
+
+    } catch (error) {
+        console.error('Erreur recherche entreprise:', error);
+        suggestionsDiv.innerHTML = '<div class="list-group-item text-danger">Erreur lors de la recherche</div>';
+    }
+}
+
+function remplirFormulaire(entreprise) {
+    // Remplir les champs du formulaire
+    document.getElementById('entreprise').value = entreprise.nom;
+
+    if (entreprise.email) {
+        document.getElementById('email').value = entreprise.email;
+    }
+
+    if (entreprise.telephone) {
+        document.getElementById('telephone').value = entreprise.telephone;
+    }
+
+    if (entreprise.adresse_complete) {
+        document.getElementById('adresse').value = entreprise.adresse_complete;
+    }
+
+    if (entreprise.code_postal) {
+        document.getElementById('code_postal').value = entreprise.code_postal;
+    }
+
+    if (entreprise.ville) {
+        document.getElementById('ville').value = entreprise.ville;
+    }
+
+    // Ajouter une note sur la source
+    const notesField = document.getElementById('notes');
+    if (!notesField.value) {
+        notesField.value = `Source: OpenStreetMap (${entreprise.secteur})`;
+    }
+}
+</script>
+{% endblock %}

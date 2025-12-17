@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Paiements reçus - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold text-success">
+                    <i class="fas fa-check-circle"></i> Paiements reçus
+                </h1>
+                <p class="text-muted mb-0">Historique des paiements avec filtre de dates</p>
+            </div>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-home"></i> Retour accueil
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filtre de dates -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="fas fa-filter"></i> Filtrer par période</h6>
+            </div>
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-5">
+                        <label for="date_debut" class="form-label">Date de début</label>
+                        <input type="date" class="form-control" id="date_debut" name="date_debut"
+                               value="{{ date_debut.strftime('%Y-%m-%d') if date_debut else '' }}">
+                    </div>
+                    <div class="col-md-5">
+                        <label for="date_fin" class="form-label">Date de fin</label>
+                        <input type="date" class="form-control" id="date_fin" name="date_fin"
+                               value="{{ date_fin.strftime('%Y-%m-%d') if date_fin else '' }}">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-search"></i> Filtrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <i class="fas fa-money-bill-wave fa-3x text-success mb-3"></i>
+                <h3 class="fw-bold text-success">{{ paiements|length }}</h3>
+                <p class="text-muted mb-0">Paiements reçus</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <i class="fas fa-euro-sign fa-3x text-success mb-3"></i>
+                <h3 class="fw-bold text-success">{{ "%.2f"|format(total) }} €</h3>
+                <p class="text-muted mb-0">Montant total</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des paiements -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Liste des paiements ({{ paiements|length }})
+                    <small class="float-end">Du {{ date_debut.strftime('%d/%m/%Y') }} au {{ date_fin.strftime('%d/%m/%Y') }}</small>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if paiements %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>N° Paiement</th>
+                                <th>N° Facture</th>
+                                <th>Client</th>
+                                <th>Date paiement</th>
+                                <th>Mode de paiement</th>
+                                <th class="text-end">Montant</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for paiement in paiements %}
+                            <tr>
+                                <td><strong class="text-primary">{{ paiement.numero_paiement or '-' }}</strong></td>
+                                <td>{{ paiement.numero_facture or '-' }}</td>
+                                <td>
+                                    {% if paiement.prestation and paiement.prestation.client %}
+                                        <a href="{{ url_for('client_detail', client_id=paiement.prestation.client.id) }}" class="text-decoration-none">
+                                            {{ paiement.prestation.client.nom }}
+                                            {% if paiement.prestation.client.entreprise %}
+                                                <br><small class="text-muted">{{ paiement.prestation.client.entreprise }}</small>
+                                            {% endif %}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-calendar-check"></i>
+                                        {{ paiement.date_paiement.strftime('%d/%m/%Y') if paiement.date_paiement else '-' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        {% if paiement.mode_paiement == 'Virement' %}
+                                            <i class="fas fa-university"></i>
+                                        {% elif paiement.mode_paiement == 'Chèque' %}
+                                            <i class="fas fa-money-check"></i>
+                                        {% elif paiement.mode_paiement == 'CB' %}
+                                            <i class="fas fa-credit-card"></i>
+                                        {% elif paiement.mode_paiement == 'Espèces' %}
+                                            <i class="fas fa-money-bill"></i>
+                                        {% else %}
+                                            <i class="fas fa-question"></i>
+                                        {% endif %}
+                                        {{ paiement.mode_paiement or 'Non défini' }}
+                                    </span>
+                                </td>
+                                <td class="text-end"><strong class="text-success">{{ "%.2f"|format(paiement.montant_paye or 0) }} €</strong></td>
+                                <td class="text-center">
+                                    <a href="{{ url_for('paiement_detail', paiement_id=paiement.id) }}" class="btn btn-sm btn-outline-primary" title="Voir le paiement">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <th colspan="5" class="text-end">TOTAL :</th>
+                                <th class="text-end"><strong class="text-success">{{ "%.2f"|format(total) }} €</strong></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Aucun paiement trouvé pour la période sélectionnée.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

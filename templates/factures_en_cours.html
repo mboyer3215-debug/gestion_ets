@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Factures en cours - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold text-dark">
+                    <i class="fas fa-file-invoice text-info"></i> Factures en cours
+                </h1>
+                <p class="text-muted mb-0">Factures envoyées mais non encore payées</p>
+            </div>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-home"></i> Retour accueil
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Statistique totale -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-info">
+            <div class="card-body text-center">
+                <i class="fas fa-file-invoice fa-3x text-info mb-3"></i>
+                <h3 class="fw-bold text-info">{{ factures|length }}</h3>
+                <p class="text-muted mb-0">Factures en cours</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-success">
+            <div class="card-body text-center">
+                <i class="fas fa-euro-sign fa-3x text-success mb-3"></i>
+                <h3 class="fw-bold text-success">{{ "%.2f"|format(total) }} €</h3>
+                <p class="text-muted mb-0">Montant total TTC</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-primary">
+            <div class="card-body text-center">
+                <i class="fas fa-calculator fa-3x text-primary mb-3"></i>
+                <h3 class="fw-bold text-primary">
+                    {% if factures|length > 0 %}
+                        {{ "%.2f"|format(total / factures|length) }} €
+                    {% else %}
+                        0.00 €
+                    {% endif %}
+                </h3>
+                <p class="text-muted mb-0">Montant moyen</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des factures -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Liste des factures en cours ({{ factures|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if factures %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Référence</th>
+                                <th>Client</th>
+                                <th>Prestation</th>
+                                <th>Date facture</th>
+                                <th>Date envoi</th>
+                                <th class="text-end">Montant HT</th>
+                                <th class="text-end">Montant TTC</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for facture in factures %}
+                            <tr>
+                                <td><strong class="text-primary">{{ facture.reference_facture }}</strong></td>
+                                <td>
+                                    {% if facture.prestation and facture.prestation.client %}
+                                        <a href="{{ url_for('client_detail', client_id=facture.prestation.client.id) }}" class="text-decoration-none">
+                                            {{ facture.prestation.client.nom }}
+                                            {% if facture.prestation.client.entreprise %}
+                                                <br><small class="text-muted">{{ facture.prestation.client.entreprise }}</small>
+                                            {% endif %}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if facture.prestation %}
+                                        <a href="{{ url_for('prestation_detail', prestation_id=facture.prestation.id) }}" class="text-decoration-none">
+                                            {{ facture.prestation.titre }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ facture.date_facture.strftime('%d/%m/%Y') if facture.date_facture else '-' }}</td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-paper-plane"></i>
+                                        {{ facture.date_envoi.strftime('%d/%m/%Y') if facture.date_envoi else '-' }}
+                                    </span>
+                                </td>
+                                <td class="text-end">{{ "%.2f"|format(facture.total_prix_ht or 0) }} €</td>
+                                <td class="text-end"><strong>{{ "%.2f"|format(facture.total_ttc or 0) }} €</strong></td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ url_for('facture_detail', facture_id=facture.id) }}" class="btn btn-outline-primary" title="Voir la facture">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('paiement_saisie', facture_id=facture.id) }}" class="btn btn-outline-success" title="Enregistrer un paiement">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <th colspan="5" class="text-end">TOTAL :</th>
+                                <th class="text-end">{{ "%.2f"|format(factures|sum(attribute='total_prix_ht') or 0) }} €</th>
+                                <th class="text-end"><strong>{{ "%.2f"|format(total) }} €</strong></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Aucune facture en cours actuellement.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

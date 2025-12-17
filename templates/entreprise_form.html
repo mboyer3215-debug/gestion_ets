@@ -1,0 +1,489 @@
+{% extends "base.html" %}
+
+{% block title %}{% if entreprise %}Modifier{% else %}Configurer{% endif %} l'entreprise - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 fw-bold text-dark">
+            <i class="fas fa-building text-primary"></i>
+            {% if entreprise %}Modifier{% else %}Configurer{% endif %} les informations de l'entreprise
+        </h1>
+        <p class="text-muted">Renseignez les informations de votre entreprise</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-edit"></i> Formulaire
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('entreprise_modifier') }}">
+                    <!-- Informations générales -->
+                    <h5 class="mb-3"><i class="fas fa-info-circle text-primary"></i> Informations générales</h5>
+
+                    <div class="mb-3">
+                        <label for="nom" class="form-label">Nom de l'entreprise <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nom" name="nom"
+                               value="{{ entreprise.nom if entreprise else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="siret" class="form-label">SIRET</label>
+                        <input type="text" class="form-control" id="siret" name="siret"
+                               value="{{ entreprise.siret if entreprise else '' }}"
+                               placeholder="123 456 789 00010">
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Coordonnées -->
+                    <h5 class="mb-3"><i class="fas fa-phone text-primary"></i> Coordonnées</h5>
+
+                    <div class="mb-3">
+                        <label for="telephone" class="form-label">Téléphone</label>
+                        <input type="tel" class="form-control" id="telephone" name="telephone"
+                               value="{{ entreprise.telephone if entreprise else '' }}"
+                               placeholder="01 23 45 67 89">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               value="{{ entreprise.email if entreprise else '' }}"
+                               placeholder="contact@entreprise.fr">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="site_web" class="form-label">Site web</label>
+                        <input type="url" class="form-control" id="site_web" name="site_web"
+                               value="{{ entreprise.site_web if entreprise else '' }}"
+                               placeholder="https://www.entreprise.fr">
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Adresse -->
+                    <h5 class="mb-3"><i class="fas fa-map-marker-alt text-primary"></i> Adresse <span class="text-danger">*</span></h5>
+                    <p class="text-muted small">
+                        <i class="fas fa-info-circle"></i>
+                        Cette adresse sera utilisée comme point de départ pour calculer automatiquement les itinéraires vers vos prestations.
+                    </p>
+
+                    <div class="mb-3 position-relative">
+                        <label for="adresse" class="form-label">
+                            Adresse complète <span class="text-danger">*</span>
+                            <small class="text-muted">(commencez à taper pour voir les suggestions)</small>
+                        </label>
+                        <input type="text"
+                               class="form-control"
+                               id="adresse_search"
+                               autocomplete="off"
+                               value="{{ entreprise.adresse if entreprise else '' }}{{ ', ' if entreprise and entreprise.adresse and entreprise.ville else '' }}{{ entreprise.code_postal if entreprise and entreprise.code_postal else '' }} {{ entreprise.ville if entreprise and entreprise.ville else '' }}"
+                               placeholder="Ex: 10 Rue de la Paix, 75002 Paris"
+                               required>
+                        <div id="adresse_suggestions_ent" class="list-group position-absolute w-100" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
+
+                        <!-- Champs cachés pour stocker les valeurs séparées -->
+                        <input type="hidden" id="adresse" name="adresse" value="{{ entreprise.adresse if entreprise else '' }}" required>
+                        <input type="hidden" id="code_postal" name="code_postal" value="{{ entreprise.code_postal if entreprise else '' }}">
+                        <input type="hidden" id="ville" name="ville" value="{{ entreprise.ville if entreprise else '' }}">
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Notes -->
+                    <h5 class="mb-3"><i class="fas fa-sticky-note text-primary"></i> Notes</h5>
+
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes et informations complémentaires</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="4">{{ entreprise.notes if entreprise else '' }}</textarea>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Configuration des Notifications -->
+                    <h5 class="mb-3"><i class="fas fa-bell text-primary"></i> Configuration des Notifications</h5>
+
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="notif_actives" name="notif_actives"
+                                   {% if entreprise and entreprise.notif_actives %}checked{% endif %}>
+                            <label class="form-check-label" for="notif_actives">
+                                <strong>Activer les notifications automatiques</strong>
+                            </label>
+                        </div>
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i>
+                            Active les rappels SMS et les alertes Email pour les prestations et factures
+                        </small>
+                    </div>
+
+                    <!-- Configuration Email -->
+                    <div id="config_email" style="{% if not entreprise or not entreprise.notif_actives %}display: none;{% endif %}">
+                        <h6 class="mt-4 mb-3"><i class="fas fa-envelope text-info"></i> Configuration Email (SMTP)</h6>
+
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="email_smtp_host" class="form-label">Serveur SMTP</label>
+                                <input type="text" class="form-control" id="email_smtp_host" name="email_smtp_host"
+                                       value="{{ entreprise.email_smtp_host if entreprise else '' }}"
+                                       placeholder="smtp.gmail.com ou smtp.office365.com">
+                                <small class="text-muted">Gmail: smtp.gmail.com | Outlook: smtp.office365.com</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="email_smtp_port" class="form-label">Port</label>
+                                <input type="number" class="form-control" id="email_smtp_port" name="email_smtp_port"
+                                       value="{{ entreprise.email_smtp_port if entreprise else '587' }}">
+                                <small class="text-muted">Généralement: 587</small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email_smtp_user" class="form-label">Email / Utilisateur</label>
+                            <input type="email" class="form-control" id="email_smtp_user" name="email_smtp_user"
+                                   value="{{ entreprise.email_smtp_user if entreprise else '' }}"
+                                   placeholder="votre-email@exemple.fr">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="email_smtp_password" class="form-label">Mot de passe</label>
+                            <input type="password" class="form-control" id="email_smtp_password" name="email_smtp_password"
+                                   value="{{ entreprise.email_smtp_password if entreprise else '' }}"
+                                   placeholder="Mot de passe ou mot de passe d'application">
+                            <small class="text-muted">
+                                <i class="fas fa-exclamation-triangle text-warning"></i>
+                                Pour Gmail, utilisez un <a href="https://support.google.com/accounts/answer/185833" target="_blank">mot de passe d'application</a>
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Configuration SMS -->
+                    <div id="config_sms" style="{% if not entreprise or not entreprise.notif_actives %}display: none;{% endif %}">
+                        <h6 class="mt-4 mb-3"><i class="fas fa-sms text-info"></i> Configuration SMS (optionnel)</h6>
+
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="sms_actif" name="sms_actif"
+                                       {% if entreprise and entreprise.sms_actif %}checked{% endif %}>
+                                <label class="form-check-label" for="sms_actif">
+                                    Activer les notifications SMS
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="config_sms_details" style="{% if not entreprise or not entreprise.sms_actif %}display: none;{% endif %}">
+                            <div class="mb-3">
+                                <label for="sms_service" class="form-label">Service SMS</label>
+                                <select class="form-select" id="sms_service" name="sms_service">
+                                    <option value="">-- Sélectionner un service --</option>
+                                    <option value="twilio" {% if entreprise and entreprise.sms_service == 'twilio' %}selected{% endif %}>Twilio</option>
+                                    <option value="smsmode" {% if entreprise and entreprise.sms_service == 'smsmode' %}selected{% endif %}>SMS Mode</option>
+                                    <option value="ovh" {% if entreprise and entreprise.sms_service == 'ovh' %}selected{% endif %}>OVH SMS</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="sms_api_key" class="form-label">Clé API</label>
+                                <input type="text" class="form-control" id="sms_api_key" name="sms_api_key"
+                                       value="{{ entreprise.sms_api_key if entreprise else '' }}"
+                                       placeholder="Votre clé API SMS">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="sms_api_secret" class="form-label">Secret API (si nécessaire)</label>
+                                <input type="password" class="form-control" id="sms_api_secret" name="sms_api_secret"
+                                       value="{{ entreprise.sms_api_secret if entreprise else '' }}"
+                                       placeholder="Secret API (optionnel selon le service)">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="sms_from_number" class="form-label">Numéro émetteur</label>
+                                <input type="tel" class="form-control" id="sms_from_number" name="sms_from_number"
+                                       value="{{ entreprise.sms_from_number if entreprise else '' }}"
+                                       placeholder="+33612345678">
+                                <small class="text-muted">Numéro ou nom d'expéditeur autorisé par votre service SMS</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Informations juridiques et bancaires -->
+                    <h5 class="mb-3"><i class="fas fa-landmark text-primary"></i> Informations juridiques et bancaires</h5>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="statut_juridique" class="form-label">Statut juridique</label>
+                            <select class="form-select" id="statut_juridique" name="statut_juridique">
+                                <option value="">-- Sélectionner --</option>
+                                <option value="SARL" {% if entreprise and entreprise.statut_juridique == 'SARL' %}selected{% endif %}>SARL</option>
+                                <option value="SAS" {% if entreprise and entreprise.statut_juridique == 'SAS' %}selected{% endif %}>SAS</option>
+                                <option value="SASU" {% if entreprise and entreprise.statut_juridique == 'SASU' %}selected{% endif %}>SASU</option>
+                                <option value="EURL" {% if entreprise and entreprise.statut_juridique == 'EURL' %}selected{% endif %}>EURL</option>
+                                <option value="Entreprise individuelle" {% if entreprise and entreprise.statut_juridique == 'Entreprise individuelle' %}selected{% endif %}>Entreprise individuelle</option>
+                                <option value="Micro-entreprise" {% if entreprise and entreprise.statut_juridique == 'Micro-entreprise' %}selected{% endif %}>Micro-entreprise</option>
+                                <option value="Auto-entrepreneur" {% if entreprise and entreprise.statut_juridique == 'Auto-entrepreneur' %}selected{% endif %}>Auto-entrepreneur</option>
+                                <option value="Association" {% if entreprise and entreprise.statut_juridique == 'Association' %}selected{% endif %}>Association (loi 1901)</option>
+                                <option value="Autre" {% if entreprise and entreprise.statut_juridique == 'Autre' %}selected{% endif %}>Autre</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="capital" class="form-label">Capital social (€)</label>
+                            <input type="number" step="0.01" class="form-control" id="capital" name="capital"
+                                   value="{{ entreprise.capital if entreprise else '' }}"
+                                   placeholder="Ex: 10000.00">
+                            <small class="text-muted">Laissez vide si non applicable</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="numero_nda" class="form-label">
+                                Numéro NDA
+                                <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Numéro de déclaration d'activité pour les organismes de formation"></i>
+                            </label>
+                            <input type="text" class="form-control" id="numero_nda" name="numero_nda"
+                                   value="{{ entreprise.numero_nda if entreprise else '' }}"
+                                   placeholder="Ex: 11 75 12345 75">
+                            <small class="text-muted">Pour les organismes de formation uniquement</small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="rcs" class="form-label">
+                                RCS
+                                <i class="fas fa-info-circle text-info" data-bs-toggle="tooltip" title="Registre du Commerce et des Sociétés"></i>
+                            </label>
+                            <input type="text" class="form-control" id="rcs" name="rcs"
+                                   value="{{ entreprise.rcs if entreprise else '' }}"
+                                   placeholder="Ex: 123 456 789 R.C.S. Paris">
+                            <small class="text-muted">Numéro d'immatriculation au RCS</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="domiciliation_bancaire" class="form-label">Domiciliation bancaire</label>
+                        <input type="text" class="form-control" id="domiciliation_bancaire" name="domiciliation_bancaire"
+                               value="{{ entreprise.domiciliation_bancaire if entreprise else '' }}"
+                               placeholder="Ex: BNP Paribas, 16 Boulevard des Italiens, 75009 Paris">
+                        <small class="text-muted">Nom et adresse de votre banque</small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="iban" class="form-label">
+                                IBAN
+                                <i class="fas fa-university text-success"></i>
+                            </label>
+                            <input type="text" class="form-control text-uppercase" id="iban" name="iban"
+                                   value="{{ entreprise.iban if entreprise else '' }}"
+                                   placeholder="Ex: FR76 1234 5678 9012 3456 7890 123"
+                                   pattern="[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}"
+                                   maxlength="34">
+                            <small class="text-muted">Format: 2 lettres pays + 2 chiffres + max 30 caractères (ex: FR76...)</small>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="bic" class="form-label">
+                                BIC / SWIFT
+                            </label>
+                            <input type="text" class="form-control text-uppercase" id="bic" name="bic"
+                                   value="{{ entreprise.bic if entreprise else '' }}"
+                                   placeholder="Ex: BNPAFRPPXXX"
+                                   pattern="[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?"
+                                   maxlength="11">
+                            <small class="text-muted">8 ou 11 caractères</small>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Ces informations sont importantes pour :</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>La génération de factures professionnelles</li>
+                            <li>Les mentions légales obligatoires</li>
+                            <li>Les virements bancaires</li>
+                        </ul>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Boutons -->
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('entreprise') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-lightbulb"></i> Conseils
+            </div>
+            <div class="card-body">
+                <h6><i class="fas fa-check text-success"></i> Adresse précise</h6>
+                <p class="small">Assurez-vous que votre adresse est complète et précise pour un calcul d'itinéraire optimal.</p>
+
+                <h6><i class="fas fa-check text-success"></i> Coordonnées à jour</h6>
+                <p class="small">Ces informations pourront être utilisées pour vos factures et devis (fonctionnalité future).</p>
+
+                <h6><i class="fas fa-check text-success"></i> SIRET</h6>
+                <p class="small mb-0">Le SIRET est obligatoire pour les documents officiels en France.</p>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header bg-warning text-white">
+                <i class="fas fa-route"></i> Calcul d'itinéraire
+            </div>
+            <div class="card-body">
+                <p class="small mb-0">
+                    Une fois l'adresse renseignée, lors de la création d'une prestation, la distance sera automatiquement calculée depuis votre entreprise vers le lieu de la prestation.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ============================================================================
+    // AUTOCOMPLÉTION D'ADRESSE avec API Adresse (Gouvernement Français)
+    // ============================================================================
+    const adresseSearchInput = document.getElementById('adresse_search');
+    const adresseSuggestions = document.getElementById('adresse_suggestions_ent');
+    const adresseHidden = document.getElementById('adresse');
+    const codePostalHidden = document.getElementById('code_postal');
+    const villeHidden = document.getElementById('ville');
+
+    let debounceTimer;
+
+    adresseSearchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+
+        // Vider les suggestions si moins de 3 caractères
+        if (query.length < 3) {
+            adresseSuggestions.style.display = 'none';
+            return;
+        }
+
+        // Debounce pour éviter trop de requêtes
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            rechercherAdresse(query);
+        }, 300);
+    });
+
+    async function rechercherAdresse(query) {
+        try {
+            const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=10`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            afficherSuggestions(data.features);
+        } catch (error) {
+            console.error('Erreur recherche adresse:', error);
+        }
+    }
+
+    function afficherSuggestions(features) {
+        adresseSuggestions.innerHTML = '';
+
+        if (features.length === 0) {
+            adresseSuggestions.style.display = 'none';
+            return;
+        }
+
+        features.forEach(feature => {
+            const props = feature.properties;
+            const item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'list-group-item list-group-item-action';
+            item.style.cursor = 'pointer';
+            item.style.textAlign = 'left';
+
+            // Affichage avec rue, code postal et ville
+            item.innerHTML = `
+                <div>
+                    <strong>${props.name}</strong>
+                    <br>
+                    <small class="text-muted">${props.postcode} ${props.city}</small>
+                </div>
+            `;
+
+            item.addEventListener('click', function() {
+                selectionnerAdresse(feature);
+            });
+
+            adresseSuggestions.appendChild(item);
+        });
+
+        adresseSuggestions.style.display = 'block';
+    }
+
+    function selectionnerAdresse(feature) {
+        const props = feature.properties;
+
+        // Remplir le champ visible
+        adresseSearchInput.value = `${props.name}, ${props.postcode} ${props.city}`;
+
+        // Remplir les champs cachés
+        adresseHidden.value = props.name || '';
+        codePostalHidden.value = props.postcode || '';
+        villeHidden.value = props.city || '';
+
+        // Cacher les suggestions
+        adresseSuggestions.style.display = 'none';
+    }
+
+    // Fermer les suggestions si on clique ailleurs
+    document.addEventListener('click', function(e) {
+        if (!adresseSearchInput.contains(e.target) && !adresseSuggestions.contains(e.target)) {
+            adresseSuggestions.style.display = 'none';
+        }
+    });
+
+    // ============================================================================
+    // GESTION AFFICHAGE CONFIGURATION NOTIFICATIONS
+    // ============================================================================
+    const notifActivesCheckbox = document.getElementById('notif_actives');
+    const configEmail = document.getElementById('config_email');
+    const configSms = document.getElementById('config_sms');
+    const smsActifCheckbox = document.getElementById('sms_actif');
+    const configSmsDetails = document.getElementById('config_sms_details');
+
+    // Afficher/masquer les sections Email et SMS selon l'activation des notifications
+    notifActivesCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            configEmail.style.display = 'block';
+            configSms.style.display = 'block';
+        } else {
+            configEmail.style.display = 'none';
+            configSms.style.display = 'none';
+        }
+    });
+
+    // Afficher/masquer les détails SMS selon l'activation du SMS
+    smsActifCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            configSmsDetails.style.display = 'block';
+        } else {
+            configSmsDetails.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}

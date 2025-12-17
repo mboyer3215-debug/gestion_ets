@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}{% if client.prenom %}{{ client.prenom }} {% endif %}{{ client.nom }} - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="display-6 fw-bold text-dark">
+            <i class="fas fa-user text-primary"></i> {% if client.prenom %}{{ client.prenom }} {% endif %}{{ client.nom }}
+        </h1>
+        {% if client.entreprise and client.entreprise != client.nom %}
+            <p class="text-muted"><i class="fas fa-building"></i> {{ client.entreprise }}</p>
+        {% endif %}
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% if client.statut_client == 'Prospect' %}{{ url_for('liste_prospects') }}{% else %}{{ url_for('clients') }}{% endif %}" class="btn btn-secondary me-2 d-none d-md-inline-block">
+            <i class="fas fa-list"></i> Liste
+        </a>
+        <a href="{{ url_for('client_modifier', client_id=client.id) }}" class="btn me-2" style="background-color: #ff8c00; color: white; border-color: #ff8c00;">
+            <i class="fas fa-edit"></i> Modifier
+        </a>
+        <form method="POST" action="{{ url_for('client_supprimer', client_id=client.id) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce client ?');">
+            <button type="submit" class="btn btn-danger">
+                <i class="fas fa-trash"></i> Supprimer
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Informations du client -->
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-address-card"></i> Coordonnées
+            </div>
+            <div class="card-body">
+                <dl>
+                    {% if client.email %}
+                    <dt><i class="fas fa-envelope"></i> Email :</dt>
+                    <dd><a href="#" onclick="copierEtOuvrirIonos('{{ client.email }}'); return false;" class="text-decoration-none">{{ client.email }}</a></dd>
+                    {% endif %}
+
+                    {% if client.telephone %}
+                    <dt><i class="fas fa-phone"></i> Téléphone :</dt>
+                    <dd><a href="tel:{{ client.telephone }}">{{ client.telephone }}</a></dd>
+                    {% endif %}
+
+                    {% if client.adresse %}
+                    <dt><i class="fas fa-map-marker-alt"></i> Adresse :</dt>
+                    <dd>
+                        {{ client.adresse }}<br>
+                        {{ client.code_postal }} {{ client.ville }}
+                    </dd>
+                    {% endif %}
+
+                    {% if client.notes %}
+                    <dt><i class="fas fa-sticky-note"></i> Notes :</dt>
+                    <dd>{{ client.notes }}</dd>
+                    {% endif %}
+
+                    <dt><i class="fas fa-calendar-plus"></i> Client depuis :</dt>
+                    <dd>{{ client.date_creation.strftime('%d/%m/%Y') if client.date_creation else '-' }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Contacts du client -->
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-user-tie"></i> Contacts ({{ client.contacts|selectattr('actif', 'equalto', True)|list|length }})</span>
+                    <a href="{{ url_for('contact_nouveau', client_id=client.id) }}" class="btn btn-sm btn-light">
+                        <i class="fas fa-plus"></i> Ajouter un contact
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% set contacts_actifs = client.contacts|selectattr('actif', 'equalto', True)|list %}
+                {% if contacts_actifs %}
+                    <div class="list-group list-group-flush">
+                        {% for contact in contacts_actifs %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1">
+                                        <i class="fas fa-user-circle text-primary"></i>
+                                        <strong>{{ contact.prenom }} {{ contact.nom }}</strong>
+                                        {% if contact.poste %}
+                                            <span class="badge bg-secondary ms-2">{{ contact.poste }}</span>
+                                        {% endif %}
+                                    </h6>
+                                    <div class="text-muted small">
+                                        {% if contact.tel_fixe %}
+                                            <i class="fas fa-phone"></i> <a href="tel:{{ contact.tel_fixe }}">{{ contact.tel_fixe }}</a>
+                                        {% endif %}
+                                        {% if contact.tel_portable %}
+                                            <i class="fas fa-mobile-alt ms-2"></i> <a href="tel:{{ contact.tel_portable }}">{{ contact.tel_portable }}</a>
+                                        {% endif %}
+                                        {% if contact.email %}
+                                            <br><i class="fas fa-envelope"></i> <a href="#" onclick="copierEtOuvrirIonos('{{ contact.email }}'); return false;" class="text-decoration-none">{{ contact.email }}</a>
+                                        {% endif %}
+                                        {% if contact.notes %}
+                                            <br><i class="fas fa-sticky-note"></i> {{ contact.notes }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="btn-group-vertical btn-group-sm ms-2">
+                                    <a href="{{ url_for('contact_modifier', contact_id=contact.id) }}" class="btn btn-sm btn-outline-warning">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('contact_supprimer', contact_id=contact.id) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce contact ?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle"></i> Aucun contact enregistré pour ce client.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Prestations du client -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="fas fa-tasks"></i> Prestations ({{ prestations|length }})</span>
+                    <a href="{{ url_for('prestation_nouvelle') }}?client_id={{ client.id }}" class="btn btn-sm btn-success">
+                        <i class="fas fa-plus"></i> Nouvelle prestation
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if prestations %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Titre</th>
+                                    <th>Tarif</th>
+                                    <th>Statut</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prestation in prestations %}
+                                <tr>
+                                    <td>{{ prestation.date_debut.strftime('%d/%m/%Y') if prestation.date_debut else '-' }}</td>
+                                    <td><span class="badge bg-info">{{ prestation.type_prestation }}</span></td>
+                                    <td>{{ prestation.titre }}</td>
+                                    <td>
+                                        {% if prestation.tarif_total %}
+                                            {{ "%.2f"|format(prestation.tarif_total) }}€
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if prestation.statut == 'Planifiée' %}
+                                            <span class="badge bg-primary">{{ prestation.statut }}</span>
+                                        {% elif prestation.statut == 'En cours' %}
+                                            <span class="badge bg-warning">{{ prestation.statut }}</span>
+                                        {% elif prestation.statut == 'Terminée' %}
+                                            <span class="badge bg-success">{{ prestation.statut }}</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ prestation.statut }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Statistiques -->
+                    <div class="row mt-4">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h5>Total prestations</h5>
+                                <p class="h3 text-primary">{{ prestations|length }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h5>Chiffre d'affaires</h5>
+                                <p class="h3 text-success">
+                                    {% set total_ca = namespace(value=0) %}
+                                    {% for p in prestations %}
+                                        {% set total_ca.value = total_ca.value + (p.tarif_total or 0) + (p.frais_fournitures or 0) + (p.frais_deplacement or 0) %}
+                                    {% endfor %}
+                                    {{ "%.2f"|format(total_ca.value) }}€
+                                </p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h5>Prestations en cours</h5>
+                                <p class="h3 text-warning">
+                                    {{ prestations|selectattr('statut', 'equalto', 'En cours')|list|length }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle"></i> Aucune prestation pour ce client.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copierEtOuvrirIonos(email) {
+    // Copier l'email dans le presse-papier
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(email).then(function() {
+            // Afficher un message de confirmation
+            const toast = document.createElement('div');
+            toast.className = 'position-fixed bottom-0 end-0 p-3';
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `
+                <div class="toast show bg-success text-white" role="alert">
+                    <div class="toast-body">
+                        <i class="fas fa-check-circle"></i> Email copié : ${email}
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            // Retirer le toast après 3 secondes
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }).catch(function(err) {
+            console.error('Erreur lors de la copie:', err);
+        });
+    }
+
+    // Ouvrir le webmail Ionos dans un nouvel onglet
+    window.open('https://mail.ionos.fr/', '_blank');
+}
+</script>
+{% endblock %}

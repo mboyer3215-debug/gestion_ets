@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Factures en retard - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold text-danger">
+                    <i class="fas fa-exclamation-triangle"></i> Factures en retard
+                </h1>
+                <p class="text-muted mb-0">Factures dont le délai de paiement est dépassé</p>
+            </div>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-home"></i> Retour accueil
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-danger">
+            <div class="card-body text-center">
+                <i class="fas fa-file-invoice-dollar fa-3x text-danger mb-3"></i>
+                <h3 class="fw-bold text-danger">{{ factures|length }}</h3>
+                <p class="text-muted mb-0">Factures en retard</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-danger">
+            <div class="card-body text-center">
+                <i class="fas fa-euro-sign fa-3x text-danger mb-3"></i>
+                <h3 class="fw-bold text-danger">{{ "%.2f"|format(total) }} €</h3>
+                <p class="text-muted mb-0">Montant total en retard</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                <h3 class="fw-bold text-warning">
+                    {% if factures %}
+                        {{ (factures|sum(attribute='jours_retard') / factures|length)|int }} jours
+                    {% else %}
+                        0 jours
+                    {% endif %}
+                </h3>
+                <p class="text-muted mb-0">Retard moyen</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des factures en retard -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list"></i> Liste des factures en retard ({{ factures|length }})
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if factures %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Référence</th>
+                                <th>Client</th>
+                                <th>Prestation</th>
+                                <th>Date facture</th>
+                                <th>Date butoir</th>
+                                <th class="text-center">Jours de retard</th>
+                                <th class="text-end">Montant TTC</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for facture in factures %}
+                            <tr class="{% if facture.jours_retard > 60 %}table-danger{% elif facture.jours_retard > 30 %}table-warning{% endif %}">
+                                <td><strong class="text-primary">{{ facture.reference_facture }}</strong></td>
+                                <td>
+                                    {% if facture.prestation and facture.prestation.client %}
+                                        <a href="{{ url_for('client_detail', client_id=facture.prestation.client.id) }}" class="text-decoration-none">
+                                            {{ facture.prestation.client.nom }}
+                                            {% if facture.prestation.client.entreprise %}
+                                                <br><small class="text-muted">{{ facture.prestation.client.entreprise }}</small>
+                                            {% endif %}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if facture.prestation %}
+                                        <a href="{{ url_for('prestation_detail', prestation_id=facture.prestation.id) }}" class="text-decoration-none">
+                                            {{ facture.prestation.titre }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ facture.date_facture.strftime('%d/%m/%Y') if facture.date_facture else '-' }}</td>
+                                <td>
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-calendar-times"></i>
+                                        {{ facture.date_butoir.strftime('%d/%m/%Y') if facture.date_butoir else '-' }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge {% if facture.jours_retard > 60 %}bg-danger{% elif facture.jours_retard > 30 %}bg-warning{% else %}bg-secondary{% endif %} fs-6">
+                                        {{ facture.jours_retard }} jours
+                                    </span>
+                                </td>
+                                <td class="text-end"><strong class="text-danger">{{ "%.2f"|format(facture.total_ttc or 0) }} €</strong></td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{{ url_for('facture_detail', facture_id=facture.id) }}" class="btn btn-outline-primary" title="Voir la facture">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('paiement_saisie', facture_id=facture.id) }}" class="btn btn-outline-success" title="Enregistrer un paiement">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </a>
+                                        <button class="btn btn-outline-warning" title="Envoyer une relance" onclick="envoyerRelance({{ facture.id }})">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot class="table-secondary">
+                            <tr>
+                                <th colspan="6" class="text-end">TOTAL EN RETARD :</th>
+                                <th class="text-end"><strong class="text-danger">{{ "%.2f"|format(total) }} €</strong></th>
+                                <th></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div class="alert alert-warning mt-3">
+                    <h6><i class="fas fa-info-circle"></i> Légende</h6>
+                    <ul class="mb-0">
+                        <li><span class="badge bg-secondary">Moins de 30 jours</span> : Retard modéré</li>
+                        <li><span class="badge bg-warning">30 à 60 jours</span> : Retard important</li>
+                        <li><span class="badge bg-danger">Plus de 60 jours</span> : Retard critique</li>
+                    </ul>
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> Excellente nouvelle ! Aucune facture en retard.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function envoyerRelance(factureId) {
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.setAttribute('tabindex', '-1');
+    modal.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-warning text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-paper-plane"></i> Envoyer une relance
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Êtes-vous sûr de vouloir envoyer une relance pour cette facture ?</p>
+                    <p class="text-muted small">Un email sera envoyé au client pour lui rappeler le paiement en attente.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-warning" onclick="confirmerRelance(${factureId})">
+                        <i class="fas fa-paper-plane"></i> Envoyer
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    const modalInstance = new bootstrap.Modal(modal);
+    modalInstance.show();
+
+    modal.addEventListener('hidden.bs.modal', function() {
+        modal.remove();
+    });
+}
+
+function confirmerRelance(factureId) {
+    const toast = document.createElement('div');
+    toast.className = 'position-fixed bottom-0 end-0 p-3';
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="toast show bg-success text-white" role="alert">
+            <div class="toast-body">
+                <i class="fas fa-check-circle"></i> Relance envoyée avec succès
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.remove(); }, 3000);
+
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(m => {
+        const modalInstance = bootstrap.Modal.getInstance(m);
+        if (modalInstance) modalInstance.hide();
+    });
+}
+</script>
+{% endblock %}

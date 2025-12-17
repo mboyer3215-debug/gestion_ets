@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Historique des notifications - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 fw-bold text-dark">
+            <i class="fas fa-history text-primary"></i>
+            Historique des notifications
+        </h1>
+        <p class="text-muted">Consultez l'historique des notifications envoyées par mail</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-bell"></i> Dernières notifications (100 max)</span>
+                <a href="/notifications/verifier" class="btn btn-sm btn-primary" target="_blank">
+                    <i class="fas fa-sync"></i> Vérifier maintenant
+                </a>
+            </div>
+            <div class="card-body">
+                {% if notifications %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Destinataire</th>
+                                <th>Canal</th>
+                                <th>Statut</th>
+                                <th>Message d'erreur</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for notif in notifications %}
+                            <tr>
+                                <td>
+                                    {% if notif.date_envoi %}
+                                        {{ notif.date_envoi.strftime('%d/%m/%Y %H:%M') }}
+                                    {% else %}
+                                        {{ notif.date_programmee.strftime('%d/%m/%Y %H:%M') }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if notif.type_notif == 'rappel_prestation' %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-calendar-check"></i> Rappel prestation
+                                        </span>
+                                    {% elif notif.type_notif == 'facture_non_envoyee' %}
+                                        <span class="badge bg-warning">
+                                            <i class="fas fa-file-invoice"></i> Facture non envoyée
+                                        </span>
+                                    {% elif notif.type_notif == 'facture_non_payee' %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-euro-sign"></i> Facture non payée
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <strong>{{ notif.destinataire_nom }}</strong><br>
+                                    <small class="text-muted">
+                                        {% if notif.destinataire_email %}
+                                            <i class="fas fa-envelope"></i> {{ notif.destinataire_email }}<br>
+                                        {% endif %}
+                                        {% if notif.destinataire_tel %}
+                                            <i class="fas fa-phone"></i> {{ notif.destinataire_tel }}
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    {% if notif.canal == 'email' %}
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-envelope"></i> Email
+                                        </span>
+                                    {% elif notif.canal == 'sms' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-envelope"></i> Mail
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if notif.statut == 'sent' %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check"></i> Envoyé
+                                        </span>
+                                    {% elif notif.statut == 'failed' %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times"></i> Échec
+                                        </span>
+                                    {% elif notif.statut == 'pending' %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-clock"></i> En attente
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if notif.erreur_message %}
+                                        <small class="text-danger">{{ notif.erreur_message }}</small>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info" role="alert">
+                    <i class="fas fa-info-circle"></i>
+                    Aucune notification n'a encore été envoyée.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-lightbulb"></i> Comment fonctionne le système de notifications ?
+            </div>
+            <div class="card-body">
+                <h6><i class="fas fa-envelope text-success"></i> Rappel prestation à venir Mail (J-1)</h6>
+                <p class="small">Un mail est automatiquement envoyé à l'entreprise la veille de chaque prestation planifiée.</p>
+
+                <h6><i class="fas fa-envelope text-primary"></i> Alerte facture non envoyée (24h) - Mail envoyé à vous</h6>
+                <p class="small">Si une prestation est terminée depuis plus de 24h et qu'aucune facture n'a été envoyée, un mail de rappel vous est envoyé.</p>
+
+                <h6><i class="fas fa-euro-sign text-danger"></i> Rappel paiement (délai dépassé) - Mail au client</h6>
+                <p class="small mb-0">Si le délai de paiement d'un client est dépassé, un mail de rappel lui est automatiquement envoyé (max 1 fois par semaine).</p>
+
+                <hr class="my-3">
+
+                <h6><i class="fas fa-cog"></i> Configuration</h6>
+                <p class="small mb-0">
+                    Pour activer et configurer les notifications, rendez-vous dans
+                    <a href="{{ url_for('entreprise_modifier') }}"><strong>Entreprise → Modifier</strong></a>.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

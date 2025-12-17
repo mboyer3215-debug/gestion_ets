@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Entreprise - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h1 class="display-5 fw-bold text-dark mb-0">
+                <i class="fas fa-building text-primary"></i> Mon Entreprise
+            </h1>
+            <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-md-none">
+                <i class="fas fa-home"></i>
+            </a>
+        </div>
+        <p class="text-muted">Informations et paramètres de votre entreprise</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary me-2 d-none d-md-inline-block">
+            <i class="fas fa-home"></i> Retour accueil
+        </a>
+        <a href="{{ url_for('entreprise_modifier') }}" class="btn btn-primary">
+            <i class="fas fa-edit"></i> {% if entreprise %}Modifier{% else %}Configurer{% endif %}
+        </a>
+    </div>
+</div>
+
+{% if entreprise %}
+<!-- Informations de l'entreprise -->
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-info-circle"></i> Informations générales
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Nom :</dt>
+                    <dd class="col-sm-8"><strong>{{ entreprise.nom }}</strong></dd>
+
+                    {% if entreprise.siret %}
+                    <dt class="col-sm-4">SIRET :</dt>
+                    <dd class="col-sm-8">{{ entreprise.siret }}</dd>
+                    {% endif %}
+
+                    {% if entreprise.telephone %}
+                    <dt class="col-sm-4">Téléphone :</dt>
+                    <dd class="col-sm-8">
+                        <i class="fas fa-phone text-primary"></i> {{ entreprise.telephone }}
+                    </dd>
+                    {% endif %}
+
+                    {% if entreprise.email %}
+                    <dt class="col-sm-4">Email :</dt>
+                    <dd class="col-sm-8">
+                        <i class="fas fa-envelope text-primary"></i>
+                        <a href="mailto:{{ entreprise.email }}">{{ entreprise.email }}</a>
+                    </dd>
+                    {% endif %}
+
+                    {% if entreprise.site_web %}
+                    <dt class="col-sm-4">Site web :</dt>
+                    <dd class="col-sm-8">
+                        <i class="fas fa-globe text-primary"></i>
+                        <a href="{{ entreprise.site_web }}" target="_blank">{{ entreprise.site_web }}</a>
+                    </dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-map-marker-alt"></i> Adresse
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <i class="fas fa-home text-primary"></i>
+                    <strong>{{ entreprise.adresse }}</strong>
+                </p>
+                <p class="mb-0">
+                    <i class="fas fa-location-dot text-primary"></i>
+                    {{ entreprise.code_postal }} {{ entreprise.ville }}
+                </p>
+
+                {% if entreprise.adresse %}
+                <hr>
+                <a href="https://www.google.com/maps/search/?api=1&query={{ entreprise.adresse }}, {{ entreprise.code_postal }} {{ entreprise.ville }}"
+                   target="_blank"
+                   class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-map"></i> Voir sur Google Maps
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if entreprise.notes %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-sticky-note"></i> Notes
+            </div>
+            <div class="card-body">
+                <p class="mb-0" style="white-space: pre-wrap;">{{ entreprise.notes }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Statistiques d'utilisation -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-line"></i> Informations système
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1">
+                            <i class="fas fa-calendar-plus text-muted"></i>
+                            <strong>Créé le :</strong> {{ entreprise.date_creation.strftime('%d/%m/%Y à %H:%M') }}
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1">
+                            <i class="fas fa-calendar-check text-muted"></i>
+                            <strong>Dernière modification :</strong> {{ entreprise.date_modification.strftime('%d/%m/%Y à %H:%M') }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- Aucune information configurée -->
+<div class="row">
+    <div class="col-12">
+        <div class="alert alert-info">
+            <h4><i class="fas fa-info-circle"></i> Aucune information d'entreprise configurée</h4>
+            <p class="mb-3">
+                Configurez les informations de votre entreprise pour :
+            </p>
+            <ul class="mb-3">
+                <li>Calculer automatiquement les itinéraires vers vos prestations</li>
+                <li>Pré-remplir vos documents et factures (fonctionnalité future)</li>
+                <li>Centraliser toutes vos informations professionnelles</li>
+            </ul>
+            <a href="{{ url_for('entreprise_modifier') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Configurer maintenant
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,757 @@
+{% extends "base.html" %}
+
+{% block title %}Saisie Devis - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-6 fw-bold text-primary">
+            <i class="fas fa-file-contract"></i> Créer un devis
+        </h1>
+        <p class="text-muted">Prestation : {{ prestation.titre }}</p>
+    </div>
+</div>
+
+<!-- Informations prestation -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="fas fa-info-circle"></i> Informations Prestation</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Client:</strong><br>
+                        {{ prestation.client.entreprise if prestation.client else '-' }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Date prestation:</strong><br>
+                        {{ prestation.date_debut.strftime('%d/%m/%Y') if prestation.date_debut else '-' }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Type:</strong><br>
+                        {{ prestation.type_prestation or '-' }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Lieu:</strong><br>
+                        {{ prestation.ville_prestation or '-' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulaire -->
+<form method="POST">
+    <div class="row">
+        <!-- COLONNE GAUCHE : Informations générales -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fas fa-file"></i> Informations du devis</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Référence (auto-générée) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Référence devis</label>
+                        <input type="text" class="form-control bg-light" value="Auto-générée (DE-YYYY-NNN)" readonly>
+                        <small class="text-muted">La référence sera générée automatiquement</small>
+                    </div>
+
+                    <!-- Date devis -->
+                    <div class="mb-3">
+                        <label for="date_devis" class="form-label fw-bold">
+                            Date du devis <span class="text-danger">*</span>
+                        </label>
+                        <input type="date" class="form-control" id="date_devis" name="date_devis"
+                               value="{{ datetime.now().strftime('%Y-%m-%d') }}" required>
+                    </div>
+
+                    <!-- Date validité -->
+                    <div class="mb-3">
+                        <label for="date_validite" class="form-label fw-bold">Date de validité</label>
+                        <input type="date" class="form-control" id="date_validite" name="date_validite">
+                        <small class="text-muted">Date limite de validité du devis</small>
+                    </div>
+
+                    <!-- Date envoi -->
+                    <div class="mb-3">
+                        <label for="date_envoi" class="form-label fw-bold">Date d'envoi</label>
+                        <input type="date" class="form-control" id="date_envoi" name="date_envoi">
+                        <small class="text-muted">Laisser vide si non encore envoyé</small>
+                    </div>
+
+                    <!-- Email destinataire -->
+                    <div class="mb-3">
+                        <label for="mail_envoi" class="form-label fw-bold">Email destinataire</label>
+                        <input type="email" class="form-control" id="mail_envoi" name="mail_envoi"
+                               value="{{ prestation.client.email if prestation.client else '' }}"
+                               placeholder="client@exemple.fr">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLONNE DROITE : Calcul du prix -->
+        <div class="col-lg-6">
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-calculator"></i> Calcul du prix</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Bouton pour recharger depuis la prestation -->
+                    <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+                        <span><i class="fas fa-sync"></i> Les tarifs ont été modifiés dans la prestation ?</span>
+                        <button type="button" class="btn btn-sm btn-info" onclick="rechargerDepuisPrestation()">
+                            <i class="fas fa-download"></i> Recharger depuis la prestation
+                        </button>
+                    </div>
+
+                    <!-- Section 1: Lignes de déplacement -->
+                    <div class="card mb-3 border-primary">
+                        <div class="card-header bg-primary bg-opacity-10">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="fas fa-car"></i> Frais de déplacement</h6>
+                                <span class="badge bg-primary" id="total-deplacement-badge">0.00 €</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-2" id="table-deplacement">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 15%;">Code</th>
+                                            <th style="width: 30%;">Type</th>
+                                            <th style="width: 15%;">Qté</th>
+                                            <th style="width: 18%;">PU HT</th>
+                                            <th style="width: 18%;">Total HT</th>
+                                            <th style="width: 4%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lignes-deplacement">
+                                        <!-- Les lignes seront ajoutées dynamiquement -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="ajouterLigneDeplacement()">
+                                <i class="fas fa-plus"></i> Ajouter une ligne
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Section 2: Lignes de fourniture -->
+                    <div class="card mb-3 border-warning">
+                        <div class="card-header bg-warning bg-opacity-10">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="fas fa-box"></i> Frais de fourniture</h6>
+                                <span class="badge bg-warning text-dark" id="total-fourniture-badge">0.00 €</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-2" id="table-fourniture">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 15%;">Code</th>
+                                            <th style="width: 30%;">Type</th>
+                                            <th style="width: 15%;">Qté</th>
+                                            <th style="width: 18%;">PU HT</th>
+                                            <th style="width: 18%;">Total HT</th>
+                                            <th style="width: 4%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lignes-fourniture">
+                                        <!-- Les lignes seront ajoutées dynamiquement -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="ajouterLigneFourniture()">
+                                <i class="fas fa-plus"></i> Ajouter une ligne
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Section 3: Lignes de prestation -->
+                    <div class="card mb-3 border-info">
+                        <div class="card-header bg-info bg-opacity-10">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0"><i class="fas fa-tasks"></i> Tarif prestation</h6>
+                                <span class="badge bg-info" id="total-prestation-badge">0.00 €</span>
+                            </div>
+                        </div>
+                        <div class="card-body p-2">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover mb-2" id="table-prestation">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 15%;">Code</th>
+                                            <th style="width: 30%;">Type</th>
+                                            <th style="width: 15%;">Qté</th>
+                                            <th style="width: 18%;">PU HT</th>
+                                            <th style="width: 18%;">Total HT</th>
+                                            <th style="width: 4%;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lignes-prestation">
+                                        <!-- Les lignes seront ajoutées dynamiquement -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="ajouterLignePrestation()">
+                                <i class="fas fa-plus"></i> Ajouter une ligne
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Remise -->
+                    <div class="mb-3">
+                        <label for="remise_ht" class="form-label fw-bold">Remise HT</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" class="form-control" id="remise_ht" name="remise_ht"
+                                   value="0" onchange="calculerTotaux()">
+                            <span class="input-group-text">€</span>
+                        </div>
+                    </div>
+
+                    <!-- TVA -->
+                    <div class="mb-3">
+                        <label for="tva_applicable" class="form-label fw-bold">TVA applicable</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" class="form-control" id="tva_applicable" name="tva_applicable"
+                                   value="0" onchange="calculerTotaux()">
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <small class="text-muted">0% par défaut</small>
+                    </div>
+
+                    <hr>
+
+                    <!-- Total HT (calculé) -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Total HT</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-light fs-5 fw-bold text-success" id="total_ht_display" readonly>
+                            <span class="input-group-text">€</span>
+                        </div>
+                    </div>
+
+                    <!-- Total TTC (calculé) -->
+                    <div class="mb-3" id="total_ttc_container">
+                        <label class="form-label fw-bold">Total TTC</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-success text-white fs-4 fw-bold" id="total_ttc_display" readonly>
+                            <span class="input-group-text bg-success text-white">€</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Commentaire -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-comment"></i> Commentaire</h6>
+                </div>
+                <div class="card-body">
+                    <textarea class="form-control" id="commentaire" name="commentaire" rows="4"
+                              placeholder="Conditions particulières, remarques..."></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boutons -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save"></i> Créer le devis
+                    </button>
+                    <button type="button" class="btn btn-info btn-lg" onclick="imprimerDevis()">
+                        <i class="fas fa-print"></i> Impression
+                    </button>
+                    <button type="button" class="btn btn-warning btn-lg" onclick="envoyerMail()">
+                        <i class="fas fa-envelope"></i> Envoyer mail
+                    </button>
+                    <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-times"></i> Annuler
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Champs cachés pour remise (pour compatibilité) -->
+    <input type="hidden" name="remise" value="0">
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Compteurs pour les lignes
+let compteurDeplacement = 0;
+let compteurFourniture = 0;
+let compteurPrestation = 0;
+
+// Données serveur pour l'impression
+var serverData = {
+    entreprise: {
+        nom: "{{ entreprise.nom|default('', true)|replace('\"', '')|replace("'", '')|replace('\n', ' ') if entreprise else '' }}",
+        logo: "{{ entreprise.logo|default('', true) if entreprise else '' }}",
+        adresse: "{{ entreprise.adresse|default('', true)|replace('\"', '')|replace("'", '')|replace('\n', ' ') if entreprise else '' }}",
+        code_postal: "{{ entreprise.code_postal|default('', true) if entreprise else '' }}",
+        ville: "{{ entreprise.ville|default('', true)|replace('\"', '')|replace("'", '') if entreprise else '' }}",
+        telephone: "{{ entreprise.telephone|default('', true) if entreprise else '' }}",
+        email: "{{ entreprise.email|default('', true) if entreprise else '' }}",
+        site_web: "{{ entreprise.site_web|default('', true) if entreprise else '' }}",
+        statut_juridique: "{{ entreprise.statut_juridique|default('', true)|replace('\"', '')|replace("'", '') if entreprise else '' }}",
+        capital: {{ entreprise.capital if entreprise and entreprise.capital else 0 }},
+        siret: "{{ entreprise.siret|default('', true) if entreprise else '' }}",
+        rcs: "{{ entreprise.rcs|default('', true) if entreprise else '' }}",
+        numero_nda: "{{ entreprise.numero_nda|default('', true) if entreprise else '' }}"
+    },
+    client: {
+        entreprise: "{{ prestation.client.entreprise|default('', true)|replace('\"', '')|replace("'", '')|replace('\n', ' ') if prestation and prestation.client else '' }}",
+        adresse: "{{ prestation.client.adresse|default('', true)|replace('\"', '')|replace("'", '')|replace('\n', ' ') if prestation and prestation.client else '' }}",
+        code_postal: "{{ prestation.client.code_postal|default('', true) if prestation and prestation.client else '' }}",
+        ville: "{{ prestation.client.ville|default('', true)|replace('\"', '')|replace("'", '') if prestation and prestation.client else '' }}",
+        telephone: "{{ prestation.client.telephone|default('', true) if prestation and prestation.client else '' }}",
+        email: "{{ prestation.client.email|default('', true) if prestation and prestation.client else '' }}"
+    },
+    prestation: {
+        titre: "{{ prestation.titre|default('', true)|replace('\"', '')|replace("'", '')|replace('\n', ' ') if prestation else '' }}",
+        date_debut: "{{ prestation.date_debut.strftime('%d/%m/%Y') if prestation and prestation.date_debut else '' }}",
+        lieu: "{{ prestation.lieu|default('', true)|replace('\"', '')|replace("'", '')|replace('\n', ' ') if prestation else '' }}",
+        adresse_prestation: "{{ prestation.adresse_prestation|default('', true)|replace('\"', '')|replace("'", '')|replace('\n', ' ') if prestation else '' }}",
+        code_postal_prestation: "{{ prestation.code_postal_prestation|default('', true) if prestation else '' }}",
+        ville_prestation: "{{ prestation.ville_prestation|default('', true)|replace('\"', '')|replace("'", '') if prestation else '' }}"
+    }
+};
+
+// Ajouter une ligne de déplacement
+function ajouterLigneDeplacement(code = '', type = '', nbre = 1, pu_ht = 0) {
+    const tbody = document.getElementById('lignes-deplacement');
+    const id = ++compteurDeplacement;
+
+    const tr = document.createElement('tr');
+    tr.id = `deplacement-${id}`;
+    tr.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm text-base" name="deplacement_code[]" value="${code}" placeholder="REP, KM"></td>
+        <td><input type="text" class="form-control form-control-sm text-base" name="deplacement_type[]" value="${type}" placeholder="REPAS, PROXIMITE"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="deplacement_nbre[]" value="${nbre}" onchange="calculerLigneDeplacement(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="deplacement_pu_ht[]" value="${pu_ht}" onchange="calculerLigneDeplacement(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm bg-light text-base" name="deplacement_pt_ht[]" value="${(nbre * pu_ht).toFixed(2)}" readonly></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="supprimerLigne('deplacement-${id}')"><i class="fas fa-trash"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    calculerTotaux();
+}
+
+// Ajouter une ligne de fourniture
+function ajouterLigneFourniture(code = '', type = '', nbre = 1, pu_ht = 0) {
+    const tbody = document.getElementById('lignes-fourniture');
+    const id = ++compteurFourniture;
+
+    const tr = document.createElement('tr');
+    tr.id = `fourniture-${id}`;
+    tr.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm text-base" name="fourniture_code[]" value="${code}" placeholder="INCENDIE"></td>
+        <td><input type="text" class="form-control form-control-sm text-base" name="fourniture_type[]" value="${type}" placeholder="EXTINCTEUR_EAU"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="fourniture_nbre[]" value="${nbre}" onchange="calculerLigneFourniture(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="fourniture_pu_ht[]" value="${pu_ht}" onchange="calculerLigneFourniture(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm bg-light text-base" name="fourniture_pt_ht[]" value="${(nbre * pu_ht).toFixed(2)}" readonly></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="supprimerLigne('fourniture-${id}')"><i class="fas fa-trash"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    calculerTotaux();
+}
+
+// Ajouter une ligne de prestation
+function ajouterLignePrestation(code = '', type = '', nbre = 1, pu_ht = 0) {
+    const tbody = document.getElementById('lignes-prestation');
+    const id = ++compteurPrestation;
+
+    const tr = document.createElement('tr');
+    tr.id = `prestation-${id}`;
+    tr.innerHTML = `
+        <td><input type="text" class="form-control form-control-sm text-base" name="prestation_code[]" value="${code}" placeholder="INCENDIE"></td>
+        <td><input type="text" class="form-control form-control-sm text-base" name="prestation_type[]" value="${type}" placeholder="EPI"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="prestation_nbre[]" value="${nbre}" onchange="calculerLignePrestation(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm text-base" name="prestation_pu_ht[]" value="${pu_ht}" onchange="calculerLignePrestation(${id})" min="0"></td>
+        <td><input type="number" step="0.01" class="form-control form-control-sm bg-light text-base" name="prestation_pt_ht[]" value="${(nbre * pu_ht).toFixed(2)}" readonly></td>
+        <td><button type="button" class="btn btn-sm btn-danger" onclick="supprimerLigne('prestation-${id}')"><i class="fas fa-trash"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+    calculerTotaux();
+}
+
+// Supprimer une ligne
+function supprimerLigne(id) {
+    const ligne = document.getElementById(id);
+    if (ligne) {
+        ligne.remove();
+        calculerTotaux();
+    }
+}
+
+// Calculer le total d'une ligne de déplacement
+function calculerLigneDeplacement(id) {
+    const tr = document.getElementById(`deplacement-${id}`);
+    const inputs = tr.querySelectorAll('input[type="number"]');
+    const nbre = parseFloat(inputs[0].value) || 0;
+    const pu = parseFloat(inputs[1].value) || 0;
+    inputs[2].value = (nbre * pu).toFixed(2);
+    calculerTotaux();
+}
+
+// Calculer le total d'une ligne de fourniture
+function calculerLigneFourniture(id) {
+    const tr = document.getElementById(`fourniture-${id}`);
+    const inputs = tr.querySelectorAll('input[type="number"]');
+    const nbre = parseFloat(inputs[0].value) || 0;
+    const pu = parseFloat(inputs[1].value) || 0;
+    inputs[2].value = (nbre * pu).toFixed(2);
+    calculerTotaux();
+}
+
+// Calculer le total d'une ligne de prestation
+function calculerLignePrestation(id) {
+    const tr = document.getElementById(`prestation-${id}`);
+    const inputs = tr.querySelectorAll('input[type="number"]');
+    const nbre = parseFloat(inputs[0].value) || 0;
+    const pu = parseFloat(inputs[1].value) || 0;
+    inputs[2].value = (nbre * pu).toFixed(2);
+    calculerTotaux();
+}
+
+// Fonction pour recharger depuis la prestation (bouton)
+function rechargerDepuisPrestation() {
+    // Vider toutes les lignes actuelles
+    document.getElementById('lignes-deplacement').innerHTML = '';
+    document.getElementById('lignes-fourniture').innerHTML = '';
+    document.getElementById('lignes-prestation').innerHTML = '';
+
+    // Réinitialiser les compteurs
+    compteurDeplacement = 0;
+    compteurFourniture = 0;
+    compteurPrestation = 0;
+
+    // Charger depuis la prestation
+    {% for ligne in prestation.lignes_tarif_deplacement %}
+    ajouterLigneDeplacement('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+    {% endfor %}
+
+    {% for ligne in prestation.lignes_tarif_fourniture %}
+    ajouterLigneFourniture('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+    {% endfor %}
+
+    {% for ligne in prestation.lignes_tarif_prestation %}
+    ajouterLignePrestation('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+    {% endfor %}
+
+    alert('Tarifs rechargés depuis la prestation !');
+}
+
+// Calculer les totaux globaux
+function calculerTotaux() {
+    // Calculer total déplacement
+    let totalDeplacement = 0;
+    document.querySelectorAll('#lignes-deplacement input[name="deplacement_pt_ht[]"]').forEach(input => {
+        totalDeplacement += parseFloat(input.value) || 0;
+    });
+
+    // Calculer total fourniture
+    let totalFourniture = 0;
+    document.querySelectorAll('#lignes-fourniture input[name="fourniture_pt_ht[]"]').forEach(input => {
+        totalFourniture += parseFloat(input.value) || 0;
+    });
+
+    // Calculer total prestation
+    let totalPrestation = 0;
+    document.querySelectorAll('#lignes-prestation input[name="prestation_pt_ht[]"]').forEach(input => {
+        totalPrestation += parseFloat(input.value) || 0;
+    });
+
+    // Mettre à jour les badges
+    document.getElementById('total-deplacement-badge').textContent = totalDeplacement.toFixed(2) + ' €';
+    document.getElementById('total-fourniture-badge').textContent = totalFourniture.toFixed(2) + ' €';
+    document.getElementById('total-prestation-badge').textContent = totalPrestation.toFixed(2) + ' €';
+
+    // Calculer le total HT et TTC
+    const remise = parseFloat(document.getElementById('remise_ht').value) || 0;
+    const tva = parseFloat(document.getElementById('tva_applicable').value) || 0;
+
+    const totalHT = totalDeplacement + totalFourniture + totalPrestation - remise;
+    const totalTTC = totalHT * (1 + tva / 100);
+
+    document.getElementById('total_ht_display').value = totalHT.toFixed(2);
+    document.getElementById('total_ttc_display').value = totalTTC.toFixed(2);
+
+    // Afficher le bloc Total TTC uniquement si TVA > 0
+    const ttcContainer = document.getElementById('total_ttc_container');
+    if (tva > 0) {
+        ttcContainer.style.display = 'block';
+    } else {
+        ttcContainer.style.display = 'none';
+    }
+}
+
+// Charger les lignes existantes depuis la prestation
+{% for ligne in prestation.lignes_tarif_deplacement %}
+ajouterLigneDeplacement('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+{% endfor %}
+
+{% for ligne in prestation.lignes_tarif_fourniture %}
+ajouterLigneFourniture('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+{% endfor %}
+
+{% for ligne in prestation.lignes_tarif_prestation %}
+ajouterLignePrestation('{{ ligne.code or "" }}', '{{ ligne.type or "" }}', {{ ligne.nbre or 1 }}, {{ ligne.pu_ht or 0 }});
+{% endfor %}
+
+// Initialiser
+calculerTotaux();
+
+document.getElementById('date_devis').addEventListener('change', function() {
+    var dateDevis = new Date(this.value);
+    if (!isNaN(dateDevis)) {
+        var dateValidite = new Date(dateDevis);
+        dateValidite.setDate(dateValidite.getDate() + 30);
+        document.getElementById('date_validite').value = dateValidite.toISOString().split('T')[0];
+    }
+});
+
+function envoyerMail() {
+    console.log("Fonction d'envoi de mail à implémenter");
+}
+
+function imprimerDevis() {
+    // Collecter toutes les lignes de déplacement
+    const lignesDeplacement = [];
+    document.querySelectorAll('#lignes-deplacement tr').forEach(tr => {
+        const inputs = tr.querySelectorAll('input');
+        if (inputs.length >= 5) {
+            lignesDeplacement.push({
+                code: inputs[0].value,
+                type: inputs[1].value,
+                nbre: parseFloat(inputs[2].value) || 0,
+                pu_ht: parseFloat(inputs[3].value) || 0,
+                pt_ht: parseFloat(inputs[4].value) || 0
+            });
+        }
+    });
+
+    // Collecter toutes les lignes de fourniture
+    const lignesFourniture = [];
+    document.querySelectorAll('#lignes-fourniture tr').forEach(tr => {
+        const inputs = tr.querySelectorAll('input');
+        if (inputs.length >= 5) {
+            lignesFourniture.push({
+                code: inputs[0].value,
+                type: inputs[1].value,
+                nbre: parseFloat(inputs[2].value) || 0,
+                pu_ht: parseFloat(inputs[3].value) || 0,
+                pt_ht: parseFloat(inputs[4].value) || 0
+            });
+        }
+    });
+
+    // Collecter toutes les lignes de prestation
+    const lignesPrestation = [];
+    document.querySelectorAll('#lignes-prestation tr').forEach(tr => {
+        const inputs = tr.querySelectorAll('input');
+        if (inputs.length >= 5) {
+            lignesPrestation.push({
+                code: inputs[0].value,
+                type: inputs[1].value,
+                nbre: parseFloat(inputs[2].value) || 0,
+                pu_ht: parseFloat(inputs[3].value) || 0,
+                pt_ht: parseFloat(inputs[4].value) || 0
+            });
+        }
+    });
+
+    // Calculer les totaux
+    let totalDeplacement = lignesDeplacement.reduce((sum, l) => sum + l.pt_ht, 0);
+    let totalFourniture = lignesFourniture.reduce((sum, l) => sum + l.pt_ht, 0);
+    let totalPrestation = lignesPrestation.reduce((sum, l) => sum + l.pt_ht, 0);
+
+    var remise = parseFloat(document.getElementById('remise_ht').value) || 0;
+    var tva = parseFloat(document.getElementById('tva_applicable').value) || 0;
+    var totalHT = totalDeplacement + totalFourniture + totalPrestation - remise;
+    var totalTTC = totalHT * (1 + tva / 100);
+
+    var dateDevis = document.getElementById('date_devis').value;
+    var dateValidite = document.getElementById('date_validite').value;
+    var commentaire = document.getElementById('commentaire').value || '';
+
+    var lieuComplet = '';
+    if (serverData.prestation.lieu || serverData.prestation.adresse_prestation) {
+        if (serverData.prestation.lieu) lieuComplet += serverData.prestation.lieu;
+        if (serverData.prestation.adresse_prestation) {
+            if (lieuComplet) lieuComplet += ' - ';
+            lieuComplet += serverData.prestation.adresse_prestation;
+        }
+        if (serverData.prestation.code_postal_prestation || serverData.prestation.ville_prestation) {
+            lieuComplet += ', ' + serverData.prestation.code_postal_prestation + ' ' + serverData.prestation.ville_prestation;
+        }
+    }
+
+    var printWindow = window.open('', '', 'width=900,height=700');
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Devis</title>';
+    html += '<style>';
+    html += '@media print { .no-print { display: none !important; } @page { margin: 1cm; } }';
+    html += '* { margin: 0; padding: 0; box-sizing: border-box; }';
+    html += 'body { font-family: Arial, sans-serif; font-size: 11px; padding: 20px; }';
+    html += '.logo { max-width: 150px; max-height: 80px; }';
+    html += '.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }';
+    html += '.header-prestataire, .header-client, .header-logo { width: 32%; }';
+    html += '.header-logo { text-align: right; }';
+    html += '.header h2 { font-size: 14px; margin-bottom: 5px; margin-top: 0; text-transform: uppercase; font-weight: bold; }';
+    html += '.header p { margin: 2px 0; font-size: 10px; }';
+    html += '.devis-info { margin: 20px 0; }';
+    html += '.devis-info table { width: 100%; }';
+    html += '.devis-info td { padding: 3px; vertical-align: top; }';
+    html += '.devis-info .label { font-weight: bold; width: 120px; }';
+    html += '.section-title { background: #f0f0f0; padding: 5px; font-weight: bold; margin-top: 15px; }';
+    html += 'table.details { width: 100%; border-collapse: collapse; margin: 10px 0; }';
+    html += 'table.details th, table.details td { border: 1px solid #ddd; padding: 6px; text-align: left; }';
+    html += 'table.details th { background: #f5f5f5; font-weight: bold; }';
+    html += 'table.details .right { text-align: right; }';
+    html += 'table.details .center { text-align: center; }';
+    html += '.total-box { float: right; width: 250px; margin-top: 10px; }';
+    html += '.total-box table { width: 100%; border-collapse: collapse; }';
+    html += '.total-box td { padding: 5px; border: 1px solid #ddd; }';
+    html += '.total-box .label { background: #f5f5f5; font-weight: bold; }';
+    html += '.total-box .montant { text-align: right; font-weight: bold; }';
+    html += '.footer { margin-top: 30px; font-size: 9px; clear: both; border-top: 1px solid #ccc; padding-top: 10px; }';
+    html += '.footer p { margin: 3px 0; }';
+    html += '.clearfix { clear: both; }';
+    html += '</style></head><body>';
+
+    html += '<div class="header">';
+    html += '<div class="header-prestataire">';
+    html += '<h2>Prestataire</h2>';
+    html += '<p><strong>' + serverData.entreprise.nom + '</strong></p>';
+    if (serverData.entreprise.adresse) html += '<p>' + serverData.entreprise.adresse + '</p>';
+    if (serverData.entreprise.code_postal || serverData.entreprise.ville) {
+        html += '<p>' + serverData.entreprise.code_postal + ' ' + serverData.entreprise.ville + '</p>';
+    }
+    if (serverData.entreprise.telephone) html += '<p>Tél: ' + serverData.entreprise.telephone + '</p>';
+    if (serverData.entreprise.email) html += '<p>Email: ' + serverData.entreprise.email + '</p>';
+    if (serverData.entreprise.site_web) html += '<p>' + serverData.entreprise.site_web + '</p>';
+    html += '</div>';
+    html += '<div class="header-client">';
+    html += '<h2>Client</h2>';
+    if (serverData.client.entreprise) html += '<p><strong>' + serverData.client.entreprise + '</strong></p>';
+    if (serverData.client.adresse) html += '<p>' + serverData.client.adresse + '</p>';
+    if (serverData.client.code_postal || serverData.client.ville) {
+        html += '<p>' + serverData.client.code_postal + ' ' + serverData.client.ville + '</p>';
+    }
+    if (serverData.client.telephone) html += '<p>Tél: ' + serverData.client.telephone + '</p>';
+    if (serverData.client.email) html += '<p>Email: ' + serverData.client.email + '</p>';
+    html += '</div>';
+    html += '<div class="header-logo">';
+    if (serverData.entreprise.logo) {
+        html += '<img src="' + serverData.entreprise.logo + '" alt="Logo" class="logo">';
+    }
+    html += '</div>';
+    html += '</div>';
+
+    html += '<div class="devis-info"><h2 style="text-align: center; margin-bottom: 15px; color: #5D5CDE;">DEVIS</h2>';
+    html += '<table><tr><td class="label">Date du devis :</td>';
+    if (dateDevis) {
+        var d = new Date(dateDevis);
+        var options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        html += '<td>' + d.toLocaleDateString('fr-FR', options) + '</td>';
+    } else {
+        html += '<td>-</td>';
+    }
+    html += '<td class="label">Date de validité :</td>';
+    if (dateValidite) {
+        var dv = new Date(dateValidite);
+        html += '<td>' + dv.toLocaleDateString('fr-FR') + '</td>';
+    } else {
+        html += '<td>-</td>';
+    }
+    html += '</tr><tr><td class="label">Prestation :</td><td>' + serverData.prestation.titre + '</td>';
+    html += '<td class="label">Date prestation :</td><td>' + serverData.prestation.date_debut + '</td></tr>';
+    if (lieuComplet) {
+        html += '<tr><td class="label">Lieu de prestation :</td><td colspan="3">' + lieuComplet + '</td></tr>';
+    }
+    html += '</table></div>';
+
+    html += '<div class="section-title">Détails</div>';
+    html += '<table class="details"><thead><tr><th style="width: 40%;">Désignation</th>';
+    html += '<th class="center" style="width: 15%;">Quantité</th>';
+    html += '<th class="right" style="width: 20%;">Prix unitaire HT</th>';
+    html += '<th class="right" style="width: 25%;">Prix total HT</th></tr></thead><tbody>';
+
+    // Ajout des lignes détaillées
+    if (lignesDeplacement.length > 0) html += '<tr><td colspan="4" style="background: #f0f0f0; font-weight: bold;">DÉPLACEMENTS</td></tr>';
+    lignesDeplacement.forEach(l => {
+        html += '<tr><td>' + (l.code ? l.code + ' - ' : '') + l.type + '</td>';
+        html += '<td class="center">' + l.nbre + '</td>';
+        html += '<td class="right">' + l.pu_ht.toFixed(2) + ' €</td>';
+        html += '<td class="right">' + l.pt_ht.toFixed(2) + ' €</td></tr>';
+    });
+    if (lignesFourniture.length > 0) html += '<tr><td colspan="4" style="background: #f0f0f0; font-weight: bold;">FOURNITURES</td></tr>';
+    lignesFourniture.forEach(l => {
+        html += '<tr><td>' + (l.code ? l.code + ' - ' : '') + l.type + '</td>';
+        html += '<td class="center">' + l.nbre + '</td>';
+        html += '<td class="right">' + l.pu_ht.toFixed(2) + ' €</td>';
+        html += '<td class="right">' + l.pt_ht.toFixed(2) + ' €</td></tr>';
+    });
+    if (lignesPrestation.length > 0) html += '<tr><td colspan="4" style="background: #f0f0f0; font-weight: bold;">PRESTATIONS</td></tr>';
+    lignesPrestation.forEach(l => {
+        html += '<tr><td>' + (l.code ? l.code + ' - ' : '') + l.type + '</td>';
+        html += '<td class="center">' + l.nbre + '</td>';
+        html += '<td class="right">' + l.pu_ht.toFixed(2) + ' €</td>';
+        html += '<td class="right">' + l.pt_ht.toFixed(2) + ' €</td></tr>';
+    });
+    if (remise > 0) {
+        html += '<tr><td>Remise</td><td class="center">-</td>';
+        html += '<td class="right">-' + remise.toFixed(2) + ' €</td>';
+        html += '<td class="right">-' + remise.toFixed(2) + ' €</td></tr>';
+    }
+    html += '</tbody></table>';
+
+    html += '<div class="total-box"><table><tr><td class="label">Prix total HT</td>';
+    html += '<td class="montant">' + totalHT.toFixed(2) + ' €</td></tr>';
+    if (tva > 0) {
+        html += '<tr><td class="label">TVA (' + tva + '%)</td>';
+        html += '<td class="montant">' + (totalTTC - totalHT).toFixed(2) + ' €</td></tr>';
+        html += '<tr><td class="label">Prix total TTC</td>';
+        html += '<td class="montant">' + totalTTC.toFixed(2) + ' €</td></tr>';
+    }
+    html += '</table></div><div class="clearfix"></div>';
+
+    html += '<div class="footer">';
+    if (tva === 0) html += '<p><strong>TVA non applicable, art. 293 B du CGI</strong></p>';
+    if (commentaire) html += '<p><strong>Commentaire :</strong> ' + commentaire + '</p>';
+    html += '<p style="margin-top: 10px;">';
+    if (serverData.entreprise.statut_juridique) html += serverData.entreprise.statut_juridique;
+    if (serverData.entreprise.capital > 0) html += ' au capital de ' + Math.round(serverData.entreprise.capital) + ' €';
+    if (serverData.entreprise.siret) html += ' - SIRET: ' + serverData.entreprise.siret;
+    if (serverData.entreprise.rcs) html += ' - RCS: ' + serverData.entreprise.rcs;
+    if (serverData.entreprise.numero_nda) html += ' - N° NDA: ' + serverData.entreprise.numero_nda;
+    html += '</p></div>';
+
+    html += '<div class="no-print" style="text-align: center; margin-top: 30px;">';
+    html += '<button onclick="window.print()" style="padding: 10px 20px; margin: 5px; font-size: 14px; cursor: pointer;">🖨️ Imprimer</button>';
+    html += '<button onclick="window.close()" style="padding: 10px 20px; margin: 5px; font-size: 14px; cursor: pointer;">❌ Fermer</button>';
+    html += '</div></body></html>';
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+}
+</script>
+{% endblock %}

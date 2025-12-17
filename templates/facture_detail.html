@@ -1,0 +1,266 @@
+{% extends "base.html" %}
+
+{% block title %}Facture {{ facture.reference_facture }} - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-6 fw-bold text-success">
+                    <i class="fas fa-file-invoice"></i> Facture {{ facture.reference_facture }}
+                </h1>
+                <p class="text-muted">Créée le {{ facture.date_facture.strftime('%d/%m/%Y') if facture.date_facture else '-' }}</p>
+            </div>
+            <div>
+                <a href="{{ url_for('prestation_detail', prestation_id=facture.prestation.id) }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Retour à la prestation
+                </a>
+                <button onclick="window.print()" class="btn btn-primary">
+                    <i class="fas fa-print"></i> Imprimer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Contenu de la facture (pour l'écran et l'impression) -->
+<div id="facture-content">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body p-5">
+                    <!-- En-tête avec logos et coordonnées -->
+                    <div class="row mb-5">
+                        <div class="col-6">
+                            <h3 class="text-primary fw-bold">{{ entreprise.nom if entreprise else 'Mon Entreprise' }}</h3>
+                            {% if entreprise %}
+                            <p class="mb-1">{{ entreprise.adresse }}</p>
+                            <p class="mb-1">{{ entreprise.code_postal }} {{ entreprise.ville }}</p>
+                            {% if entreprise.siret %}<p class="mb-1">SIRET: {{ entreprise.siret }}</p>{% endif %}
+                            {% if entreprise.telephone %}<p class="mb-1">Tél: {{ entreprise.telephone }}</p>{% endif %}
+                            {% if entreprise.email %}<p class="mb-1">Email: {{ entreprise.email }}</p>{% endif %}
+                            {% endif %}
+                        </div>
+                        <div class="col-6 text-end">
+                            <h2 class="text-success fw-bold mb-3">FACTURE</h2>
+                            <p class="mb-1"><strong>Numéro:</strong> {{ facture.reference_facture }}</p>
+                            <p class="mb-1"><strong>Date:</strong> {{ facture.date_facture.strftime('%d/%m/%Y') if facture.date_facture else '-' }}</p>
+                            {% if facture.date_envoi %}
+                            <p class="mb-1"><strong>Date d'envoi:</strong> {{ facture.date_envoi.strftime('%d/%m/%Y') }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <!-- Informations client -->
+                    <div class="row mb-5">
+                        <div class="col-6">
+                            <h5 class="fw-bold mb-3">Facturé à:</h5>
+                            {% if facture.prestation and facture.prestation.client %}
+                            <p class="mb-1"><strong>{{ facture.prestation.client.prenom }} {{ facture.prestation.client.nom }}</strong></p>
+                            {% if facture.prestation.client.entreprise %}
+                            <p class="mb-1">{{ facture.prestation.client.entreprise }}</p>
+                            {% endif %}
+                            {% if facture.prestation.client.adresse %}
+                            <p class="mb-1">{{ facture.prestation.client.adresse }}</p>
+                            <p class="mb-1">{{ facture.prestation.client.code_postal }} {{ facture.prestation.client.ville }}</p>
+                            {% endif %}
+                            {% if facture.prestation.client.email %}
+                            <p class="mb-1">Email: {{ facture.prestation.client.email }}</p>
+                            {% endif %}
+                            {% if facture.prestation.client.telephone %}
+                            <p class="mb-1">Tél: {{ facture.prestation.client.telephone }}</p>
+                            {% endif %}
+                            {% else %}
+                            <p class="text-muted">Client non spécifié</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-6">
+                            <h5 class="fw-bold mb-3">Prestation:</h5>
+                            {% if facture.prestation %}
+                            <p class="mb-1"><strong>{{ facture.prestation.titre }}</strong></p>
+                            <p class="mb-1">Date: {{ facture.prestation.date_debut.strftime('%d/%m/%Y') if facture.prestation.date_debut else '-' }}</p>
+                            {% if facture.prestation.type_prestation %}
+                            <p class="mb-1">Type: {{ facture.prestation.type_prestation }}</p>
+                            {% endif %}
+                            {% if facture.prestation.lieu %}
+                            <p class="mb-1">Lieu: {{ facture.prestation.lieu }}</p>
+                            {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Tableau des montants -->
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Désignation</th>
+                                    <th class="text-center" style="width: 150px;">Quantité</th>
+                                    <th class="text-end" style="width: 150px;">Montant HT</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if facture.deplacement_prix_ht and facture.deplacement_prix_ht > 0 %}
+                                <tr>
+                                    <td>Frais de déplacement</td>
+                                    <td class="text-center">1</td>
+                                    <td class="text-end">{{ "%.2f"|format(facture.deplacement_prix_ht) }} €</td>
+                                </tr>
+                                {% endif %}
+
+                                {% if facture.fourniture_prix_ht and facture.fourniture_prix_ht > 0 %}
+                                <tr>
+                                    <td>Frais de fourniture</td>
+                                    <td class="text-center">1</td>
+                                    <td class="text-end">{{ "%.2f"|format(facture.fourniture_prix_ht) }} €</td>
+                                </tr>
+                                {% endif %}
+
+                                {% if facture.prestation_prix_ht and facture.prestation_prix_ht > 0 %}
+                                <tr>
+                                    <td>Prestation - {{ facture.prestation.titre if facture.prestation else 'Service' }}</td>
+                                    <td class="text-center">1</td>
+                                    <td class="text-end">{{ "%.2f"|format(facture.prestation_prix_ht) }} €</td>
+                                </tr>
+                                {% endif %}
+
+                                {% if facture.acompte_prix_ht and facture.acompte_prix_ht > 0 %}
+                                <tr>
+                                    <td>Acompte déduit</td>
+                                    <td class="text-center">-</td>
+                                    <td class="text-end text-danger">-{{ "%.2f"|format(facture.acompte_prix_ht) }} €</td>
+                                </tr>
+                                {% endif %}
+
+                                {% if facture.remise_ht and facture.remise_ht > 0 %}
+                                <tr>
+                                    <td>Remise</td>
+                                    <td class="text-center">-</td>
+                                    <td class="text-end text-danger">-{{ "%.2f"|format(facture.remise_ht) }} €</td>
+                                </tr>
+                                {% endif %}
+
+                                {% if facture.majoration and facture.majoration > 0 %}
+                                <tr>
+                                    <td>Majoration</td>
+                                    <td class="text-center">1</td>
+                                    <td class="text-end">{{ "%.2f"|format(facture.majoration) }} €</td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-secondary">
+                                    <th colspan="2" class="text-end">Total HT</th>
+                                    <th class="text-end">{{ "%.2f"|format(facture.total_prix_ht or 0) }} €</th>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="text-end">TVA ({{ "%.2f"|format(facture.tva_applicable or 0) }}%)</td>
+                                    <td class="text-end">{{ "%.2f"|format((facture.total_ttc or 0) - (facture.total_prix_ht or 0)) }} €</td>
+                                </tr>
+                                <tr class="table-success">
+                                    <th colspan="2" class="text-end">Total TTC</th>
+                                    <th class="text-end fs-4">{{ "%.2f"|format(facture.total_ttc or 0) }} €</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <!-- TVA non applicable -->
+                    {% if not facture.tva_applicable or facture.tva_applicable == 0 %}
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle"></i> <strong>TVA non applicable</strong> - Article 293 B du CGI
+                    </div>
+                    {% endif %}
+
+                    <!-- Commentaire -->
+                    {% if facture.commentaire %}
+                    <div class="mb-4">
+                        <h6 class="fw-bold">Commentaire:</h6>
+                        <p style="white-space: pre-wrap;">{{ facture.commentaire }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Conditions de paiement -->
+                    <div class="row mt-5">
+                        <div class="col-6">
+                            <h6 class="fw-bold mb-2">Conditions de paiement:</h6>
+                            <p class="mb-1">
+                                Délai de paiement: {{ facture.prestation.client.delai_paiement_jours if facture.prestation and facture.prestation.client else 30 }} jours
+                            </p>
+                            {% if date_limite %}
+                            <p class="mb-1">Date limite de paiement: <strong>{{ date_limite.strftime('%d/%m/%Y') }}</strong></p>
+                            {% endif %}
+                        </div>
+                        <div class="col-6">
+                            <h6 class="fw-bold mb-2">Coordonnées bancaires:</h6>
+                            {% if entreprise and entreprise.domiciliation_bancaire %}
+                                <p class="mb-1"><strong>Domiciliation bancaire:</strong><br>{{ entreprise.domiciliation_bancaire }}</p>
+                            {% else %}
+                                <p class="text-muted">Non configurées</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Boutons d'action (non imprimés) -->
+<div class="row mt-4 no-print">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="mb-3">Actions</h5>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button onclick="window.print()" class="btn btn-primary btn-lg">
+                        <i class="fas fa-print"></i> Imprimer
+                    </button>
+                    <a href="{{ url_for('facture_saisie', prestation_id=facture.prestation.id) }}" class="btn btn-warning btn-lg">
+                        <i class="fas fa-edit"></i> Modifier
+                    </a>
+                    <a href="{{ url_for('paiement_saisie') }}?facture_id={{ facture.id }}" class="btn btn-success btn-lg">
+                        <i class="fas fa-money-bill-wave"></i> Enregistrer un paiement
+                    </a>
+                    <a href="{{ url_for('prestation_detail', prestation_id=facture.prestation.id) }}" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-arrow-left"></i> Retour à la prestation
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        background: white;
+    }
+
+    .card {
+        border: none;
+        box-shadow: none;
+    }
+
+    /* Empêcher les sauts de page au milieu des tableaux */
+    table {
+        page-break-inside: avoid;
+    }
+
+    /* Meilleure mise en page pour l'impression */
+    #facture-content {
+        max-width: 100%;
+    }
+}
+</style>
+{% endblock %}

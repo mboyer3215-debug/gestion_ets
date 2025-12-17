@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Indisponibilité - Gestion Entreprise{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1 class="display-5 fw-bold text-dark">
+            <i class="fas fa-calendar-times text-danger"></i> Gestion des indisponibilités
+        </h1>
+        <p class="text-muted">Bloquez tous vos calendriers pour maladie, vacances ou autres absences</p>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{{ url_for('index') }}" class="btn btn-outline-primary">
+            <i class="fas fa-home"></i> Retour
+        </a>
+    </div>
+</div>
+
+<!-- Formulaire nouvelle indisponibilité -->
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0"><i class="fas fa-plus-circle"></i> Nouvelle indisponibilité</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('creer_indisponibilite') }}">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="date_debut" class="form-label">Date de début <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date_debut" name="date_debut" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="date_fin" class="form-label">Date de fin <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" id="date_fin" name="date_fin" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="motif" class="form-label">Motif</label>
+                        <select class="form-select" id="motif" name="motif" required>
+                            <option value="Vacances">🏖️ Vacances</option>
+                            <option value="Maladie">🤒 Maladie</option>
+                            <option value="Formation">📚 Formation</option>
+                            <option value="Congé">🏠 Congé</option>
+                            <option value="Autre">📝 Autre</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="note" class="form-label">Note (optionnel)</label>
+                        <textarea class="form-control" id="note" name="note" rows="2" placeholder="Précisions..."></textarea>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        Cette indisponibilité sera créée sur <strong>tous vos calendriers Google configurés</strong>.
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-ban"></i> Créer l'indisponibilité
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des indisponibilités -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-list"></i> Indisponibilités planifiées</h5>
+            </div>
+            <div class="card-body">
+                {% if indisponibilites %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Période</th>
+                                <th>Motif</th>
+                                <th>Note</th>
+                                <th>Calendriers</th>
+                                <th width="100">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for indispo in indisponibilites %}
+                            <tr>
+                                <td>
+                                    <i class="fas fa-calendar"></i>
+                                    <strong>{{ indispo.date_debut.strftime('%d/%m/%Y') }}</strong>
+                                    →
+                                    <strong>{{ indispo.date_fin.strftime('%d/%m/%Y') }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        ({{ ((indispo.date_fin - indispo.date_debut).days + 1) }} jour(s))
+                                    </small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-danger">{{ indispo.motif }}</span>
+                                </td>
+                                <td>{{ indispo.note or '-' }}</td>
+                                <td>
+                                    <small class="text-muted">Tous les calendriers</small>
+                                </td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('supprimer_indisponibilite', indispo_id=indispo.id) }}" style="display: inline;" onsubmit="return confirm('Supprimer cette indisponibilité ?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle"></i>
+                    Aucune indisponibilité enregistrée. Créez-en une ci-dessus pour bloquer vos calendriers.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
