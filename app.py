@@ -2169,7 +2169,7 @@ def api_rechercher_entreprise():
 
    # STRATÉGIE 2 : Si rien trouvé, essayer de séparer nom/ville intelligemment
     if len(entreprises) == 0:
-    parts = query.strip().split()
+        parts = query.strip().split()
     if len(parts) >= 2:
         import requests
         
