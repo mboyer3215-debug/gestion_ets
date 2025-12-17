@@ -5547,35 +5547,6 @@ def debug_gcal():
     
     return jsonify(debug_info)
 
-@app.route('/export-token')
-@login_required
-def export_token():
-    """Télécharger le token Google actuel"""
-    # Chercher le token dans tous les emplacements possibles
-    token_paths = ['/etc/secrets/token.json', '/tmp/token.json', 'token.json']
-    
-    for token_path in token_paths:
-        if os.path.exists(token_path):
-            try:
-                with open(token_path, 'r') as f:
-                    token_content = f.read()
-                
-                from flask import Response
-                return Response(
-                    token_content,
-                    mimetype='application/json',
-                    headers={
-                        'Content-Disposition': 'attachment; filename=token.json'
-                    }
-                )
-            except Exception as e:
-                continue
-    
-    return jsonify({
-        'error': 'Token introuvable',
-        'help': 'Authentifiez-vous d\'abord via /google-auth'
-    }), 404
-
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
