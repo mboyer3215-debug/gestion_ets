@@ -5475,8 +5475,29 @@ def init_db():
         
         print("✅ Base de données initialisée !")
 
+# Initialisation au démarrage
+with app.app_context():
+    db.create_all()
+    print("✅ Tables créées")
+    
+    # Créer l'utilisateur admin par défaut s'il n'existe pas
+    try:
+        admin = Utilisateur.query.filter_by(username='admin').first()
+        if not admin:
+            admin = Utilisateur(
+                username='admin',
+                nom='Administrateur',
+                email='m.boyer3215@gmail.com',
+                role='admin'
+            )
+            admin.set_password('MiB2025!')
+            db.session.add(admin)
+            db.session.commit()
+            print("✅ Utilisateur admin créé")
+    except Exception as e:
+        print(f"Note: {e}")
+
 if __name__ == '__main__':
-    init_db()
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
 
