@@ -5497,6 +5497,18 @@ with app.app_context():
     except Exception as e:
         print(f"Note: {e}")
 
+with app.app_context():
+    db.create_all()
+    try:
+        admin = Utilisateur.query.filter_by(username='admin').first()
+        if not admin:
+            admin = Utilisateur(username='admin', nom='Administrateur', email='m.boyer3215@gmail.com', role='admin')
+            admin.set_password('MiB2025!')
+            db.session.add(admin)
+            db.session.commit()
+    except:
+        pass
+        
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
