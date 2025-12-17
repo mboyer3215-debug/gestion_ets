@@ -10,6 +10,8 @@ print(">>> SI VOUS VOYEZ CE MESSAGE AU DÉMARRAGE, C'EST LE BON FICHIER <<<")
 print("=" * 80)
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file, session
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 import os
@@ -103,7 +105,25 @@ db = SQLAlchemy(app)
 # ============================================================================
 # MODÈLES DE BASE DE DONNÉES
 # ============================================================================
-
+class Utilisateur(db.Model):
+    """Table des utilisateurs pour l'authentification"""
+    __tablename__ = 'utilisateurs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    nom = db.Column(db.String(100))
+    email = db.Column(db.String(120))
+    role = db.Column(db.String(20), default='admin')
+    actif = db.Column(db.Boolean, default=True)
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    derniere_connexion = db.Column(db.DateTime)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 class Client(db.Model):
     """Table des clients"""
     __tablename__ = 'clients'
@@ -798,8 +818,65 @@ def inject_global_vars():
 # ============================================================================
 # ROUTES PRINCIPALES
 # ============================================================================
+# ============================================================================
+# AUTHENTIFICATION ET SÉCURITÉ
+# ============================================================================
+
+def login_required(f):
+    """Décorateur pour protéger les routes - redirige vers login si non connecté"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Veuillez vous connecter pour accéder à cette page.', 'warning')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Page de connexion"""
+    # Si déjà connecté, rediriger vers l'accueil
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        
+        user = Utilisateur.query.filter_by(username=username, actif=True).first()
+        
+        if user and user.check_password(password):
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['user_role'] = user.role
+            user.derniere_connexion = datetime.utcnow()
+            db.session.commit()
+            flash(f'Bienvenue {user.nom or user.username} !', 'success')
+            return redirect(url_for('index'))
+        else:
+            flash('Nom d\'utilisateur ou mot de passe incorrect.', 'error')
+    
+    return render_template('login.html')
+@app.route('/logout')
+def logout():
+    """Déconnexion"""
+    session.clear()
+    flash('Vous avez été déconnecté.', 'info')
+    return redirect(url_for('login'))
+
+@app.before_request
+def check_login():
+    """Vérifie l'authentification avant chaque requête"""
+    # Routes publiques (sans authentification)
+    public_routes = ['login', 'logout', 'static', 'oauth2callback', 'google_auth']
+    
+    if request.endpoint and request.endpoint not in public_routes:
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
 
 @app.route('/')
+@login_required
 def index():
     """Page d'accueil - Tableau de bord"""
     # Statistiques
@@ -887,17 +964,20 @@ def index():
 # ============================================================================
 
 @app.route('/clients')
+@login_required
 def clients():
     """Liste des clients (hors prospects)"""
     clients = Client.query.filter_by(actif=True, statut_client='Client').order_by(Client.nom).all()
     return render_template('clients.html', clients=clients)
 
 @app.route('/prospection')
+@login_required    
 def prospection():
     """Page de prospection de nouveaux clients"""
     return render_template('prospection.html')
 
 @app.route('/liste-prospects')
+@login_required    
 def liste_prospects():
     """Liste des clients prospects (non encore confirmés)"""
     prospects = Client.query.filter_by(statut_client='Prospect', actif=True).order_by(Client.date_creation.desc()).all()
@@ -916,6 +996,7 @@ def liste_prospects():
                          villes_disponibles=villes_disponibles)
 
 @app.route('/api/prospect/<int:prospect_id>/convertir', methods=['POST'])
+@login_required    
 def convertir_prospect(prospect_id):
     """Convertir un prospect en client confirmé"""
     try:
@@ -929,6 +1010,7 @@ def convertir_prospect(prospect_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/export-prospects-csv')
+@login_required        
 def export_prospects_csv():
     """Export de la liste des prospects en CSV pour téléprospection"""
     import csv
@@ -976,6 +1058,7 @@ def export_prospects_csv():
     return output
 
 @app.route('/client/<int:client_id>')
+@login_required
 def client_detail(client_id):
     """Détail d'un client"""
     client = Client.query.get_or_404(client_id)
@@ -983,6 +1066,7 @@ def client_detail(client_id):
     return render_template('client_detail.html', client=client, prestations=prestations)
 
 @app.route('/client/nouveau', methods=['GET', 'POST'])
+@login_required
 def client_nouveau():
     """Créer un nouveau client"""
     if request.method == 'POST':
@@ -1023,6 +1107,7 @@ def client_nouveau():
     return render_template('client_form.html', client=None, calendriers=calendriers)
 
 @app.route('/client/<int:client_id>/modifier', methods=['GET', 'POST'])
+@login_required
 def client_modifier(client_id):
     """Modifier un client"""
     client = Client.query.get_or_404(client_id)
@@ -1062,6 +1147,7 @@ def client_modifier(client_id):
     return render_template('client_form.html', client=client, calendriers=calendriers)
 
 @app.route('/client/<int:client_id>/supprimer', methods=['POST'])
+@login_required
 def client_supprimer(client_id):
     """Supprimer (désactiver) un client ou un prospect"""
     try:
@@ -5366,6 +5452,21 @@ def init_db():
     """Initialiser la base de données"""
     with app.app_context():
         db.create_all()
+
+        # Créer l'utilisateur admin par défaut s'il n'existe pas
+    admin = Utilisateur.query.filter_by(username='admin').first()
+    if not admin:
+        admin = Utilisateur(
+            username='admin',
+            nom='Administrateur',
+            email='m.boyer3215@gmail.com',
+            role='admin'
+        )
+        admin.set_password('MiB2025!')  # Change ce mot de passe !
+        db.session.add(admin)
+        db.session.commit()
+        print("✅ Utilisateur admin créé (mot de passe: MiB2025!)")
+        
         print("✅ Base de données initialisée !")
 
 if __name__ == '__main__':
