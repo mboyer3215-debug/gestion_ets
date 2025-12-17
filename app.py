@@ -861,8 +861,6 @@ def login():
     
     return render_template('login.html')
 
-Exécuter
-
 @app.route('/logout')
 def logout():
     """Déconnexion"""
