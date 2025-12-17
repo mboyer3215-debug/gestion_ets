@@ -1786,7 +1786,7 @@ def creer_indisponibilite():
                 # === RAPPELS POUR INDISPONIBILITÉS ===
                 reminders_list = []
                 try:
-                    from datetime import datetime, timedelta
+
                     if date_debut:
                         # Pour indisponibilité, prendre 8h00 le jour de début
                         event_start_dt = datetime.combine(date_debut, datetime.min.time().replace(hour=8))
