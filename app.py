@@ -9,7 +9,7 @@ print(">>> FICHIER APP.PY VERSION AVEC RAPPELS PERSONNALISÉS <<<")
 print(">>> SI VOUS VOYEZ CE MESSAGE AU DÉMARRAGE, C'EST LE BON FICHIER <<<")
 print("=" * 80)
 
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file, session
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 import os
