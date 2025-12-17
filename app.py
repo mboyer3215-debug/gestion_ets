@@ -851,7 +851,7 @@ def login():
                 session['username'] = user.username
                 session['user_role'] = user.role
                 user.derniere_connexion = datetime.utcnow()
-                db.session.commit()
+                db.session_presta.commit()
                 flash(f'Bienvenue {user.nom or user.username} !', 'success')
                 return redirect(url_for('index'))
             else:
@@ -864,7 +864,7 @@ def login():
 @app.route('/logout')
 def logout():
     """Déconnexion"""
-    session.clear()
+    session_presta.clear()
     flash('Vous avez été déconnecté.', 'info')
     return redirect(url_for('login'))
 
@@ -905,7 +905,7 @@ def index():
 
     # CA du mois en cours
     debut_mois = datetime.now().replace(day=1, hour=0, minute=0, second=0)
-    ca_mois = db.session.query(db.func.sum(Prestation.tarif_total)).filter(
+    ca_mois = db.session_presta.query(db.func.sum(Prestation.tarif_total)).filter(
         Prestation.date_debut >= debut_mois,
         Prestation.statut != 'Annulée'
     ).scalar() or 0
@@ -989,7 +989,7 @@ def liste_prospects():
     prospects = Client.query.filter_by(statut_client='Prospect', actif=True).order_by(Client.date_creation.desc()).all()
 
     # Récupérer la liste unique des villes pour le filtre
-    villes_disponibles = db.session.query(Client.ville).filter(
+    villes_disponibles = db.session_presta.query(Client.ville).filter(
         Client.statut_client == 'Prospect',
         Client.actif == True,
         Client.ville.isnot(None),
@@ -1009,10 +1009,10 @@ def convertir_prospect(prospect_id):
         prospect = Client.query.get_or_404(prospect_id)
         prospect.statut_client = 'Client'
         prospect.date_conversion = datetime.now()  # Enregistrer la date de conversion
-        db.session.commit()
+        db.session_presta.commit()
         return jsonify({'success': True, 'message': 'Prospect converti en client'})
     except Exception as e:
-        db.session.rollback()
+        db.session_presta.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/export-prospects-csv')
@@ -1096,8 +1096,8 @@ def client_nouveau():
             calendrier_google=request.form.get('calendrier_google') or None,
             statut_client=request.form.get('statut_client', 'Client')  # Par défaut 'Client', peut être 'Prospect'
         )
-        db.session.add(client)
-        db.session.commit()
+        db.session_presta.add(client)
+        db.session_presta.commit()
         flash('Client créé avec succès !', 'success')
         return redirect(url_for('clients'))
 
@@ -1137,7 +1137,7 @@ def client_modifier(client_id):
         client.delai_paiement_jours = int(request.form.get('delai_paiement_jours', 30))
         client.calendrier_google = request.form.get('calendrier_google') or None
 
-        db.session.commit()
+        db.session_presta.commit()
         flash('Client modifié avec succès !', 'success')
         return redirect(url_for('client_detail', client_id=client_id))
 
@@ -1160,7 +1160,7 @@ def client_supprimer(client_id):
         client = Client.query.get_or_404(client_id)
         etait_prospect = (client.statut_client == 'Prospect')
         client.actif = False
-        db.session.commit()
+        db.session_presta.commit()
 
         # Si requête AJAX (depuis liste_prospects), retourner JSON
         if request.is_json or request.headers.get('Accept') == 'application/json':
@@ -1178,7 +1178,7 @@ def client_supprimer(client_id):
             flash('Client supprimé avec succès !', 'success')
             return redirect(url_for('clients'))
     except Exception as e:
-        db.session.rollback()
+        db.session_presta.rollback()
         if request.is_json or request.headers.get('Accept') == 'application/json':
             return jsonify({'success': False, 'message': str(e)}), 500
         else:
@@ -1205,8 +1205,8 @@ def contact_nouveau(client_id):
             email=request.form.get('email'),
             notes=request.form.get('notes')
         )
-        db.session.add(contact)
-        db.session.commit()
+        db.session_presta.add(contact)
+        db.session_presta.commit()
         flash('Contact créé avec succès !', 'success')
         return redirect(url_for('client_detail', client_id=client_id))
 
@@ -1227,7 +1227,7 @@ def contact_modifier(contact_id):
         contact.email = request.form.get('email')
         contact.notes = request.form.get('notes')
 
-        db.session.commit()
+        db.session_presta.commit()
         flash('Contact modifié avec succès !', 'success')
         return redirect(url_for('client_detail', client_id=client.id))
 
@@ -1239,7 +1239,7 @@ def contact_supprimer(contact_id):
     contact = Contact.query.get_or_404(contact_id)
     client_id = contact.client_id
     contact.actif = False
-    db.session.commit()
+    db.session_presta.commit()
     flash('Contact supprimé avec succès !', 'success')
     return redirect(url_for('client_detail', client_id=client_id))
 
@@ -1340,7 +1340,7 @@ def prestation_sauvegarder_tarifs(prestation_id):
                 pu_ht=float(pus_dep[i]) if pus_dep[i] else 0,
                 pt_ht=float(pts_dep[i]) if pts_dep[i] else 0
             )
-            db.session.add(ligne)
+            db.session_presta.add(ligne)
             total_deplacement += ligne.pt_ht
 
     # Traiter les lignes de fourniture
@@ -1361,7 +1361,7 @@ def prestation_sauvegarder_tarifs(prestation_id):
                 pu_ht=float(pus_four[i]) if pus_four[i] else 0,
                 pt_ht=float(pts_four[i]) if pts_four[i] else 0
             )
-            db.session.add(ligne)
+            db.session_presta.add(ligne)
             total_fourniture += ligne.pt_ht
 
     # Traiter les lignes de prestation/tarif
@@ -1382,7 +1382,7 @@ def prestation_sauvegarder_tarifs(prestation_id):
                 pu_ht=float(pus_prest[i]) if pus_prest[i] else 0,
                 pt_ht=float(pts_prest[i]) if pts_prest[i] else 0
             )
-            db.session.add(ligne)
+            db.session_presta.add(ligne)
             total_prestation += ligne.pt_ht
 
     # Mettre à jour les totaux globaux dans la prestation (pour compatibilité)
@@ -1390,7 +1390,7 @@ def prestation_sauvegarder_tarifs(prestation_id):
     prestation.frais_fournitures = total_fourniture
     prestation.tarif_total = total_prestation
 
-    db.session.commit()
+    db.session_presta.commit()
 
     flash('Tarifs de la prestation sauvegardés avec succès !', 'success')
     return redirect(url_for('prestation_detail', prestation_id=prestation_id))
@@ -1404,7 +1404,7 @@ def modifier_statut_prestation(prestation_id):
 
     if nouveau_statut in ['Planifiée', 'En cours', 'Terminée', 'Annulée']:
         prestation.statut = nouveau_statut
-        db.session.commit()
+        db.session_presta.commit()
         flash(f'Statut modifié: {nouveau_statut}', 'success')
     else:
         flash('Statut invalide', 'error')
@@ -1515,8 +1515,8 @@ def prestation_nouvelle():
             prestation.creneau = creneau_0
             prestation.journee_entiere = journee_complete_premiere
 
-        db.session.add(prestation)
-        db.session.flush()  # Pour obtenir l'ID (maintenant date_debut est rempli)
+        db.session_presta.add(prestation)
+        db.session_presta.flush()  # Pour obtenir l'ID (maintenant date_debut est rempli)
 
         # Créer les sessions
         for i, date_debut_str in enumerate(sessions_dates_debut):
@@ -1559,9 +1559,9 @@ def prestation_nouvelle():
                 journee_complete=journee_complete,
                 ordre=i
             )
-            db.session.add(session)
+            db.session_presta.add(session)
 
-        db.session.commit()
+        db.session_presta.commit()
 
         # NOUVEAU SYSTÈME : Synchronisation Google Calendar avec rappels personnalisés
         print("\n" + "🔄" * 40)
@@ -1587,7 +1587,7 @@ def prestation_nouvelle():
                 prestation.gcal_event_id = event_id
                 prestation.gcal_synced = True
                 prestation.gcal_last_sync = datetime.utcnow()
-                db.session.commit()
+                db.session_presta.commit()
                 flash(f'✓ Prestation créée et synchronisée avec Google Calendar ! {message}', 'success')
             else:
                 flash(f'⚠️ Prestation créée mais sync Google Calendar échouée : {message}', 'warning')
@@ -1715,11 +1715,11 @@ def prestation_modifier(prestation_id):
                 # Mettre à jour session existante
                 session = SessionPrestation.query.get(session_id)
                 if session:
-                    session.date_debut = date_debut
-                    session.date_fin = date_fin
-                    session.duree_heures = duree
-                    session.journee_complete = journee_complete
-                    session.ordre = i
+                    session_presta.date_debut = date_debut
+                    session_presta.date_fin = date_fin
+                    session_presta.duree_heures = duree
+                    session_presta.journee_complete = journee_complete
+                    session_presta.ordre = i
                     existing_session_ids.add(int(session_id))
             else:
                 # Créer nouvelle session
@@ -1731,7 +1731,7 @@ def prestation_modifier(prestation_id):
                     journee_complete=journee_complete,
                     ordre=i
                 )
-                db.session.add(session)
+                db.session_presta.add(session)
 
             # Première session = dates principales (compatibilité)
             if i == 0:
@@ -1742,11 +1742,11 @@ def prestation_modifier(prestation_id):
                 prestation.journee_entiere = journee_complete
 
         # Supprimer les sessions qui ont été retirées
-        for session in prestation.sessions:
-            if session.id not in existing_session_ids:
-                db.session.delete(session)
+        for session_presta in prestation.sessions:
+            if session_presta.id not in existing_session_ids:
+                db.session_presta.delete(session)
 
-        db.session.commit()
+        db.session_presta.commit()
 
         # Gestion automatique Google Calendar
         try:
@@ -1789,10 +1789,10 @@ def prestation_modifier(prestation_id):
             journee_complete=False,
             ordre=1
         )
-        db.session.add(session)
-        db.session.commit()
+        db.session_presta.add(session)
+        db.session_presta.commit()
         # Recharger la prestation pour avoir les sessions
-        db.session.refresh(prestation)
+        db.session_presta.refresh(prestation)
 
     # DÉSACTIVÉ : Récupération des calendriers Google (cause timeout de 20-30s)
     # La liste des calendriers n'est pas utilisée dans le formulaire
@@ -1826,8 +1826,8 @@ def prestation_supprimer(prestation_id):
 
     # Supprimer la prestation de la base de données
     # La relation cascade='all, delete-orphan' supprimera automatiquement les blocages
-    db.session.delete(prestation)
-    db.session.commit()
+    db.session_presta.delete(prestation)
+    db.session_presta.commit()
 
     # Message de succès
     if gcal_message:
@@ -1863,8 +1863,8 @@ def creer_indisponibilite():
             motif=motif,
             note=note
         )
-        db.session.add(indispo)
-        db.session.flush()
+        db.session_presta.add(indispo)
+        db.session_presta.flush()
 
         # Synchroniser avec Google Calendar sur TOUS les calendriers filtrés
         gcal_events_dict = {}
@@ -1927,7 +1927,7 @@ def creer_indisponibilite():
 
         # Sauvegarder les IDs d'événements
         indispo.gcal_events = json.dumps(gcal_events_dict)
-        db.session.commit()
+        db.session_presta.commit()
 
         nb_calendriers = len(gcal_events_dict)
         if nb_calendriers > 0:
@@ -1936,7 +1936,7 @@ def creer_indisponibilite():
             flash('✓ Indisponibilité créée (Google Calendar non configuré)', 'success')
 
     except Exception as e:
-        db.session.rollback()
+        db.session_presta.rollback()
         flash(f'❌ Erreur : {str(e)}', 'danger')
 
     return redirect(url_for('indisponibilite'))
@@ -1963,8 +1963,8 @@ def supprimer_indisponibilite(indispo_id):
             except:
                 pass
 
-    db.session.delete(indispo)
-    db.session.commit()
+    db.session_presta.delete(indispo)
+    db.session_presta.commit()
 
     flash('✓ Indisponibilité supprimée !', 'success')
     return redirect(url_for('indisponibilite'))
@@ -1980,7 +1980,7 @@ def prestation_tarif(prestation_id):
         prestation.frais_fournitures = float(request.form['frais_fournitures']) if request.form.get('frais_fournitures') else None
         prestation.frais_deplacement = float(request.form['frais_deplacement']) if request.form.get('frais_deplacement') else None
 
-        db.session.commit()
+        db.session_presta.commit()
         flash('Tarif mis à jour avec succès !', 'success')
         return redirect(url_for('prestation_detail', prestation_id=prestation_id))
 
@@ -2004,7 +2004,7 @@ def prestation_update_statut(prestation_id):
     else:
         return jsonify({'success': False, 'error': 'Type de statut invalide'}), 400
 
-    db.session.commit()
+    db.session_presta.commit()
 
     return jsonify({
         'success': True,
@@ -2067,12 +2067,12 @@ def api_prestations_calendrier():
                     titre_session += f" (Session {idx + 1}/{len(p.sessions)})"
 
                 # Extraire les heures correctement
-                heure_debut = session.date_debut.strftime('%H:%M') if session.date_debut else '00:00'
-                heure_fin = session.date_fin.strftime('%H:%M') if session.date_fin else heure_debut
+                heure_debut = session_presta.date_debut.strftime('%H:%M') if session_presta.date_debut else '00:00'
+                heure_fin = session_presta.date_fin.strftime('%H:%M') if session_presta.date_fin else heure_debut
 
                 # Pour les sessions multi-jours, créer un événement pour CHAQUE jour
-                date_debut_session = session.date_debut.date() if session.date_debut else None
-                date_fin_session = session.date_fin.date() if session.date_fin else date_debut_session
+                date_debut_session = session_presta.date_debut.date() if session_presta.date_debut else None
+                date_fin_session = session_presta.date_fin.date() if session_presta.date_fin else date_debut_session
 
                 if date_debut_session and date_fin_session:
                     # Créer un événement pour chaque jour de la période
@@ -2088,7 +2088,7 @@ def api_prestations_calendrier():
 
                         events.append({
                             'id': p.id,
-                            'session_id': session.id,
+                            'session_id': session_presta.id,
                             'titre': titre_session,
                             'type_prestation': p.type_prestation,
                             'client_nom': client_nom,
@@ -2097,7 +2097,7 @@ def api_prestations_calendrier():
                             'heure_debut': heure_affichee,
                             'heure_fin': heure_fin,
                             'color': color,
-                            'allDay': session.journee_complete or date_courante != date_debut_session
+                            'allDay': session_presta.journee_complete or date_courante != date_debut_session
                         })
                         date_courante = date_courante + timedelta(days=1)
         else:
@@ -2167,15 +2167,49 @@ def api_rechercher_entreprise():
     entreprises = rechercher_entreprises_nominatim_direct(query)
     debug_info['etapes'].append(f"Nominatim direct a trouvé: {len(entreprises)} entreprises")
 
-    # STRATÉGIE 2 : Si rien trouvé, essayer de séparer nom/ville intelligemment
+   # STRATÉGIE 2 : Si rien trouvé, essayer de séparer nom/ville intelligemment
     if len(entreprises) == 0:
-        parts = query.strip().split()
-        if len(parts) >= 2:
-            # Essayer dernier mot = ville
-            ville_potentielle = parts[-1]
-            nom_potentiel = ' '.join(parts[:-1])
-
-            debug_info['etapes'].append(f"Stratégie 2: Séparation intelligente - nom='{nom_potentiel}', ville='{ville_potentielle}'")
+    parts = query.strip().split()
+    if len(parts) >= 2:
+        import requests
+        
+        # Essayer avec les 2 derniers mots comme ville (ex: "Saint Gaudens")
+        # puis 1 seul mot si ça échoue
+        for nb_mots_ville in [2, 1]:
+            if len(parts) <= nb_mots_ville:
+                continue  # Pas assez de mots
+            
+            ville_potentielle = ' '.join(parts[-nb_mots_ville:])
+            nom_potentiel = ' '.join(parts[:-nb_mots_ville])
+            
+            debug_info['etapes'].append(f"Stratégie 2.{nb_mots_ville}: nom='{nom_potentiel}', ville='{ville_potentielle}'")
+            
+            # Essayer de géocoder cette ville
+            try:
+                geocode_url = f"https://nominatim.openstreetmap.org/search?q={ville_potentielle},France&format=json&limit=1"
+                resp = requests.get(geocode_url, headers={'User-Agent': 'GestionEntreprise/1.0'}, timeout=5)
+                
+                if resp.status_code == 200 and resp.json():
+                    geo_data = resp.json()[0]
+                    latitude = float(geo_data['lat'])
+                    longitude = float(geo_data['lon'])
+                    ville_detectee = ville_potentielle
+                    nom_entreprise = nom_potentiel
+                    rayon = 20
+                    debug_info['etapes'].append(f"✅ Ville '{ville_potentielle}' géocodée: lat={latitude}, lon={longitude}")
+                    
+                    # Rechercher avec nom + ville séparés
+                    entreprises = rechercher_entreprises_nominatim(nom_entreprise, ville_detectee)
+                    debug_info['etapes'].append(f"Nominatim séparé a trouvé: {len(entreprises)} entreprises")
+                    
+                    # Si on a trouvé des résultats, sortir de la boucle
+                    if len(entreprises) > 0:
+                        break
+                else:
+                    debug_info['etapes'].append(f"Géocodage de '{ville_potentielle}' échoué (pas de résultat)")
+            
+            except Exception as e:
+                debug_info['etapes'].append(f"Erreur géocodage '{ville_potentielle}': {str(e)}")
 
             # Essayer de géocoder cette ville
             import requests
@@ -2280,7 +2314,7 @@ def api_rechercher_clients():
 def api_demandeurs():
     """API pour récupérer la liste des demandeurs uniques (pour autocomplete)"""
     # Récupérer tous les demandeurs non vides de la base
-    demandeurs_query = db.session.query(Prestation.demandeur).filter(
+    demandeurs_query = db.session_presta.query(Prestation.demandeur).filter(
         Prestation.demandeur.isnot(None),
         Prestation.demandeur != ''
     ).distinct().order_by(Prestation.demandeur).all()
@@ -2299,7 +2333,7 @@ def statistiques():
     """Page statistiques avec graphiques"""
     # Statistiques par client (nombre de prestations)
     from sqlalchemy import func
-    stats_clients_raw = db.session.query(
+    stats_clients_raw = db.session_presta.query(
         Client.nom,
         func.count(Prestation.id).label('nombre')
     ).join(Prestation).group_by(Client.id).order_by(func.count(Prestation.id).desc()).limit(10).all()
@@ -2589,8 +2623,8 @@ def devis_saisie(prestation_id):
             commentaire=request.form.get('commentaire')
         )
 
-        db.session.add(devis)
-        db.session.flush()  # Obtenir l'ID du devis
+        db.session_presta.add(devis)
+        db.session_presta.flush()  # Obtenir l'ID du devis
 
         # Traiter les lignes de déplacement
         codes_dep = request.form.getlist('deplacement_code[]')
@@ -2610,7 +2644,7 @@ def devis_saisie(prestation_id):
                     pu_ht=float(pus_dep[i]) if pus_dep[i] else 0,
                     pt_ht=float(pts_dep[i]) if pts_dep[i] else 0
                 )
-                db.session.add(ligne)
+                db.session_presta.add(ligne)
                 total_deplacement += ligne.pt_ht
 
         # Traiter les lignes de fourniture
@@ -2631,7 +2665,7 @@ def devis_saisie(prestation_id):
                     pu_ht=float(pus_four[i]) if pus_four[i] else 0,
                     pt_ht=float(pts_four[i]) if pts_four[i] else 0
                 )
-                db.session.add(ligne)
+                db.session_presta.add(ligne)
                 total_fourniture += ligne.pt_ht
 
         # Traiter les lignes de prestation
@@ -2652,7 +2686,7 @@ def devis_saisie(prestation_id):
                     pu_ht=float(pus_prest[i]) if pus_prest[i] else 0,
                     pt_ht=float(pts_prest[i]) if pts_prest[i] else 0
                 )
-                db.session.add(ligne)
+                db.session_presta.add(ligne)
                 total_prestation += ligne.pt_ht
 
         # Mettre à jour les totaux globaux dans le devis (pour compatibilité)
@@ -2671,7 +2705,7 @@ def devis_saisie(prestation_id):
         else:
             prestation.statut_devis = 'Non envoyé'
 
-        db.session.commit()
+        db.session_presta.commit()
 
         flash('Devis créé avec succès !', 'success')
         return redirect(url_for('prestation_detail', prestation_id=prestation_id))
@@ -2742,8 +2776,8 @@ def facture_saisie(prestation_id):
 
         # Sauvegarder la facture pour obtenir un ID si c'est une nouvelle facture
         if action != 'modifier':
-            db.session.add(facture)
-            db.session.flush()  # Obtenir l'ID de la facture
+            db.session_presta.add(facture)
+            db.session_presta.flush()  # Obtenir l'ID de la facture
 
         # Traiter les lignes de déplacement
         codes_dep = request.form.getlist('deplacement_code[]')
@@ -2763,7 +2797,7 @@ def facture_saisie(prestation_id):
                     pu_ht=float(pus_dep[i]) if pus_dep[i] else 0,
                     pt_ht=float(pts_dep[i]) if pts_dep[i] else 0
                 )
-                db.session.add(ligne)
+                db.session_presta.add(ligne)
                 total_deplacement += ligne.pt_ht
 
         # Traiter les lignes de fourniture
@@ -2784,7 +2818,7 @@ def facture_saisie(prestation_id):
                     pu_ht=float(pus_four[i]) if pus_four[i] else 0,
                     pt_ht=float(pts_four[i]) if pts_four[i] else 0
                 )
-                db.session.add(ligne)
+                db.session_presta.add(ligne)
                 total_fourniture += ligne.pt_ht
 
         # Traiter les lignes de prestation
@@ -2805,7 +2839,7 @@ def facture_saisie(prestation_id):
                     pu_ht=float(pus_prest[i]) if pus_prest[i] else 0,
                     pt_ht=float(pts_prest[i]) if pts_prest[i] else 0
                 )
-                db.session.add(ligne)
+                db.session_presta.add(ligne)
                 total_prestation += ligne.pt_ht
 
         # Mettre à jour les totaux globaux dans la facture (pour compatibilité)
@@ -2888,15 +2922,13 @@ Cordialement,
                 montant_paye=0,
                 statut='En attente'
             )
-            db.session.add(paiement)
+            db.session_presta.add(paiement)
             prestation.statut_paiement = 'En attente'
 
-        db.session.commit()
+        db.session_presta.commit()
         facture_actuelle = facture
 
-        if not flash:
-            flash('Facture enregistrée avec succès !', 'success')
-
+       
         # Rester sur la page de saisie avec la facture créée
         return redirect(url_for('facture_saisie', prestation_id=prestation_id, facture_id=facture.id))
 
@@ -2960,7 +2992,7 @@ def paiement_saisie():
                 numero_paiement=f'P-{nouveau_num:04d}',
                 numero_facture=facture.reference_facture
             )
-            db.session.add(paiement)
+            db.session_presta.add(paiement)
 
         # Mettre à jour les informations
         paiement.date_paiement = datetime.strptime(request.form.get('date_paiement'), '%Y-%m-%d').date() if request.form.get('date_paiement') else None
@@ -2997,7 +3029,7 @@ def paiement_saisie():
                 paiement.statut = 'En attente'
                 facture.prestation.statut_paiement = 'En attente'
 
-        db.session.commit()
+        db.session_presta.commit()
 
         flash('Paiement enregistré avec succès !', 'success')
         return redirect(url_for('prestation_detail', prestation_id=facture.prestation_id))
@@ -3040,8 +3072,8 @@ def document_upload(prestation_id):
         notes=request.form.get('notes')
     )
 
-    db.session.add(document)
-    db.session.commit()
+    db.session_presta.add(document)
+    db.session_presta.commit()
 
     flash('Document uploadé avec succès !', 'success')
     return redirect(url_for('prestation_detail', prestation_id=prestation_id))
@@ -3063,8 +3095,8 @@ def document_supprimer(document_id):
         os.remove(document.chemin_fichier)
 
     # Supprimer l'entrée de la base
-    db.session.delete(document)
-    db.session.commit()
+    db.session_presta.delete(document)
+    db.session_presta.commit()
 
     flash('Document supprimé avec succès !', 'success')
     return redirect(url_for('prestation_detail', prestation_id=prestation_id))
@@ -3154,10 +3186,10 @@ def entreprise_modifier():
                 iban=request.form.get('iban'),
                 bic=request.form.get('bic')
             )
-            db.session.add(info_entreprise)
+            db.session_presta.add(info_entreprise)
             flash('Informations de l\'entreprise créées avec succès !', 'success')
 
-        db.session.commit()
+        db.session_presta.commit()
         return redirect(url_for('entreprise'))
 
     return render_template('entreprise_form.html', entreprise=info_entreprise)
@@ -3238,8 +3270,8 @@ def sauvegarde_creer():
                 chemin_gdrive=chemin_gdrive_final,
                 statut_gdrive=statut_gdrive
             )
-            db.session.add(sauvegarde)
-            db.session.commit()
+            db.session_presta.add(sauvegarde)
+            db.session_presta.commit()
 
             if statut_gdrive == 'Success':
                 flash(f'✓ Sauvegarde créée avec succès ! (Local + Google Drive)', 'success')
@@ -3368,7 +3400,9 @@ def envoyer_email(destinataire_email, sujet, contenu_html):
         # Se connecter au serveur SMTP et envoyer
         with smtplib.SMTP(entreprise.email_smtp_host, entreprise.email_smtp_port) as server:
             server.starttls()  # Sécuriser la connexion
-            server.login(entreprise.email_smtp_user, entreprise.email_smtp_password)
+        from cryptography.fernet import Fernet
+        password_decrypted = decrypt_password(entreprise.email_smtp_password)
+        server.login(entreprise.email_smtp_user, password_decrypted)
             server.send_message(msg)
 
         return True, "Email envoyé avec succès"
@@ -3579,8 +3613,8 @@ def creer_notification(type_notif, prestation_id, canal='email'):
             if not destinataire_email:
                 notification.statut = 'failed'
                 notification.erreur_message = "Aucun email pour le destinataire"
-                db.session.add(notification)
-                db.session.commit()
+                db.session_presta.add(notification)
+                db.session_presta.commit()
                 return False, "Aucun email pour le destinataire"
 
             success, message = envoyer_email(destinataire_email, sujet, contenu_html)
@@ -3588,8 +3622,8 @@ def creer_notification(type_notif, prestation_id, canal='email'):
             if not destinataire_tel:
                 notification.statut = 'failed'
                 notification.erreur_message = "Aucun téléphone pour le destinataire"
-                db.session.add(notification)
-                db.session.commit()
+                db.session_presta.add(notification)
+                db.session_presta.commit()
                 return False, "Aucun téléphone pour le destinataire"
 
             success, message = envoyer_sms(destinataire_tel, contenu_sms)
@@ -3604,8 +3638,8 @@ def creer_notification(type_notif, prestation_id, canal='email'):
             notification.statut = 'failed'
             notification.erreur_message = message
 
-        db.session.add(notification)
-        db.session.commit()
+        db.session_presta.add(notification)
+        db.session_presta.commit()
 
         return success, message
 
@@ -4202,8 +4236,8 @@ def creer_evenement_avec_rappels_personnalises(prestation, client, calendar_id='
                 titre_session = f"{titre} (Session {idx + 1}/{len(prestation.sessions)})"
 
             # Dates
-            start_time = session.date_debut
-            end_time = session.date_fin if session.date_fin else start_time + timedelta(hours=session.duree_heures or 1)
+            start_time = session_presta.date_debut
+            end_time = session_presta.date_fin if session_presta.date_fin else start_time + timedelta(hours=session_presta.duree_heures or 1)
 
             print(f"🕐 Début: {start_time}")
             print(f"🕐 Fin: {end_time}")
@@ -4444,20 +4478,20 @@ def creer_blocages_autres_calendriers(service, prestation, calendar_id_principal
                 ).execute()
             except:
                 pass
-            db.session.delete(blocage)
-        db.session.commit()
+            db.session_presta.delete(blocage)
+        db.session_presta.commit()
 
         # Créer un événement de blocage pour CHAQUE session sur CHAQUE calendrier
         client = prestation.client
         client_nom = client.nom if client else "Client"
 
         if prestation.sessions and len(prestation.sessions) > 0:
-            for session in prestation.sessions:
+            for session_presta in prestation.sessions:
                 # Préparer l'événement de blocage pour cette session
-                start_time = session.date_debut
-                end_time = session.date_fin if session.date_fin else start_time + timedelta(hours=session.duree_heures or 1)
+                start_time = session_presta.date_debut
+                end_time = session_presta.date_fin if session_presta.date_fin else start_time + timedelta(hours=session_presta.duree_heures or 1)
 
-                if session.journee_complete:
+                if session_presta.journee_complete:
                     # Événement all-day
                     start_date = start_time.date() if hasattr(start_time, 'date') else start_time
                     end_date = end_time.date() if hasattr(end_time, 'date') else end_time
@@ -4508,12 +4542,12 @@ def creer_blocages_autres_calendriers(service, prestation, calendar_id_principal
                             event_id=created_blocage['id'],
                             calendar_name=cal.get('summary', 'Inconnu')
                         )
-                        db.session.add(nouveau_blocage)
+                        db.session_presta.add(nouveau_blocage)
                     except HttpError as e:
                         print(f"Erreur blocage calendrier {cal.get('summary', 'Inconnu')}: {e}")
                         pass
 
-            db.session.commit()
+            db.session_presta.commit()
 
     except Exception as e:
         print(f"Erreur création blocages: {e}")
@@ -4527,8 +4561,8 @@ def creer_event_gcal_session(service, calendar_id, session, titre, description, 
     try:
         print("========================================")
         print("CREER_EVENT_GCAL_SESSION - DEBUT")
-        print("!!! SESSION.JOURNEE_COMPLETE =", session.journee_complete, "!!!")
-        print("!!! TYPE:", type(session.journee_complete), "!!!")
+        print("!!! session_presta.JOURNEE_COMPLETE =", session_presta.journee_complete, "!!!")
+        print("!!! TYPE:", type(session_presta.journee_complete), "!!!")
         print("start_time:", start_time)
         print("start_time type:", type(start_time))
 
@@ -4575,7 +4609,7 @@ def creer_event_gcal_session(service, calendar_id, session, titre, description, 
         # MODIFICATION : Gérer les prestations "Journée complète"
         # Si multi-jours : créer 1 événement par jour (08:00-20:00)
         # Si 1 jour : créer 1 événement (08:00-20:00)
-        if session.journee_complete:
+        if session_presta.journee_complete:
             print("🌞 JOURNÉE COMPLÈTE DÉTECTÉE")
 
             # Extraire les dates
@@ -4822,8 +4856,8 @@ def sync_prestation_to_gcal(prestation_id):
                     titre_session = f"{titre} (Session {idx + 1}/{len(prestation.sessions)})"
 
                 # Utiliser les dates de la session
-                start_time = session.date_debut
-                end_time = session.date_fin if session.date_fin else start_time + timedelta(hours=session.duree_heures or 1)
+                start_time = session_presta.date_debut
+                end_time = session_presta.date_fin if session_presta.date_fin else start_time + timedelta(hours=session_presta.duree_heures or 1)
 
                 # Créer l'événement pour cette session
                 event_id = creer_event_gcal_session(
@@ -4833,8 +4867,8 @@ def sync_prestation_to_gcal(prestation_id):
                 if event_id:
                     events_created.append(event_id)
                     # Enregistrer l'ID de l'événement sur la session
-                    session.gcal_event_id = event_id
-                    session.gcal_synced = True
+                    session_presta.gcal_event_id = event_id
+                    session_presta.gcal_synced = True
 
             # Mettre à jour la prestation principale
             prestation.gcal_synced = True
@@ -4842,7 +4876,7 @@ def sync_prestation_to_gcal(prestation_id):
             if events_created:
                 # Stocker l'ID du premier événement (pour compatibilité)
                 prestation.gcal_event_id = events_created[0]
-            db.session.commit()
+            db.session_presta.commit()
 
             # Créer les événements "Indisponible" sur TOUS les autres calendriers professionnels
             # pour bloquer ces créneaux (sauf le calendrier où la prestation est créée)
@@ -4955,7 +4989,7 @@ def sync_prestation_to_gcal(prestation_id):
 
                 prestation.gcal_synced = True
                 prestation.gcal_last_sync = datetime.utcnow()
-                db.session.commit()
+                db.session_presta.commit()
 
                 return True, "Événement Google Calendar mis à jour", updated_event['id']
             except HttpError as e:
@@ -4981,7 +5015,7 @@ def sync_prestation_to_gcal(prestation_id):
         prestation.gcal_event_id = created_event['id']
         prestation.gcal_synced = True
         prestation.gcal_last_sync = datetime.utcnow()
-        db.session.commit()
+        db.session_presta.commit()
 
         # Créer l'événement "Indisponible" sur le calendrier principal (michel boyer)
         # et sur les autres calendriers configurés
@@ -5047,8 +5081,8 @@ def sync_prestation_to_gcal(prestation_id):
                                 ).execute()
                             except:
                                 pass
-                            db.session.delete(blocage)
-                        db.session.commit()
+                            db.session_presta.delete(blocage)
+                        db.session_presta.commit()
 
                     # Créer l'événement de blocage sur chaque calendrier
                     for cal in tous_calendriers_a_bloquer:
@@ -5070,12 +5104,12 @@ def sync_prestation_to_gcal(prestation_id):
                                 event_id=created_blocage['id'],
                                 calendar_name=cal['nom']
                             )
-                            db.session.add(nouveau_blocage)
+                            db.session_presta.add(nouveau_blocage)
                         except HttpError as e:
                             # Ignorer les erreurs de calendriers individuels
                             print(f"Erreur blocage calendrier {cal['nom']}: {e}")
                             pass
-                    db.session.commit()
+                    db.session_presta.commit()
             except:
                 pass
 
@@ -5139,7 +5173,7 @@ def delete_gcal_event(prestation_id):
 
             prestation.gcal_event_id = None
             prestation.gcal_synced = False
-            db.session.commit()
+            db.session_presta.commit()
 
             # Supprimer aussi les blocages sur les autres calendriers en utilisant la nouvelle table
             nb_blocages_supprimes = 0
@@ -5160,9 +5194,9 @@ def delete_gcal_event(prestation_id):
                         print(f"Erreur suppression blocage {blocage.calendar_name}: {e}")
 
                     # Supprimer l'enregistrement du blocage de la base de données
-                    db.session.delete(blocage)
+                    db.session_presta.delete(blocage)
 
-                db.session.commit()
+                db.session_presta.commit()
             except Exception as e:
                 # Si la table gcal_blocages n'existe pas encore (migration non faite), ignorer
                 print(f"Note: Impossible de supprimer les blocages: {e}")
@@ -5178,7 +5212,7 @@ def delete_gcal_event(prestation_id):
                 # L'événement n'existe déjà plus
                 prestation.gcal_event_id = None
                 prestation.gcal_synced = False
-                db.session.commit()
+                db.session_presta.commit()
                 return True, "Événement déjà supprimé"
             else:
                 return False, f"Erreur lors de la suppression: {str(e)}"
@@ -5329,9 +5363,9 @@ def gcal_config():
             config.config_json = json.dumps(config_data)
         else:
             config = CalendrierConfig(config_json=json.dumps(config_data))
-            db.session.add(config)
+            db.session_presta.add(config)
 
-        db.session.commit()
+        db.session_presta.commit()
 
         nb_calendriers_bloquer = len(calendriers_a_bloquer)
         if nb_calendriers_bloquer > 0:
@@ -5437,8 +5471,8 @@ def quitter():
                         statut_gdrive=statut_gdrive,
                         notes="Sauvegarde automatique à la fermeture"
                     )
-                    db.session.add(sauvegarde)
-                    db.session.commit()
+                    db.session_presta.add(sauvegarde)
+                    db.session_presta.commit()
 
                 print(f"\n✅ Sauvegarde automatique créée : {nom_fichier}")
         except Exception as e:
@@ -5479,8 +5513,8 @@ def init_db():
             role='admin'
         )
         admin.set_password('MiB2025!')  # Change ce mot de passe !
-        db.session.add(admin)
-        db.session.commit()
+        db.session_presta.add(admin)
+        db.session_presta.commit()
         print("✅ Utilisateur admin créé (mot de passe: MiB2025!)")
         
         print("✅ Base de données initialisée !")
@@ -5501,8 +5535,8 @@ with app.app_context():
                 role='admin'
             )
             admin.set_password('MiB2025!')
-            db.session.add(admin)
-            db.session.commit()
+            db.session_presta.add(admin)
+            db.session_presta.commit()
             print("✅ Utilisateur admin créé")
     except Exception as e:
         print(f"Note: {e}")
@@ -5514,8 +5548,8 @@ with app.app_context():
         if not admin:
             admin = Utilisateur(username='admin', nom='Administrateur', email='m.boyer3215@gmail.com', role='admin')
             admin.set_password('MiB2025!')
-            db.session.add(admin)
-            db.session.commit()
+            db.session_presta.add(admin)
+            db.session_presta.commit()
     except:
         pass
         
