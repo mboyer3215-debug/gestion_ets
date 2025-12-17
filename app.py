@@ -5509,9 +5509,41 @@ with app.app_context():
     except:
         pass
         
+ @app.route('/debug-gcal')
+@login_required
+def debug_gcal():
+    """Route de debug Google Calendar"""
+    debug_info = {
+        'credentials_exists': os.path.exists('/etc/secrets/credentials.json') or os.path.exists('credentials.json'),
+        'token_exists': os.path.exists('/tmp/token.json') or os.path.exists('token.json'),
+        'service_available': GOOGLE_CALENDAR_AVAILABLE,
+        'env': os.environ.get('RENDER', 'local')
+    }
+    
+    # Test connexion
+    try:
+        service = get_calendar_service()
+        if service:
+            # Test requête simple
+            calendars = service.calendarList().list(maxResults=1).execute()
+            debug_info['service_status'] = '✅ Connecté'
+            debug_info['test_call'] = 'SUCCESS'
+            debug_info['calendars_count'] = len(calendars.get('items', []))
+        else:
+            debug_info['service_status'] = '❌ Service None'
+            debug_info['help'] = 'Allez sur /google-auth pour vous authentifier'
+    except Exception as e:
+        debug_info['service_status'] = f'❌ Erreur: {str(e)}'
+        debug_info['error_trace'] = str(e)
+        debug_info['help'] = 'Allez sur /google-auth pour vous authentifier'
+    
+    return jsonify(debug_info)
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
