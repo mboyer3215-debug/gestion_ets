@@ -3379,8 +3379,8 @@ def envoyer_email(destinataire_email, sujet, contenu_html):
         with smtplib.SMTP(entreprise.email_smtp_host, entreprise.email_smtp_port) as server:
             server.starttls()  # Sécuriser la connexion
         from cryptography.fernet import Fernet
-        password_decrypted = decrypt_password(entreprise.email_smtp_password)
-        server.login(entreprise.email_smtp_user, password_decrypted)
+            password_decrypted = decrypt_password(entreprise.email_smtp_password)
+            server.login(entreprise.email_smtp_user, password_decrypted)
             server.send_message(msg)
 
         return True, "Email envoyé avec succès"
