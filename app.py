@@ -3369,13 +3369,12 @@ def envoyer_email(destinataire_email, sujet, contenu_html):
         partie_html = MIMEText(contenu_html, 'html', 'utf-8')
         msg.attach(partie_html)
 
-        # Se connecter au serveur SMTP et envoyer
+# Se connecter au serveur SMTP et envoyer
         with smtplib.SMTP(entreprise.email_smtp_host, entreprise.email_smtp_port) as server:
-            server.starttls()  # Sécuriser la connexion
-        from cryptography.fernet import Fernet
-            password_decrypted = decrypt_password(entreprise.email_smtp_password)
-            server.login(entreprise.email_smtp_user, password_decrypted)
+            server.starttls()
+            server.login(entreprise.email_smtp_user, entreprise.email_smtp_password)
             server.send_message(msg)
+            server.quit()
 
         return True, "Email envoyé avec succès"
 
