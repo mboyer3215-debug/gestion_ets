@@ -4355,15 +4355,16 @@ def get_calendar_service():
     # Si pas de credentials valides
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            try:
-                print("🔄 Rafraîchissement du token...")
-                creds.refresh(Request())
-                
-                # Sauvegarder le token rafraîchi
-                save_path = '/etc/secrets/token.json' if os.path.exists('/etc/secrets/') else '/tmp/token.json'
-                with open(save_path, 'w') as token:
-                    token.write(creds.to_json())
-                print(f"✅ Token rafraîchi et sauvegardé : {save_path}")
+            
+    try:
+        print("🔄 Rafraîchissement du token...")
+        creds.refresh(Request())
+        
+        # Sauvegarder le token rafraîchi dans /tmp (Secret Files est read-only)
+        save_path = '/tmp/token.json'
+        with open(save_path, 'w') as token:
+            token.write(creds.to_json())
+        print(f"✅ Token rafraîchi et sauvegardé : {save_path}")
             except Exception as e:
                 print(f"❌ Erreur refresh token : {e}")
                 return None
