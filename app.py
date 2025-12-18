@@ -2866,10 +2866,9 @@ Cordialement,
                             # Port 587 : STARTTLS (Gmail, Outlook, etc.)
                             server = smtplib.SMTP(entreprise.email_smtp_host, port, timeout=60)
                             server.starttls()
-
-                        server.login(entreprise.email_smtp_user, entreprise.email_smtp_password)
-                        server.send_message(msg)
-                        server.quit()
+                            server.login(entreprise.email_smtp_user, entreprise.email_smtp_password)
+                            server.send_message(msg)
+                            server.quit()
 
                         flash('Facture créée et email envoyé avec succès !', 'success')
                 except Exception as e:
