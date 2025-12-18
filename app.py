@@ -2167,24 +2167,21 @@ def api_rechercher_entreprise():
     entreprises = rechercher_entreprises_nominatim_direct(query)
     debug_info['etapes'].append(f"Nominatim direct a trouvé: {len(entreprises)} entreprises")
 
-    # STRATÉGIE 2 : Si rien trouvé, essayer de séparer nom/ville intelligemment
+# STRATÉGIE 2 : Si rien trouvé, essayer de séparer nom/ville intelligemment
     if len(entreprises) == 0:
         parts = query.strip().split()
         if len(parts) >= 2:
             import requests
             
-            # Essayer avec les 2 derniers mots comme ville (ex: "Saint Gaudens")
-            # puis 1 seul mot si ça échoue
             for nb_mots_ville in [2, 1]:
                 if len(parts) <= nb_mots_ville:
-                    continue  # Pas assez de mots
+                    continue
                 
                 ville_potentielle = ' '.join(parts[-nb_mots_ville:])
                 nom_potentiel = ' '.join(parts[:-nb_mots_ville])
                 
                 debug_info['etapes'].append(f"Strategie 2.{nb_mots_ville}: nom='{nom_potentiel}', ville='{ville_potentielle}'")
                 
-                # Essayer de géocoder cette ville
                 try:
                     geocode_url = f"https://nominatim.openstreetmap.org/search?q={ville_potentielle},France&format=json&limit=1"
                     resp = requests.get(geocode_url, headers={'User-Agent': 'GestionEntreprise/1.0'}, timeout=5)
@@ -2196,21 +2193,19 @@ def api_rechercher_entreprise():
                         ville_detectee = ville_potentielle
                         nom_entreprise = nom_potentiel
                         rayon = 20
-                        debug_info['etapes'].append(f"Ville '{ville_potentielle}' geolocalisee: lat={latitude}, lon={longitude}")
+                        debug_info['etapes'].append(f"Ville geolocalisee")
                         
-                        # Rechercher avec nom + ville séparés
                         entreprises = rechercher_entreprises_nominatim(nom_entreprise, ville_detectee)
-                        debug_info['etapes'].append(f"Nominatim separe a trouve: {len(entreprises)} entreprises")
+                        debug_info['etapes'].append(f"Trouve: {len(entreprises)} entreprises")
                         
-                        # Si on a trouvé des résultats, sortir de la boucle
                         if len(entreprises) > 0:
                             break
                     else:
-                        debug_info['etapes'].append(f"Geocodage de '{ville_potentielle}' echoue (pas de resultat)")
+                        debug_info['etapes'].append(f"Geocodage echoue")
                 
                 except Exception as e:
-                    debug_info['etapes'].append(f"Erreur geocodage '{ville_potentielle}': {str(e)}")
-
+                    debug_info['etapes'].append(f"Erreur geocodage: {str(e)}")
+                    
     # STRATÉGIE 3 : Si toujours rien et on a des coordonnées, essayer Overpass
     if len(entreprises) == 0 and latitude and longitude:
         debug_info['etapes'].append(f"Stratégie 3: Recherche Overpass autour de lat={latitude}, lon={longitude}, rayon={rayon}km")
