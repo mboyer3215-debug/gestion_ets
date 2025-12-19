@@ -952,18 +952,20 @@ def index():
         'conversions_ce_mois': conversions_ce_mois
     }
 
-    return render_template('dashboard.html',
-                         total_clients=total_clients,
-                         total_prestations=total_prestations,
-                         prestations_a_venir=prestations_a_venir,
-                         prestations_en_cours=prestations_en_cours,
-                         prestations_planifiees=prestations_planifiees,
-                         ca_mois=ca_mois,
-                         afficher_alerte_backup=afficher_alerte_backup,
-                         derniere_sauvegarde_complete=derniere_sauvegarde,
-                         jours_depuis_backup=jours_depuis_backup,
-                         stats_prospects=stats_prospects,
-                         conversions_recentes=conversions_recentes)
+# Préparer les stats pour le dashboard
+    stats = {
+        'nb_clients': total_clients,
+        'nb_prestations': total_prestations,
+        'nb_prospects': total_prospects,
+        'prestations_ce_mois': prestations_en_cours,
+        'ca_total': ca_mois,
+        'nb_factures': prestations_planifiees
+    }
+    
+    # Récupérer les tâches urgentes
+    taches_urgentes = []
+    
+    return render_template('dashboard.html', stats=stats, taches_urgentes=taches_urgentes)
 
 # ============================================================================
 # ROUTES CLIENTS
