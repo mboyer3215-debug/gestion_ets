@@ -2077,20 +2077,22 @@ def api_prestations_calendrier():
 
     prestations = query.order_by(Prestation.date_debut).all()
 
-for p in prestations:
+events = []
+    
+    for p in prestations:
         # Construire le titre
         client_nom = p.client.entreprise if p.client else "Client inconnu"
         titre = f"{client_nom} - {p.titre or p.type_prestation}"
         
         # Déterminer la couleur selon le statut
         if p.statut == 'Terminée':
-            color = '#4CAF50'  # Vert
+            color = '#4CAF50'
         elif p.statut == 'En cours':
-            color = '#FF9800'  # Orange
+            color = '#FF9800'
         elif p.statut == 'Planifiée':
-            color = '#2196F3'  # Bleu
+            color = '#2196F3'
         else:
-            color = '#9E9E9E'  # Gris
+            color = '#9E9E9E'
         
         events.append({
             'id': str(p.id),
@@ -2098,12 +2100,10 @@ for p in prestations:
             'start': p.date_debut.isoformat() if p.date_debut else None,
             'end': p.date_fin.isoformat() if p.date_fin else p.date_debut.isoformat(),
             'backgroundColor': color,
-            'borderColor': color,
-            'allDay': p.journee_entiere if hasattr(p, 'journee_entiere') else False
+            'borderColor': color
         })
-
-return jsonify(events)
-
+    
+    return jsonify(events)
         # Construire le nom client sans "None"
         client_nom = ''
         if p.client:
