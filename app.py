@@ -943,7 +943,10 @@ def index():
 
     # Prestations en attente (Planifiées)
     prestations_planifiees = Prestation.query.filter_by(statut='Planifiée').count()
-
+    
+    # Prestations en attente (Demandées)
+    prestations_demandées = Prestation.query.filter_by(statut='Demandée').count()
+    
     # CA du mois en cours
     debut_mois = datetime.now().replace(day=1, hour=0, minute=0, second=0)
     ca_mois = db.session.query(db.func.sum(Prestation.tarif_total)).filter(
@@ -5454,7 +5457,7 @@ def gcal_sync_all():
         return redirect(url_for('index'))
 
     prestations = Prestation.query.filter(
-        Prestation.statut.in_(['Planifiée', 'En cours'])
+        Prestation.statut.in_(['Demandée', 'Planifiée', 'En cours'])
     ).all()
 
     success_count = 0
