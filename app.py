@@ -2102,7 +2102,7 @@ for p in prestations:
             'allDay': p.journee_entiere if hasattr(p, 'journee_entiere') else False
         })
 
-    return jsonify(events)
+return jsonify(events)
 
         # Construire le nom client sans "None"
         client_nom = ''
