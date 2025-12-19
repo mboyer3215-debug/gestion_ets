@@ -2077,7 +2077,7 @@ def api_prestations_calendrier():
 
     prestations = query.order_by(Prestation.date_debut).all()
 
-events = []
+    events = []
     
     for p in prestations:
         # Construire le titre
@@ -2104,73 +2104,6 @@ events = []
         })
     
     return jsonify(events)
-        # Construire le nom client sans "None"
-        client_nom = ''
-        if p.client:
-            if p.client.prenom:
-                client_nom = p.client.prenom + ' ' + p.client.nom
-            else:
-                client_nom = p.client.nom
-
-        # Afficher une entrée par session (pas seulement les dates principales)
-        if p.sessions and len(p.sessions) > 0:
-            # Utiliser les sessions
-            for idx, session in enumerate(p.sessions):
-                titre_session = p.titre
-                if len(p.sessions) > 1:
-                    titre_session += f" (Session {idx + 1}/{len(p.sessions)})"
-
-                # Extraire les heures correctement
-                heure_debut = session.date_debut.strftime('%H:%M') if session.date_debut else '00:00'
-                heure_fin = session.date_fin.strftime('%H:%M') if session.date_fin else heure_debut
-
-                # Pour les sessions multi-jours, créer un événement pour CHAQUE jour
-                date_debut_session = session.date_debut.date() if session.date_debut else None
-                date_fin_session = session.date_fin.date() if session.date_fin else date_debut_session
-
-                if date_debut_session and date_fin_session:
-                    # Créer un événement pour chaque jour de la période
-                    date_courante = date_debut_session
-                    while date_courante <= date_fin_session:
-                        # Afficher l'heure uniquement pour le premier et dernier jour
-                        if date_courante == date_debut_session:
-                            heure_affichee = heure_debut
-                        elif date_courante == date_fin_session and date_courante != date_debut_session:
-                            heure_affichee = f"→ {heure_fin}"
-                        else:
-                            heure_affichee = "Journée"
-
-                        events.append({
-                            'id': p.id,
-                            'session_id': session.id,
-                            'titre': titre_session,
-                            'type_prestation': p.type_prestation,
-                            'client_nom': client_nom,
-                            'date_debut': date_courante.strftime('%Y-%m-%d'),
-                            'date_fin': date_courante.strftime('%Y-%m-%d'),
-                            'heure_debut': heure_affichee,
-                            'heure_fin': heure_fin,
-                            'color': color,
-                            'allDay': session.journee_complete or date_courante != date_debut_session
-                        })
-                        date_courante = date_courante + timedelta(days=1)
-        else:
-            # Fallback : si pas de sessions, utiliser les dates principales
-            heure_debut = p.date_debut.strftime('%H:%M') if p.date_debut else '00:00'
-            heure_fin = p.date_fin.strftime('%H:%M') if p.date_fin else heure_debut
-
-            events.append({
-                'id': p.id,
-                'titre': p.titre,
-                'type_prestation': p.type_prestation,
-                'client_nom': client_nom,
-                'date_debut': p.date_debut.strftime('%Y-%m-%d') if p.date_debut else '',
-                'date_fin': p.date_fin.strftime('%Y-%m-%d') if p.date_fin else (p.date_debut.strftime('%Y-%m-%d') if p.date_debut else ''),
-                'heure_debut': heure_debut,
-                'heure_fin': heure_fin,
-                'color': color,
-                'allDay': p.journee_entiere
-            })
 
     # 2. Ajouter les indisponibilités
     indisponibilites = Indisponibilite.query.order_by(Indisponibilite.date_debut).all()
