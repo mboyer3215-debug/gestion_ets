@@ -38,6 +38,47 @@ except ImportError:
 
 SCOPES = ['https://www.googleapis.com/auth/calendar']
 
+# ============================================
+# CORRECTION BUG #3 - Cache Calendrier avec TTL
+# ============================================
+import threading
+
+class CalendarCache:
+    """Cache intelligent pour calendriers Google avec TTL"""
+    def __init__(self, ttl_minutes=30):
+        self.cache = {}
+        self.ttl = timedelta(minutes=ttl_minutes)
+        self.lock = threading.Lock()
+    
+    def get(self, key):
+        """Récupère une valeur du cache si non expirée"""
+        with self.lock:
+            if key in self.cache:
+                data, timestamp = self.cache[key]
+                if datetime.now() - timestamp < self.ttl:
+                    print(f"✅ Cache HIT pour {key}")
+                    return data
+                else:
+                    print(f"⏰ Cache EXPIRÉ pour {key}")
+                    del self.cache[key]
+            return None
+    
+    def set(self, key, value):
+        """Enregistre une valeur dans le cache"""
+        with self.lock:
+            self.cache[key] = (value, datetime.now())
+            print(f"💾 Cache SET pour {key}")
+    
+    def clear(self):
+        """Vide tout le cache"""
+        with self.lock:
+            self.cache.clear()
+            print("🗑️ Cache vidé")
+
+# Initialisation du cache global (TTL de 30 minutes)
+calendar_cache_global = CalendarCache(ttl_minutes=30)
+
+
 # ============================================================================
 # STRUCTURE HIÉRARCHIQUE DES PRESTATIONS (Thème → Domaine → Type)
 # ============================================================================
@@ -1101,16 +1142,16 @@ def client_nouveau():
         flash('Client créé avec succès !', 'success')
         return redirect(url_for('clients'))
 
-    # Récupérer la liste des calendriers Google disponibles
+# CORRECTION BUG #3 : Réactivé avec cache (plus de timeout !)
+calendriers = []
+try:
+    service = get_calendar_service()
+    if service:
+        calendriers = get_filtered_calendars(service, use_cache=True)
+        print(f"✅ {len(calendriers)} calendriers chargés")
+except Exception as e:
+    print(f"⚠️ Erreur chargement calendriers : {e}")
     calendriers = []
-    try:
-        service = get_calendar_service()
-        if service:
-            calendriers = get_filtered_calendars(service)
-    except:
-        pass
-
-    return render_template('client_form.html', client=None, calendriers=calendriers)
 
 @app.route('/client/<int:client_id>/modifier', methods=['GET', 'POST'])
 @login_required
@@ -4367,18 +4408,39 @@ def get_calendar_service():
 
     return build('calendar', 'v3', credentials=creds)
 
-def get_filtered_calendars(service):
+def get_filtered_calendars(service, use_cache=True):
     """
     Récupère la liste des calendriers Google en excluant :
     - Les calendriers personnels (anniversaires, jours fériés)
     - Les calendriers non professionnels (task, sabine, etc.)
     - Les calendriers Google automatiques (contacts, etc.)
+    
+    CORRECTION BUG #3 : Ajout cache 30min + timeout 10s
     """
     if not service:
         return []
 
+    # NOUVEAU : Vérifier le cache d'abord
+    cache_key = "filtered_calendars"
+    if use_cache:
+        cached_result = calendar_cache_global.get(cache_key)
+        if cached_result is not None:
+            print(f"✅ Calendriers récupérés depuis le cache ({len(cached_result)} calendriers)")
+            return cached_result
+
     try:
-        calendar_list = service.calendarList().list().execute()
+        print("🔄 Récupération des calendriers depuis Google Calendar API...")
+        
+        # NOUVEAU : Timeout de 10 secondes max
+        import socket
+        original_timeout = socket.getdefaulttimeout()
+        socket.setdefaulttimeout(10)
+        
+        try:
+            calendar_list = service.calendarList().list().execute()
+        finally:
+            socket.setdefaulttimeout(original_timeout)
+        
         all_calendars = calendar_list.get('items', [])
 
         # Mots-clés à exclure (en minuscules)
@@ -4417,11 +4479,27 @@ def get_filtered_calendars(service):
             if not is_excluded:
                 filtered.append(cal)
 
+        # NOUVEAU : Stocker dans le cache
+        calendar_cache_global.set(cache_key, filtered)
+        print(f"✅ {len(filtered)} calendriers filtrés et mis en cache")
+        
         return filtered
 
-    except Exception as e:
-        print(f"Erreur lors de la récupération des calendriers: {e}")
+    except socket.timeout:
+        print("⚠️ Timeout API Google Calendar (>10s) - Utilisation cache si disponible")
+        # Retourner cache même expiré si timeout
+        cached_result = calendar_cache_global.cache.get(cache_key)
+        if cached_result:
+            return cached_result[0]  # Ignorer timestamp en cas d'erreur
         return []
+    
+    except Exception as e:
+        print(f"❌ Erreur récupération calendriers : {e}")
+        # Retourner cache même expiré si erreur
+        cached_result = calendar_cache_global.cache.get(cache_key)
+        if cached_result:
+            return cached_result[0]
+        return []service = get_calendar_service()
 
 
 def creer_blocages_autres_calendriers(service, prestation, calendar_id_principal):
