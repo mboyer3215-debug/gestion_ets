@@ -288,7 +288,7 @@ class Prestation(db.Model):
     statut_devis = db.Column(db.String(50))  # Non envoyé, Envoyé, Accepté, Refusé
 
     # Statut
-    statut = db.Column(db.String(50), default='Planifiée')  # Planifiée, En cours, Terminée, Annulée
+    statut = db.Column(db.String(50), default='Demandée')  # Demandée, Planifiée, En cours, Terminée, Annulée
 
     # Métadonnées
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
@@ -1443,7 +1443,7 @@ def modifier_statut_prestation(prestation_id):
     prestation = Prestation.query.get_or_404(prestation_id)
     nouveau_statut = request.form.get('nouveau_statut')
 
-    if nouveau_statut in ['Planifiée', 'En cours', 'Terminée', 'Annulée']:
+    if nouveau_statut in ['Demandée', 'Planifiée', 'En cours', 'Terminée', 'Annulée']:
         prestation.statut = nouveau_statut
         db.session.commit()
         flash(f'Statut modifié: {nouveau_statut}', 'success')
@@ -2085,6 +2085,7 @@ def api_prestations_calendrier():
     # 1. Ajouter les prestations
     for p in prestations:
         color = {
+            'Demandée': '#de5d5c',
             'Planifiée': '#5D5CDE',
             'En cours': '#FF9800',
             'Terminée': '#4CAF50',
@@ -5453,7 +5454,7 @@ def gcal_sync_all():
         return redirect(url_for('index'))
 
     prestations = Prestation.query.filter(
-        Prestation.statut.in_(['Planifiée', 'En cours'])
+        Prestation.statut.in_(['Demandée', 'Planifiée', 'En cours'])
     ).all()
 
     success_count = 0
