@@ -5454,7 +5454,7 @@ def gcal_sync_all():
         return redirect(url_for('index'))
 
     prestations = Prestation.query.filter(
-        Prestation.statut.in_(['Demandée', 'Planifiée', 'En cours'])
+        Prestation.statut.in_(['Planifiée', 'En cours'])
     ).all()
 
     success_count = 0
