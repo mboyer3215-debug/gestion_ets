@@ -70,8 +70,8 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="fas fa-calendar-alt"></i> Calendrier</h5>
             <div class="btn-group" role="group">
-                <button type="button" class="btn btn-sm btn-outline-primary active" data-view="month">Mois</button>
                 <button type="button" class="btn btn-sm btn-outline-primary" data-view="week">Semaine</button>
+                <button type="button" class="btn btn-sm btn-outline-primary active" data-view="month">Mois</button>
                 <button type="button" class="btn btn-sm btn-outline-primary" data-view="quarter">Trimestre</button>
                 <button type="button" class="btn btn-sm btn-outline-primary" data-view="semester">Semestre</button>
                 <button type="button" class="btn btn-sm btn-outline-primary" data-view="year">Année</button>
@@ -137,7 +137,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
-    var currentView = 'dayGridMonth';
+    var currentView = 'timeGridWeek';
     
     var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: currentView,
@@ -164,28 +164,31 @@ document.addEventListener('DOMContentLoaded', function() {
     calendar.render();
     
     // Changement de vue
-    document.querySelectorAll('[data-view]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
-            var view = this.dataset.view;
-            var viewMap = {
-                'week': 'timeGridWeek',
-                'month': 'dayGridMonth',
-                'quarter': 'dayGridMonth', // Custom 3 mois
-                'semester': 'dayGridMonth', // Custom 6 mois
-                'year': 'dayGridYear'
-            };
-            
-            calendar.changeView(viewMap[view] || 'dayGridMonth');
-            
-            // Pour trimestre/semestre, ajuster la durée
-            if (view === 'quarter') {
-                calendar.gotoDate(new Date());
-                // TODO: Implémenter vue 3 mois
-            }
-        });
+document.querySelectorAll('[data-view]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        var view = this.dataset.view;
+        
+        if (view === 'week') {
+            calendar.changeView('timeGridWeek');
+        } else if (view === 'month') {
+            calendar.changeView('dayGridMonth');
+        } else if (view === 'quarter') {
+            // Trimestre : afficher 3 mois
+            calendar.changeView('dayGridMonth');
+            calendar.setOption('duration', { months: 3 });
+            calendar.setOption('fixedWeekCount', false);
+        } else if (view === 'semester') {
+            // Semestre : afficher 6 mois
+            calendar.changeView('dayGridMonth');
+            calendar.setOption('duration', { months: 6 });
+            calendar.setOption('fixedWeekCount', false);
+        } else if (view === 'year') {
+            // Année complète
+            calendar.changeView('dayGridYear');
+        }
     });
 });
 </script>
