@@ -3,643 +3,190 @@
 {% block title %}Tableau de bord - Gestion Entreprise{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h1 class="display-5 fw-bold text-dark">
-            <i class="fas fa-chart-line text-primary"></i> Tableau de bord
-        </h1>
-        <p class="text-muted">Vue d'ensemble de votre activité</p>
-    </div>
-</div>
+<div class="container-fluid mt-4">
+    <h1><i class="fas fa-chart-line"></i> Tableau de bord</h1>
+    <p class="text-muted">Vue d'ensemble de votre activité</p>
 
-<!-- 7 Statistiques compactes sur une ligne -->
-<div class="row mb-4">
-    <!-- Clients actifs -->
-    <div class="col-xl col-lg-3 col-md-4 col-sm-6 mb-3">
-        <div class="stat-card-mini">
-            <div class="icon-mini" style="color: #5D5CDE;">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="number-mini">{{ total_clients }}</div>
-            <div class="label-mini">Clients</div>
-        </div>
-    </div>
-
-    <!-- Prestations totales -->
-    <div class="col-xl col-lg-3 col-md-4 col-sm-6 mb-3">
-        <div class="stat-card-mini">
-            <div class="icon-mini" style="color: #4CAF50;">
-                <i class="fas fa-tasks"></i>
-            </div>
-            <div class="number-mini">{{ total_prestations }}</div>
-            <div class="label-mini">Total</div>
-        </div>
-    </div>
-
-    <!-- En cours -->
-    <div class="col-xl col-lg-3 col-md-4 col-sm-6 mb-3">
-        <div class="stat-card-mini">
-            <div class="icon-mini" style="color: #FF9800;">
-                <i class="fas fa-spinner"></i>
-            </div>
-            <div class="number-mini">{{ prestations_en_cours }}</div>
-            <div class="label-mini">En cours</div>
-        </div>
-    </div>
-
-    <!-- En attente (Planifiées) -->
-    <div class="col-xl col-lg-3 col-md-4 col-sm-6 mb-3">
-        <div class="stat-card-mini">
-            <div class="icon-mini" style="color: #9C27B0;">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="number-mini">{{ prestations_planifiees }}</div>
-            <div class="label-mini">En attente</div>
-        </div>
-    </div>
-
-    <!-- CA du mois -->
-    <div class="col-xl col-lg-3 col-md-4 col-sm-6 mb-3">
-        <div class="stat-card-mini">
-            <div class="icon-mini" style="color: #2196F3;">
-                <i class="fas fa-euro-sign"></i>
-            </div>
-            <div class="number-mini" style="font-size: 1.2rem;">{{ "%.0f"|format(ca_mois) }}€</div>
-            <div class="label-mini">CA mois</div>
-        </div>
-    </div>
-
-    <!-- Factures en retard (clickable) -->
-    <div class="col-xl col-lg-3 col-md-4 col-sm-6 mb-3">
-        <a href="{{ url_for('factures_en_retard') }}" class="stat-card-mini stat-card-clickable" style="text-decoration: none; display: block;">
-            <div class="icon-mini" style="color: #F44336;">
-                <i class="fas fa-file-invoice-dollar"></i>
-            </div>
-            <div class="number-mini">
-                {{ factures_retard_count }}
-                {% if factures_retard_count > 0 %}
-                <i class="fas fa-exclamation-circle" style="color: #F44336; font-size: 0.7em;"></i>
-                {% endif %}
-            </div>
-            <div class="label-mini">Fact. retard</div>
-        </a>
-    </div>
-
-    <!-- Paiements partiels (clickable) -->
-    <div class="col-xl col-lg-3 col-md-4 col-sm-6 mb-3">
-        <a href="{{ url_for('paiements_en_retard') }}" class="stat-card-mini stat-card-clickable" style="text-decoration: none; display: block;">
-            <div class="icon-mini" style="color: #FF9800;">
-                <i class="fas fa-money-bill-wave"></i>
-            </div>
-            <div class="number-mini">
-                {{ paiements_retard_count }}
-                {% if paiements_retard_count > 0 %}
-                <i class="fas fa-exclamation-circle" style="color: #FF9800; font-size: 0.7em;"></i>
-                {% endif %}
-            </div>
-            <div class="label-mini">Paiements</div>
-        </a>
-    </div>
-</div>
-
-<!-- Alerte sauvegarde si nécessaire -->
-{% if afficher_alerte_backup %}
-<div class="row mb-3">
-    <div class="col-12">
-        <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            <i class="fas fa-exclamation-triangle"></i>
-            <strong>Attention !</strong>
-            {% if jours_depuis_backup %}
-                Aucune sauvegarde depuis {{ jours_depuis_backup }} jours.
-            {% else %}
-                Aucune sauvegarde n'a encore été effectuée.
-            {% endif %}
-            <a href="{{ url_for('sauvegarde_creer') }}" class="btn btn-sm btn-warning ms-2">
-                <i class="fas fa-save"></i> Sauvegarder maintenant
-            </a>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<!-- Statistiques de prospection -->
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Statistiques de prospection</h5>
-            </div>
-            <div class="card-body">
-                <div class="row text-center">
-                    <!-- Total Prospects -->
-                    <div class="col-md-3 mb-3">
-                        <div class="p-3 bg-light rounded">
-                            <div class="d-flex justify-content-center align-items-center mb-2">
-                                <i class="fas fa-user-friends fa-2x text-info"></i>
-                            </div>
-                            <h3 class="mb-1" style="color: #17a2b8;">{{ stats_prospects.total_prospects }}</h3>
-                            <p class="text-muted mb-0">Prospects actifs</p>
-                        </div>
-                    </div>
-
-                    <!-- Clients confirmés -->
-                    <div class="col-md-3 mb-3">
-                        <div class="p-3 bg-light rounded">
-                            <div class="d-flex justify-content-center align-items-center mb-2">
-                                <i class="fas fa-user-check fa-2x text-success"></i>
-                            </div>
-                            <h3 class="mb-1" style="color: #28a745;">{{ stats_prospects.total_clients_confirmes }}</h3>
-                            <p class="text-muted mb-0">Clients confirmés</p>
-                        </div>
-                    </div>
-
-                    <!-- Taux de conversion -->
-                    <div class="col-md-3 mb-3">
-                        <div class="p-3 bg-light rounded">
-                            <div class="d-flex justify-content-center align-items-center mb-2">
-                                <i class="fas fa-percentage fa-2x text-primary"></i>
-                            </div>
-                            <h3 class="mb-1" style="color: #5D5CDE;">{{ "%.1f"|format(stats_prospects.taux_conversion) }}%</h3>
-                            <p class="text-muted mb-0">Taux de conversion</p>
-                        </div>
-                    </div>
-
-                    <!-- Conversions ce mois -->
-                    <div class="col-md-3 mb-3">
-                        <div class="p-3 bg-light rounded">
-                            <div class="d-flex justify-content-center align-items-center mb-2">
-                                <i class="fas fa-calendar-check fa-2x text-warning"></i>
-                            </div>
-                            <h3 class="mb-1" style="color: #ff9800;">{{ stats_prospects.conversions_ce_mois }}</h3>
-                            <p class="text-muted mb-0">Conversions ce mois</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Conversions récentes -->
-                {% if conversions_recentes %}
-                <div class="mt-3">
-                    <h6 class="mb-3"><i class="fas fa-history"></i> Conversions récentes ({{ conversions_recentes|length }})</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Client</th>
-                                    <th>Email</th>
-                                    <th>Date conversion</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for conversion in conversions_recentes %}
-                                <tr>
-                                    <td>
-                                        <a href="{{ url_for('client_detail', client_id=conversion.id) }}">
-                                            <strong>{{ conversion.prenom or '' }} {{ conversion.nom }}</strong>
-                                            {% if conversion.entreprise and conversion.entreprise != conversion.nom %}
-                                                <br><small class="text-muted">{{ conversion.entreprise }}</small>
-                                            {% endif %}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        {% if conversion.email %}
-                                            <a href="mailto:{{ conversion.email }}">{{ conversion.email }}</a>
-                                        {% else %}
-                                            <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">
-                                            {{ conversion.date_conversion.strftime('%d/%m/%Y') if conversion.date_conversion else '-' }}
-                                        </small>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="text-end mt-2">
-                        <a href="{{ url_for('clients') }}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-users"></i> Voir tous les clients
-                        </a>
-                    </div>
-                </div>
-                {% else %}
-                <div class="alert alert-info mt-3 mb-0">
-                    <i class="fas fa-info-circle"></i> Aucune conversion récente. Consultez la <a href="{{ url_for('liste_prospects') }}">liste des prospects</a> pour en convertir.
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Calendrier mois entier et Tâches urgentes -->
-<div class="row mb-4">
-    <!-- Calendrier mois entier (75% de largeur) -->
-    <div class="col-lg-9 mb-4">
-        <div class="card">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-calendar-alt"></i> <span id="calendar-month-title">Calendrier du mois</span></span>
-                <div>
-                    <button class="btn btn-sm btn-light me-1" id="prevMonth">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <button class="btn btn-sm btn-light me-1" id="todayBtn">Aujourd'hui</button>
-                    <button class="btn btn-sm btn-light" id="nextMonth">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
+    <!-- KPIs en haut -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-users fa-2x text-primary"></i>
+                    <h3 class="mt-2">{{ stats.nb_clients }}</h3>
+                    <p class="text-muted mb-0">Clients</p>
                 </div>
             </div>
-            <div class="card-body p-0">
-                <div id="calendar-container" style="min-height: 500px;">
-                    <!-- Le calendrier sera inséré ici via JavaScript -->
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-list fa-2x text-info"></i>
+                    <h3 class="mt-2">{{ stats.nb_prestations }}</h3>
+                    <p class="text-muted mb-0">Total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-star fa-2x text-warning"></i>
+                    <h3 class="mt-2">{{ stats.nb_prospects }}</h3>
+                    <p class="text-muted mb-0">En cours</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-2x text-danger"></i>
+                    <h3 class="mt-2">{{ stats.prestations_ce_mois }}</h3>
+                    <p class="text-muted mb-0">Ce mois</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-euro-sign fa-2x text-success"></i>
+                    <h3 class="mt-2">{{ stats.ca_total }}€</h3>
+                    <p class="text-muted mb-0">CA total</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-file-invoice fa-2x text-secondary"></i>
+                    <h3 class="mt-2">{{ stats.nb_factures }}</h3>
+                    <p class="text-muted mb-0">Fact. payées</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Tâches urgentes (25% de largeur) -->
-    <div class="col-lg-3 mb-4">
-        <div class="card">
-            <div class="card-header bg-danger text-white">
-                <i class="fas fa-tasks"></i> Tâches urgentes
+    <!-- CALENDRIER avec vues multiples -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-calendar-alt"></i> Calendrier</h5>
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-sm btn-outline-primary active" data-view="month">Mois</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-view="week">Semaine</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-view="quarter">Trimestre</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-view="semester">Semestre</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-view="year">Année</button>
             </div>
-            <div class="card-body">
-                {% if taches_urgentes %}
+        </div>
+        <div class="card-body">
+            <div id="calendar"></div>
+        </div>
+    </div>
+
+    <!-- TÂCHES URGENTES sous le calendrier -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Tâches urgentes</h5>
+        </div>
+        <div class="card-body">
+            {% if taches_urgentes %}
+                <div class="list-group">
                     {% for tache in taches_urgentes %}
-                    <div class="task-item-dashboard mb-3 p-2 border-start border-3 {% if tache.en_retard %}border-danger{% elif tache.priorite == 'Haute' %}border-danger{% elif tache.priorite == 'Moyenne' %}border-warning{% else %}border-success{% endif %}" style="background-color: #f8f9fa;">
-                        <div class="d-flex justify-content-between align-items-start mb-1">
-                            <strong style="font-size: 0.9rem;">{{ tache.titre }}</strong>
-                            {% if tache.priorite == 'Haute' %}
-                            <span class="badge bg-danger" style="font-size: 0.7rem;">Haute</span>
-                            {% elif tache.priorite == 'Moyenne' %}
-                            <span class="badge bg-warning" style="font-size: 0.7rem;">Moyenne</span>
-                            {% else %}
-                            <span class="badge bg-success" style="font-size: 0.7rem;">Basse</span>
-                            {% endif %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <h6>{{ tache.titre }}</h6>
+                            <span class="badge bg-danger">{{ tache.priorite }}</span>
                         </div>
-                        <p style="font-size: 0.75rem; color: #6c757d; margin-bottom: 0.25rem;">
-                            <i class="fas fa-user"></i> {{ tache.client_nom }}
-                        </p>
-                        {% if tache.echeance %}
-                        <p style="font-size: 0.75rem; margin-bottom: 0.25rem;">
-                            <i class="fas fa-calendar"></i>
-                            {{ tache.echeance.strftime('%d/%m/%Y') }}
-                            {% if tache.en_retard %}
-                            <span class="text-danger fw-bold">⚠️ En retard !</span>
-                            {% elif tache.jours_restants == 0 %}
-                            <span class="text-warning fw-bold">Aujourd'hui</span>
-                            {% elif tache.jours_restants == 1 %}
-                            <span class="text-warning">Demain</span>
-                            {% else %}
-                            <span class="text-muted">({{ tache.jours_restants }}j)</span>
-                            {% endif %}
-                        </p>
-                        {% endif %}
-                        <a href="{{ url_for('prestation_detail', prestation_id=tache.prestation_id) }}" class="btn btn-sm btn-outline-primary mt-1" style="font-size: 0.7rem;">
-                            <i class="fas fa-eye"></i> Voir
-                        </a>
+                        <small class="text-muted">Échéance: {{ tache.date_echeance.strftime('%d/%m/%Y') }}</small>
                     </div>
                     {% endfor %}
-                {% else %}
-                    <div class="text-center text-muted py-4">
-                        <i class="fas fa-check-circle fa-3x mb-2" style="color: #4CAF50;"></i>
-                        <p class="mb-0">Aucune tâche urgente</p>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Sauvegarde & Restauration (en bas) -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-secondary text-white">
-                <i class="fas fa-database"></i> Sauvegarde & Restauration
-            </div>
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-md-6 mb-2">
-                        {% if derniere_sauvegarde_complete %}
-                            <p class="mb-1">
-                                <i class="fas fa-check-circle text-success"></i>
-                                <strong>Dernière sauvegarde :</strong>
-                                {{ derniere_sauvegarde_complete.date_sauvegarde.strftime('%d/%m/%Y à %H:%M') }}
-                            </p>
-                            <p class="mb-0 text-muted small">
-                                <i class="fas fa-hdd"></i> {{ "%.2f"|format(derniere_sauvegarde_complete.taille_octets / 1024) }} Ko
-                                {% if derniere_sauvegarde_complete.statut_gdrive == 'Success' %}
-                                    | <i class="fas fa-cloud text-success"></i> Google Drive
-                                {% elif derniere_sauvegarde_complete.statut_gdrive == 'Failed' %}
-                                    | <i class="fas fa-cloud text-danger"></i> Local uniquement
-                                {% endif %}
-                            </p>
-                        {% else %}
-                            <p class="mb-0 text-muted">
-                                <i class="fas fa-info-circle"></i> Aucune sauvegarde effectuée
-                            </p>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-6 text-md-end">
-                        <a href="{{ url_for('sauvegarde_creer') }}" class="btn btn-success me-2 mb-2">
-                            <i class="fas fa-save"></i> Créer une sauvegarde
-                        </a>
-                        <a href="{{ url_for('sauvegarde_liste') }}" class="btn btn-primary mb-2">
-                            <i class="fas fa-history"></i> Restaurer
-                        </a>
-                    </div>
                 </div>
+            {% else %}
+                <div class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle"></i> Aucune tâche urgente
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal ajout prestation/indispo -->
+<div class="modal fade" id="modalAjoutEvent" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter un événement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="mb-4">Que souhaitez-vous ajouter ?</p>
+                <a href="/prestation/nouveau" class="btn btn-primary btn-lg me-2">
+                    <i class="fas fa-briefcase"></i> Nouvelle prestation
+                </a>
+                <a href="/indisponibilite" class="btn btn-danger btn-lg">
+                    <i class="fas fa-calendar-times"></i> Nouvelle indisponibilité
+                </a>
             </div>
         </div>
     </div>
 </div>
 
-{% endblock %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fr.js"></script>
 
-{% block extra_css %}
-<style>
-/* Cartes statistiques compactes */
-.stat-card-mini {
-    background: white;
-    border-radius: 12px;
-    padding: 15px;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    transition: all 0.3s;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.stat-card-mini:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.stat-card-mini .icon-mini {
-    font-size: 1.8rem;
-    margin-bottom: 8px;
-}
-
-.stat-card-mini .number-mini {
-    font-size: 1.6rem;
-    font-weight: bold;
-    color: var(--dark-color);
-    line-height: 1.2;
-}
-
-.stat-card-mini .label-mini {
-    color: #6c757d;
-    font-size: 0.8rem;
-    margin-top: 5px;
-    font-weight: 500;
-}
-
-.stat-card-clickable {
-    transition: transform 0.2s, box-shadow 0.2s;
-    cursor: pointer;
-    color: inherit;
-}
-
-.stat-card-clickable:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-    color: inherit;
-}
-
-#calendar-container {
-    overflow-x: auto;
-}
-
-.calendar-week {
-    display: flex;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.calendar-day {
-    flex: 1;
-    min-width: 100px;
-    border-right: 1px solid #dee2e6;
-    padding: 10px;
-}
-
-.calendar-day:last-child {
-    border-right: none;
-}
-
-.calendar-day-header {
-    font-weight: bold;
-    font-size: 0.9rem;
-    margin-bottom: 5px;
-    padding-bottom: 5px;
-    border-bottom: 2px solid #5D5CDE;
-}
-
-.calendar-day-header.today {
-    background-color: #5D5CDE;
-    color: white;
-    margin: -10px -10px 5px -10px;
-    padding: 10px;
-}
-
-.calendar-day-header.weekend {
-    background-color: #f8f9fa;
-}
-
-.calendar-event {
-    background-color: #5D5CDE;
-    color: white;
-    border-radius: 4px;
-    padding: 5px 8px;
-    margin-bottom: 5px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.calendar-event:hover {
-    background-color: #4a4bc7;
-}
-
-.calendar-event-time {
-    font-weight: bold;
-    display: block;
-}
-
-.calendar-event-title {
-    display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-</style>
-{% endblock %}
-
-{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const calendarContainer = document.getElementById('calendar-container');
-    const monthTitle = document.getElementById('calendar-month-title');
-    const prevMonthBtn = document.getElementById('prevMonth');
-    const nextMonthBtn = document.getElementById('nextMonth');
-    const todayBtn = document.getElementById('todayBtn');
-
-    let currentMonth = new Date();
-    currentMonth.setDate(1); // Premier jour du mois
-    currentMonth.setHours(0, 0, 0, 0);
-
-    // Boutons de navigation
-    prevMonthBtn.addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth() - 1);
-        loadAndRenderCalendar();
-    });
-
-    nextMonthBtn.addEventListener('click', () => {
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-        loadAndRenderCalendar();
-    });
-
-    todayBtn.addEventListener('click', () => {
-        currentMonth = new Date();
-        currentMonth.setDate(1);
-        currentMonth.setHours(0, 0, 0, 0);
-        loadAndRenderCalendar();
-    });
-
-    function loadAndRenderCalendar() {
-        // Calculer le premier et dernier jour du mois
-        const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-        const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-        const daysInMonth = lastDay.getDate();
-
-        // Mettre à jour le titre
-        const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-        monthTitle.textContent = `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
-
-        // Récupérer les prestations via API (toutes les prestations, on filtre côté client)
-        fetch('/api/prestations/calendrier')
-            .then(response => response.json())
-            .then(data => {
-                renderCalendar(data.prestations, firstDay, lastDay, daysInMonth);
-            })
-            .catch(error => {
-                console.error('Erreur chargement calendrier:', error);
-                calendarContainer.innerHTML = '<div class="alert alert-danger m-3">Erreur de chargement du calendrier</div>';
-            });
-    }
-
-    function renderCalendar(allPrestations, firstDay, lastDay, daysInMonth) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        // Filtrer les prestations du mois (seulement celles qui COMMENCENT dans le mois)
-        const prestations = allPrestations.filter(p => {
-            // Parser la date en local pour éviter les décalages de timezone
-            const dateParts = p.date_debut.split('-');
-            const pDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2].split('T')[0]));
-            return pDate >= firstDay && pDate <= lastDay;
-        });
-
-        // Créer les jours du mois
-        const days = [];
-        const firstDayOfWeek = firstDay.getDay(); // 0 = dimanche
-
-        // Ajouter des jours vides au début pour aligner avec le jour de la semaine
-        for (let i = 0; i < firstDayOfWeek; i++) {
-            days.push(null);
+    var calendarEl = document.getElementById('calendar');
+    var currentView = 'dayGridMonth';
+    
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: currentView,
+        locale: 'fr',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: ''
+        },
+        events: '/api/prestations/calendrier',
+        
+        // Clic sur date → Modal
+        dateClick: function(info) {
+            var modal = new bootstrap.Modal(document.getElementById('modalAjoutEvent'));
+            modal.show();
+        },
+        
+        // Clic sur événement → Détail
+        eventClick: function(info) {
+            window.location.href = '/prestation/' + info.event.id;
         }
-
-        // Ajouter tous les jours du mois
-        for (let i = 1; i <= daysInMonth; i++) {
-            const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i);
-            days.push(date);
-        }
-
-        // Organiser les prestations par date
-        const prestationsByDate = {};
-        prestations.forEach(p => {
-            // Parser la date en local pour éviter les problèmes de timezone
-            // Si p.date_debut est "2024-11-26", on veut le 26 novembre en heure locale
-            const dateKey = p.date_debut.split('T')[0]; // Prendre directement la partie date
-            if (!prestationsByDate[dateKey]) {
-                prestationsByDate[dateKey] = [];
+    });
+    
+    calendar.render();
+    
+    // Changement de vue
+    document.querySelectorAll('[data-view]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            var view = this.dataset.view;
+            var viewMap = {
+                'week': 'timeGridWeek',
+                'month': 'dayGridMonth',
+                'quarter': 'dayGridMonth', // Custom 3 mois
+                'semester': 'dayGridMonth', // Custom 6 mois
+                'year': 'dayGridYear'
+            };
+            
+            calendar.changeView(viewMap[view] || 'dayGridMonth');
+            
+            // Pour trimestre/semestre, ajuster la durée
+            if (view === 'quarter') {
+                calendar.gotoDate(new Date());
+                // TODO: Implémenter vue 3 mois
             }
-            prestationsByDate[dateKey].push(p);
         });
-
-        // Calculer le nombre de semaines nécessaires
-        const numWeeks = Math.ceil(days.length / 7);
-
-        // Créer le calendrier
-        let html = '<div style="display: flex; flex-direction: column;">';
-
-        for (let week = 0; week < numWeeks; week++) {
-            html += '<div class="calendar-week">';
-
-            for (let dayOfWeek = 0; dayOfWeek < 7; dayOfWeek++) {
-                const dayIndex = week * 7 + dayOfWeek;
-                const date = days[dayIndex];
-
-                const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-
-                if (!date) {
-                    // Jour vide
-                    html += '<div class="calendar-day" style="background-color: #f5f5f5;"></div>';
-                } else {
-                    // Formater la date en YYYY-MM-DD sans conversion UTC
-                    const year = date.getFullYear();
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const dateKey = `${year}-${month}-${day}`;
-
-                    const isToday = date.toDateString() === today.toDateString();
-                    const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-
-                    html += '<div class="calendar-day">';
-                    html += `<div class="calendar-day-header ${isToday ? 'today' : ''} ${isWeekend ? 'weekend' : ''}">`;
-                    html += `${dayNames[date.getDay()]} ${date.getDate()}`;
-                    html += '</div>';
-
-                    // Ajouter les prestations de ce jour
-                    if (prestationsByDate[dateKey]) {
-                        prestationsByDate[dateKey].forEach(p => {
-                            // Utiliser heure_debut si disponible, sinon parser la date
-                            let startTime = p.heure_debut || '00:00';
-
-                            // Si c'est une journée entière OU si l'heure est 00:00, afficher "Journée"
-                            // (car 00:00 signifie souvent une journée entière mal configurée)
-                            if (p.allDay || startTime === '00:00') {
-                                startTime = 'Journée';
-                            }
-
-                            // Les indisponibilités ne sont pas cliquables
-                            const clickHandler = p.is_indisponibilite ? '' : `onclick="window.location.href='/prestation/${p.id}'"`;
-                            const cursorStyle = p.is_indisponibilite ? 'cursor: default;' : 'cursor: pointer;';
-
-                            html += `<div class="calendar-event" ${clickHandler} style="background-color: ${p.color}; ${cursorStyle}">`;
-                            html += `<span class="calendar-event-time">${startTime}</span>`;
-                            html += `<span class="calendar-event-title">${p.titre}</span>`;
-                            html += '</div>';
-                        });
-                    }
-
-                    html += '</div>';
-                }
-            }
-
-            html += '</div>';
-        }
-
-        html += '</div>';
-        calendarContainer.innerHTML = html;
-    }
-
-    // Charger le calendrier initial
-    loadAndRenderCalendar();
+    });
 });
 </script>
 {% endblock %}
