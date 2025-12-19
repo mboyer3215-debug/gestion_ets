@@ -977,10 +977,46 @@ def clients():
     return render_template('clients.html', clients=clients)
 
 @app.route('/prospection')
-@login_required    
+@login_required
 def prospection():
-    """Page de prospection de nouveaux clients"""
-    return render_template('prospection.html')
+    """Page statistiques de prospection"""
+    prospects = Client.query.filter_by(statut_client='Prospect', actif=True).order_by(Client.date_creation.desc()).limit(10).all()
+    
+    total_prospects = Client.query.filter_by(statut_client='Prospect', actif=True).count()
+    total_clients = Client.query.filter_by(statut_client='Client', actif=True).count()
+    
+    # Clients convertis ce mois
+    debut_mois = datetime.now().replace(day=1, hour=0, minute=0, second=0)
+    conversions_mois = Client.query.filter(
+        Client.statut_client == 'Client',
+        Client.date_conversion >= debut_mois
+    ).count()
+    
+    # Taux de conversion
+    total = total_prospects + total_clients
+    taux_conversion = round((total_clients / total * 100), 1) if total > 0 else 0
+    
+    stats = {
+        'prospects_actifs': total_prospects,
+        'clients_confirmes': total_clients,
+        'taux_conversion': taux_conversion,
+        'conversions_mois': conversions_mois
+    }
+    
+    return render_template('prospection.html', prospects=prospects, stats=stats)
+
+@app.route('/sauvegarde')
+@login_required
+def sauvegarde():
+    """Page sauvegardes"""
+    derniere_sauvegarde_obj = Sauvegarde.query.order_by(Sauvegarde.date_sauvegarde.desc()).first()
+    
+    if derniere_sauvegarde_obj:
+        derniere_sauvegarde = derniere_sauvegarde_obj.date_sauvegarde.strftime('%d/%m/%Y à %H:%M')
+    else:
+        derniere_sauvegarde = "Aucune sauvegarde"
+    
+    return render_template('sauvegarde.html', derniere_sauvegarde=derniere_sauvegarde)
 
 @app.route('/liste-prospects')
 @login_required    
