@@ -392,6 +392,40 @@
                             </div>
                         </div>
 
+						<!-- Statut Facture + Bouton -->
+						<div class="d-flex gap-2 mb-3">
+						    <div style="flex: 0 0 200px; min-width: 200px; max-width: 200px;">
+						        <label for="statut_facture" class="form-label small fw-bold mb-1">Statut facture :</label>
+						        <select class="form-select form-select-sm statut-select" style="width: 100% !important;" id="statut_facture" data-prestation-id="{{ prestation.id }}" data-type="facture">
+						            <option value="" {% if not prestation.statut_facture %}selected{% endif %} style="color: #999;">-- Sélectionner --</option>
+						            <option value="Non envoyée" {% if prestation.statut_facture == "Non envoyée" %}selected{% endif %}>Non envoyée</option>
+						            <option value="Envoyée" {% if prestation.statut_facture == "Envoyée" %}selected{% endif %}>Envoyée</option>
+						            <option value="En retard" {% if prestation.statut_facture == "En retard" %}selected{% endif %}>En retard</option>
+						            <option value="Payée" {% if prestation.statut_facture == "Payée" %}selected{% endif %}>Payée</option>
+						        </select>
+						    </div>
+						    <div style="flex: 1 1 auto;">
+						        <label class="form-label small fw-bold mb-1">&nbsp;</label>
+						        {% if prestation.statut_facture == "En retard" %}
+						            <a href="{{ url_for('facture_saisie', prestation_id=prestation.id) }}" class="btn btn-danger btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+						                <i class="fas fa-file-invoice me-1"></i>Facture
+						            </a>
+						        {% elif prestation.statut_facture == "Envoyée" %}
+						            <a href="{{ url_for('facture_saisie', prestation_id=prestation.id) }}" class="btn btn-warning btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+						                <i class="fas fa-file-invoice me-1"></i>Facture
+						            </a>
+						        {% elif prestation.statut_facture == "Payée" %}
+						            <a href="{{ url_for('facture_saisie', prestation_id=prestation.id) }}" class="btn btn-success btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+						                <i class="fas fa-file-invoice me-1"></i>Facture
+						            </a>
+						        {% else %}
+						            <a href="{{ url_for('facture_saisie', prestation_id=prestation.id) }}" class="btn btn-primary btn-sm w-100" style="height: 31px; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; justify-content: center;">
+						                <i class="fas fa-file-invoice me-1"></i>Facture
+						            </a>
+						        {% endif %}
+						    </div>
+						</div>
+
                         <!-- Statut Paiement + Bouton -->
                         <div class="d-flex gap-2">
                             <div style="flex: 0 0 200px; min-width: 200px; max-width: 200px;">
