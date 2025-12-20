@@ -211,60 +211,60 @@
                 </div>
                 {% endif %}
 
-                <!-- ADRESSE ET DISTANCE - PLEINE LARGEUR -->
-                {% if prestation.lieu or prestation.distance_km %}
-                <hr class="my-3">
-                <div class="row">
-                    <div class="col-md-8">
-                        {% if prestation.lieu %}
-                        <p class="mb-2">
-                            <i class="fas fa-map-marker-alt text-danger"></i>
-                            <strong>Lieu :</strong> {{ prestation.lieu }}
-                        </p>
-                        {% endif %}
+<!-- ADRESSE ET DISTANCE - PLEINE LARGEUR -->
+{% if prestation.lieu or prestation.distance_km %}
+<hr class="my-3">
+<div class="row">
+    <div class="col-md-8">
+        {% if prestation.lieu %}
+        <p class="mb-2">
+            <i class="fas fa-map-marker-alt text-danger"></i>
+            <strong>Lieu :</strong> {{ prestation.lieu }}
+        </p>
+        {% endif %}
 
-                        {% if prestation.distance_km %}
-                        <p class="mb-0">
-                            <i class="fas fa-route text-success"></i>
-                            <strong>Distance :</strong> <span class="text-primary fw-bold">{{ "%.1f"|format(prestation.distance_km) }} km</span>
-                            {% if prestation.duree_trajet_minutes %}
-                                (trajet :
-                                {% if prestation.duree_trajet_minutes >= 60 %}
-                                    {{ (prestation.duree_trajet_minutes // 60)|int }}h {{ (prestation.duree_trajet_minutes % 60)|int }}min
-                                {% else %}
-                                    {{ prestation.duree_trajet_minutes }} min
-                                {% endif %})
-                            {% endif %}
-                        </p>
-                        {% endif %}
-                    </div>
+        {% if prestation.distance_km %}
+        <p class="mb-0">
+            <i class="fas fa-route text-success"></i>
+            <strong>Distance :</strong> <span class="text-primary fw-bold">{{ "%.1f"|format(prestation.distance_km) }} km</span>
+            {% if prestation.duree_trajet_minutes %}
+                (trajet :
+                {% if prestation.duree_trajet_minutes >= 60 %}
+                    {{ (prestation.duree_trajet_minutes // 60)|int }}h {{ (prestation.duree_trajet_minutes % 60)|int }}min
+                {% else %}
+                    {{ prestation.duree_trajet_minutes }} min
+                {% endif %})
+            {% endif %}
+        </p>
+        {% endif %}
+    </div>
 
-                    <div class="col-md-4 text-end">
-                        {% if prestation.adresse_prestation and prestation.ville_prestation %}
-                        <button type="button" id="btn_google_maps" class="btn btn-primary btn-sm w-100"
-                                data-destination="{{ prestation.adresse_prestation }}, {{ prestation.code_postal_prestation }} {{ prestation.ville_prestation }}">
-                            <i class="fas fa-map-marked-alt"></i> Itinéraire Google Maps
-                        </button>
-						                
-                <!-- NOUVEAU : Carte Google Maps intégrée -->
-                <div class="card mt-3">
-                    <div class="card-body p-0">
-                        <iframe 
-                            width="100%" 
-                            height="400" 
-                            src="https://maps.google.com/maps?q={{ prestation.adresse_prestation|urlencode }},{{ prestation.ville_prestation|urlencode }}&output=embed"
-                            frameborder="0"
-                            style="border:0">
-                        </iframe>
-                    </div>
-                </div>
-                
-                {% endif %}
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
+    <div class="col-md-4 text-end">
+        {% if prestation.adresse_prestation and prestation.ville_prestation %}
+        <button type="button" id="btn_google_maps" class="btn btn-primary btn-sm w-100"
+                data-destination="{{ prestation.adresse_prestation }}, {{ prestation.code_postal_prestation }} {{ prestation.ville_prestation }}">
+            <i class="fas fa-map-marked-alt"></i> Itinéraire Google Maps
+        </button>
+        {% endif %}
+    </div>
+</div>
 
+<!-- Carte Google Maps APRÈS le row -->
+{% if prestation.adresse_prestation and prestation.ville_prestation %}
+<div class="card mt-3">
+    <div class="card-body p-0">
+        <iframe 
+            width="100%" 
+            height="400" 
+            src="https://maps.google.com/maps?q={{ prestation.adresse_prestation|urlencode }},{{ prestation.ville_prestation|urlencode }}&output=embed"
+            frameborder="0"
+            style="border:0">
+        </iframe>
+    </div>
+</div>
+{% endif %}
+
+{% endif %}
                 <!-- COMMENTAIRES -->
                 {% if prestation.commentaires %}
                 <hr class="my-3">
