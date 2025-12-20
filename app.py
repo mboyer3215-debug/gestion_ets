@@ -2077,20 +2077,41 @@ def api_prestations_calendrier():
 
     prestations = query.order_by(Prestation.date_debut).all()
 
-events = []
-    
-    for p in prestations:
-        client_nom = p.client.entreprise if p.client else "Client inconnu"
+    events = []
         
-        # Vérifier si la prestation a des sessions
-        if p.sessions and len(p.sessions) > 0:
-            # Afficher CHAQUE session
-            for idx, session in enumerate(p.sessions):
+        for p in prestations:
+            client_nom = p.client.entreprise if p.client else "Client inconnu"
+            
+            # Vérifier si la prestation a des sessions
+            if p.sessions and len(p.sessions) > 0:
+                # Afficher CHAQUE session
+                for idx, session in enumerate(p.sessions):
+                    titre = f"{client_nom} - {p.titre or p.type_prestation}"
+                    if len(p.sessions) > 1:
+                        titre += f" (Session {idx + 1}/{len(p.sessions)})"
+                    
+                    # Couleur selon statut
+                    if p.statut == 'Terminée':
+                        color = '#4CAF50'
+                    elif p.statut == 'En cours':
+                        color = '#FF9800'
+                    elif p.statut == 'Planifiée':
+                        color = '#2196F3'
+                    else:
+                        color = '#9E9E9E'
+                    
+                    events.append({
+                        'id': f"{p.id}",
+                        'title': titre,
+                        'start': session.date_debut.isoformat() if session.date_debut else None,
+                        'end': session.date_fin.isoformat() if session.date_fin else session.date_debut.isoformat(),
+                        'backgroundColor': color,
+                        'borderColor': color
+                    })
+            else:
+                # Pas de sessions : dates principales
                 titre = f"{client_nom} - {p.titre or p.type_prestation}"
-                if len(p.sessions) > 1:
-                    titre += f" (Session {idx + 1}/{len(p.sessions)})"
                 
-                # Couleur selon statut
                 if p.statut == 'Terminée':
                     color = '#4CAF50'
                 elif p.statut == 'En cours':
@@ -2101,36 +2122,15 @@ events = []
                     color = '#9E9E9E'
                 
                 events.append({
-                    'id': f"{p.id}",
+                    'id': str(p.id),
                     'title': titre,
-                    'start': session.date_debut.isoformat() if session.date_debut else None,
-                    'end': session.date_fin.isoformat() if session.date_fin else session.date_debut.isoformat(),
+                    'start': p.date_debut.isoformat() if p.date_debut else None,
+                    'end': p.date_fin.isoformat() if p.date_fin else p.date_debut.isoformat(),
                     'backgroundColor': color,
                     'borderColor': color
                 })
-        else:
-            # Pas de sessions : dates principales
-            titre = f"{client_nom} - {p.titre or p.type_prestation}"
-            
-            if p.statut == 'Terminée':
-                color = '#4CAF50'
-            elif p.statut == 'En cours':
-                color = '#FF9800'
-            elif p.statut == 'Planifiée':
-                color = '#2196F3'
-            else:
-                color = '#9E9E9E'
-            
-            events.append({
-                'id': str(p.id),
-                'title': titre,
-                'start': p.date_debut.isoformat() if p.date_debut else None,
-                'end': p.date_fin.isoformat() if p.date_fin else p.date_debut.isoformat(),
-                'backgroundColor': color,
-                'borderColor': color
-            })
-    
-    return jsonify(events)
+        
+        return jsonify(events)
 
     # 2. Ajouter les indisponibilités
     indisponibilites = Indisponibilite.query.order_by(Indisponibilite.date_debut).all()
