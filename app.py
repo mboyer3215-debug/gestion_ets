@@ -2062,43 +2062,29 @@ def calendrier():
 @app.route('/api/prestations/calendrier')
 def api_prestations_calendrier():
     """API pour récupérer les prestations ET indisponibilités au format calendrier"""
-    # Récupérer le paramètre 'jours' (défaut: toutes les prestations)
     jours = request.args.get('jours', type=int)
-
     query = Prestation.query.filter(Prestation.statut != 'Annulée')
-
-    # Si paramètre jours fourni, filtrer les prestations
+    
     if jours:
         date_limite = datetime.now() + timedelta(days=jours)
         query = query.filter(
             Prestation.date_debut >= datetime.now(),
             Prestation.date_debut <= date_limite
         )
-
+    
     prestations = query.order_by(Prestation.date_debut).all()
-
     events = []
     
     for p in prestations:
         client_nom = p.client.entreprise if p.client else "Client inconnu"
         
-        # Vérifier si la prestation a des sessions
         if p.sessions and len(p.sessions) > 0:
-            # Afficher CHAQUE session
             for idx, session in enumerate(p.sessions):
                 titre = f"{client_nom} - {p.titre or p.type_prestation}"
                 if len(p.sessions) > 1:
                     titre += f" (Session {idx + 1}/{len(p.sessions)})"
                 
-                # Couleur selon statut
-                if p.statut == 'Terminée':
-                    color = '#4CAF50'
-                elif p.statut == 'En cours':
-                    color = '#FF9800'
-                elif p.statut == 'Planifiée':
-                    color = '#2196F3'
-                else:
-                    color = '#9E9E9E'
+                color = '#4CAF50' if p.statut == 'Terminée' else '#FF9800' if p.statut == 'En cours' else '#2196F3' if p.statut == 'Planifiée' else '#9E9E9E'
                 
                 events.append({
                     'id': f"{p.id}",
@@ -2109,17 +2095,8 @@ def api_prestations_calendrier():
                     'borderColor': color
                 })
         else:
-            # Pas de sessions : dates principales
             titre = f"{client_nom} - {p.titre or p.type_prestation}"
-            
-            if p.statut == 'Terminée':
-                color = '#4CAF50'
-            elif p.statut == 'En cours':
-                color = '#FF9800'
-            elif p.statut == 'Planifiée':
-                color = '#2196F3'
-            else:
-                color = '#9E9E9E'
+            color = '#4CAF50' if p.statut == 'Terminée' else '#FF9800' if p.statut == 'En cours' else '#2196F3' if p.statut == 'Planifiée' else '#9E9E9E'
             
             events.append({
                 'id': str(p.id),
@@ -5518,7 +5495,6 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
-
 
 
 
