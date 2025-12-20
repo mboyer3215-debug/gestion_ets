@@ -245,6 +245,21 @@
                                 data-destination="{{ prestation.adresse_prestation }}, {{ prestation.code_postal_prestation }} {{ prestation.ville_prestation }}">
                             <i class="fas fa-map-marked-alt"></i> Itinéraire Google Maps
                         </button>
+						                
+                <!-- NOUVEAU : Carte Google Maps intégrée -->
+                <div class="card mt-3">
+                    <div class="card-body p-0">
+                        <iframe 
+                            width="100%" 
+                            height="400" 
+                            src="https://maps.google.com/maps?q={{ prestation.adresse_prestation|urlencode }},{{ prestation.ville_prestation|urlencode }}&output=embed"
+                            frameborder="0"
+                            style="border:0">
+                        </iframe>
+                    </div>
+                </div>
+                
+                {% endif %}
                         {% endif %}
                     </div>
                 </div>
