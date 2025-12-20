@@ -166,30 +166,19 @@ document.addEventListener('DOMContentLoaded', function() {
     calendar.render();
     
     // Changement de vue
-    document.querySelectorAll('[data-view]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
-            var view = this.dataset.view;
-            
-            if (view === 'week') {
-                calendar.changeView('timeGridWeek');
-            } else if (view === 'month') {
-                calendar.changeView('dayGridMonth');
-            } else if (view === 'quarter') {
-                calendar.changeView('dayGridMonth');
-                calendar.setOption('duration', { months: 3 });
-                calendar.setOption('fixedWeekCount', false);
-            } else if (view === 'semester') {
-                calendar.changeView('dayGridMonth');
-                calendar.setOption('duration', { months: 6 });
-                calendar.setOption('fixedWeekCount', false);
-            } else if (view === 'year') {
-                calendar.changeView('dayGridYear');
-            }
-        });
+   document.querySelectorAll('[data-view]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        var view = this.dataset.view;
+        
+        if (view === 'week') {
+            calendar.changeView('timeGridWeek');
+        } else if (view === 'month') {
+            calendar.changeView('dayGridMonth');
+        }
     });
-});  // ← CETTE LIGNE ÉTAIT MANQUANTE !
+});
 </script>
 {% endblock %}
