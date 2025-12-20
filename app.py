@@ -247,7 +247,7 @@ class Prestation(db.Model):
     statut_devis = db.Column(db.String(50))  # Non envoyé, Envoyé, Accepté, Refusé
 
     # Statut
-    statut = db.Column(db.String(50), default='Planifiée')  # Planifiée, En cours, Terminée, Annulée
+    statut = db.Column(db.String(50), default='Demandée')  # Demandée, Planifiée, En cours, Terminée, Annulée
 
     # Métadonnées
     date_creation = db.Column(db.DateTime, default=datetime.utcnow)
@@ -655,6 +655,25 @@ class LigneDevisPrestation(db.Model):
     pu_ht = db.Column(db.Float, default=0)
     pt_ht = db.Column(db.Float, default=0)
 
+def verifier_statuts_prestations():
+    """Met à jour automatiquement les prestations dépassées"""
+    from datetime import datetime
+    today = datetime.now()
+    
+    prestations = Prestation.query.filter(
+        Prestation.statut.in_(['Planifiée', 'En cours', 'Demandée']),
+        Prestation.date_fin < today
+    ).all()
+    
+    for p in prestations:
+        p.statut = 'Terminée'
+        print(f"✅ Prestation {p.id} passée en Terminée")
+    
+    if prestations:
+        db.session.commit()
+
+
+
 # ============================================================================
 # LIGNES DE TARIF DE PRESTATION (sauvegardées au niveau de la prestation)
 # ============================================================================
@@ -697,6 +716,9 @@ class LignePrestationTarif(db.Model):
     nbre = db.Column(db.Float, default=1)
     pu_ht = db.Column(db.Float, default=0)
     pt_ht = db.Column(db.Float, default=0)
+
+
+
 
 # ============================================================================
 # CONTEXT PROCESSOR - Variables globales pour tous les templates
@@ -885,6 +907,7 @@ def check_login():
 @login_required
 def index():
     """Page d'accueil - Tableau de bord"""
+    verifier_statuts_prestations()  # ← AJOUTEZ CETTE LIGNE
     # Statistiques
     total_clients = Client.query.filter_by(actif=True).count()
     total_prestations = Prestation.query.count()
@@ -1288,6 +1311,7 @@ def contact_supprimer(contact_id):
 @app.route('/prestations')
 def prestations():
     """Liste des prestations"""
+    verifier_statuts_prestations()  # ← AJOUTEZ ICI AUSSI
     filtre_statut = request.args.get('statut', 'all')
 
     query = Prestation.query
@@ -1440,7 +1464,7 @@ def modifier_statut_prestation(prestation_id):
     prestation = Prestation.query.get_or_404(prestation_id)
     nouveau_statut = request.form.get('nouveau_statut')
 
-    if nouveau_statut in ['Planifiée', 'En cours', 'Terminée', 'Annulée']:
+    if nouveau_statut in ['Demandée', 'Planifiée', 'En cours', 'Terminée', 'Annulée']:
         prestation.statut = nouveau_statut
         db.session.commit()
         flash(f'Statut modifié: {nouveau_statut}', 'success')
@@ -2084,7 +2108,7 @@ def api_prestations_calendrier():
                 if len(p.sessions) > 1:
                     titre += f" (Session {idx + 1}/{len(p.sessions)})"
                 
-                color = '#4CAF50' if p.statut == 'Terminée' else '#FF9800' if p.statut == 'En cours' else '#2196F3' if p.statut == 'Planifiée' else '#9E9E9E'
+                color = '#4CAF50' if p.statut == 'Terminée' else '#FF9800' if p.statut == 'En cours' else '#2196F3' if p.statut == 'Planifiée' else '#9E9E9E' if p.statut == 'Demandée' else '#9E9E9E'
                 
                 events.append({
                     'id': f"{p.id}",
@@ -2096,7 +2120,7 @@ def api_prestations_calendrier():
                 })
         else:
             titre = f"{client_nom} - {p.titre or p.type_prestation}"
-            color = '#4CAF50' if p.statut == 'Terminée' else '#FF9800' if p.statut == 'En cours' else '#2196F3' if p.statut == 'Planifiée' else '#9E9E9E'
+            color = '#4CAF50' if p.statut == 'Terminée' else '#FF9800' if p.statut == 'En cours' else '#2196F3' if p.statut == 'Planifiée' else '#9E9E9E' if p.statut == 'Demandée' else '#9E9E9E'
             
             events.append({
                 'id': str(p.id),
@@ -5495,6 +5519,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
