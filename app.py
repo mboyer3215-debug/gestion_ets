@@ -2078,40 +2078,19 @@ def api_prestations_calendrier():
     prestations = query.order_by(Prestation.date_debut).all()
 
     events = []
+    
+    for p in prestations:
+        client_nom = p.client.entreprise if p.client else "Client inconnu"
         
-        for p in prestations:
-            client_nom = p.client.entreprise if p.client else "Client inconnu"
-            
-            # Vérifier si la prestation a des sessions
-            if p.sessions and len(p.sessions) > 0:
-                # Afficher CHAQUE session
-                for idx, session in enumerate(p.sessions):
-                    titre = f"{client_nom} - {p.titre or p.type_prestation}"
-                    if len(p.sessions) > 1:
-                        titre += f" (Session {idx + 1}/{len(p.sessions)})"
-                    
-                    # Couleur selon statut
-                    if p.statut == 'Terminée':
-                        color = '#4CAF50'
-                    elif p.statut == 'En cours':
-                        color = '#FF9800'
-                    elif p.statut == 'Planifiée':
-                        color = '#2196F3'
-                    else:
-                        color = '#9E9E9E'
-                    
-                    events.append({
-                        'id': f"{p.id}",
-                        'title': titre,
-                        'start': session.date_debut.isoformat() if session.date_debut else None,
-                        'end': session.date_fin.isoformat() if session.date_fin else session.date_debut.isoformat(),
-                        'backgroundColor': color,
-                        'borderColor': color
-                    })
-            else:
-                # Pas de sessions : dates principales
+        # Vérifier si la prestation a des sessions
+        if p.sessions and len(p.sessions) > 0:
+            # Afficher CHAQUE session
+            for idx, session in enumerate(p.sessions):
                 titre = f"{client_nom} - {p.titre or p.type_prestation}"
+                if len(p.sessions) > 1:
+                    titre += f" (Session {idx + 1}/{len(p.sessions)})"
                 
+                # Couleur selon statut
                 if p.statut == 'Terminée':
                     color = '#4CAF50'
                 elif p.statut == 'En cours':
@@ -2122,39 +2101,36 @@ def api_prestations_calendrier():
                     color = '#9E9E9E'
                 
                 events.append({
-                    'id': str(p.id),
+                    'id': f"{p.id}",
                     'title': titre,
-                    'start': p.date_debut.isoformat() if p.date_debut else None,
-                    'end': p.date_fin.isoformat() if p.date_fin else p.date_debut.isoformat(),
+                    'start': session.date_debut.isoformat() if session.date_debut else None,
+                    'end': session.date_fin.isoformat() if session.date_fin else session.date_debut.isoformat(),
                     'backgroundColor': color,
                     'borderColor': color
                 })
-        
-        return jsonify(events)
-
-    # 2. Ajouter les indisponibilités
-    indisponibilites = Indisponibilite.query.order_by(Indisponibilite.date_debut).all()
-
-    for indispo in indisponibilites:
-        # Calculer toutes les dates de la période d'indisponibilité
-        date_courante = indispo.date_debut
-        while date_courante <= indispo.date_fin:
+        else:
+            # Pas de sessions : dates principales
+            titre = f"{client_nom} - {p.titre or p.type_prestation}"
+            
+            if p.statut == 'Terminée':
+                color = '#4CAF50'
+            elif p.statut == 'En cours':
+                color = '#FF9800'
+            elif p.statut == 'Planifiée':
+                color = '#2196F3'
+            else:
+                color = '#9E9E9E'
+            
             events.append({
-                'id': f'indispo-{indispo.id}-{date_courante.strftime("%Y%m%d")}',
-                'titre': f'🚫 {indispo.motif}',
-                'type_prestation': 'Indisponibilité',
-                'client_nom': indispo.note or '',
-                'date_debut': date_courante.strftime('%Y-%m-%d'),
-                'date_fin': date_courante.strftime('%Y-%m-%d'),
-                'heure_debut': 'Journée',
-                'heure_fin': 'Journée',
-                'color': '#D32F2F',  # Rouge foncé pour indisponibilité
-                'allDay': True,
-                'is_indisponibilite': True  # Flag pour distinguer des prestations
+                'id': str(p.id),
+                'title': titre,
+                'start': p.date_debut.isoformat() if p.date_debut else None,
+                'end': p.date_fin.isoformat() if p.date_fin else p.date_debut.isoformat(),
+                'backgroundColor': color,
+                'borderColor': color
             })
-            date_courante = date_courante + timedelta(days=1)
-
-    return jsonify({'success': True, 'prestations': events})
+    
+    return jsonify(events)
 
 @app.route('/api/rechercher-entreprise')
 def api_rechercher_entreprise():
