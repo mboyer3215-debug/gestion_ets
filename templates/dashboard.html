@@ -7,63 +7,44 @@
     <h1><i class="fas fa-chart-line"></i> Tableau de bord</h1>
     <p class="text-muted">Vue d'ensemble de votre activité</p>
 
-    <!-- KPIs en haut -->
-    <div class="row mb-4">
-        <div class="col-md-2">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-users fa-2x text-primary"></i>
-                    <h3 class="mt-2">{{ stats.nb_clients }}</h3>
-                    <p class="text-muted mb-0">Clients</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-list fa-2x text-info"></i>
-                    <h3 class="mt-2">{{ stats.nb_prestations }}</h3>
-                    <p class="text-muted mb-0">Total</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-star fa-2x text-warning"></i>
-                    <h3 class="mt-2">{{ stats.nb_prospects }}</h3>
-                    <p class="text-muted mb-0">En cours</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-clock fa-2x text-danger"></i>
-                    <h3 class="mt-2">{{ stats.prestations_ce_mois }}</h3>
-                    <p class="text-muted mb-0">Ce mois</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-euro-sign fa-2x text-success"></i>
-                    <h3 class="mt-2">{{ stats.ca_total }}€</h3>
-                    <p class="text-muted mb-0">CA total</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-2">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-file-invoice fa-2x text-secondary"></i>
-                    <h3 class="mt-2">{{ stats.nb_factures }}</h3>
-                    <p class="text-muted mb-0">Fact. payées</p>
-                </div>
-            </div>
+<div class="row mb-4">
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.nb_clients }}</div>
+            <div class="stat-label">Clients</div>
         </div>
     </div>
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.nb_prestations }}</div>
+            <div class="stat-label">Total</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.nb_en_cours }}</div>
+            <div class="stat-label">En cours</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.nb_ce_mois }}</div>
+            <div class="stat-label">Ce mois</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.ca_total }}€</div>
+            <div class="stat-label">CA total</div>
+        </div>
+    </div>
+    <div class="col-md-2 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ stats.nb_factures_payees }}</div>
+            <div class="stat-label">Fact. payées</div>
+        </div>
+    </div>
+</div>
 
     <!-- CALENDRIER avec vues multiples -->
     <div class="card mb-4">
