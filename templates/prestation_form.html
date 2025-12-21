@@ -1318,5 +1318,129 @@ document.addEventListener('DOMContentLoaded', function() {
     chargerDemandeurs();
 });
 </script>
+
+{% block extra_js %}
+<script>
+    // ===== GESTION TARIFS DÉTAILLÉS =====
+    
+    // Ajouter une ligne de tarif
+    function ajouterTarif() {
+        const container = document.getElementById('tarifs-container');
+        if (!container) {
+            console.error('Container tarifs-container non trouvé !');
+            return;
+        }
+        
+        const nouveauTarif = document.createElement('div');
+        nouveauTarif.className = 'row mb-2 tarif-item';
+        nouveauTarif.innerHTML = `
+            <div class="col-md-3">
+                <input type="text" class="form-control" name="tarif_description[]" placeholder="Description" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" class="form-control tarif-qte" name="tarif_quantite[]" placeholder="Quantité" value="1" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" class="form-control tarif-prix" name="tarif_prix_unitaire[]" placeholder="Prix unitaire" required>
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" class="form-control tarif-total" placeholder="Total" readonly>
+            </div>
+            <div class="col-md-2">
+                <input type="number" step="0.01" class="form-control" name="tarif_tva[]" placeholder="TVA %" value="20">
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-danger btn-sm" onclick="supprimerTarif(this)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        container.appendChild(nouveauTarif);
+        attachCalculEvents();
+        calculerTotal();
+    }
+
+    // Supprimer une ligne de tarif
+    function supprimerTarif(btn) {
+        const container = document.getElementById('tarifs-container');
+        const items = container.querySelectorAll('.tarif-item');
+        
+        // Garder au moins une ligne
+        if (items.length > 1) {
+            btn.closest('.tarif-item').remove();
+            calculerTotal();
+        } else {
+            alert('Vous devez conserver au moins une ligne de tarif');
+        }
+    }
+
+    // Attacher les événements de calcul
+    function attachCalculEvents() {
+        document.querySelectorAll('.tarif-qte, .tarif-prix').forEach(input => {
+            input.removeEventListener('input', calculerLigne); // Éviter les doublons
+            input.addEventListener('input', calculerLigne);
+        });
+        
+        document.querySelectorAll('[name="tarif_tva[]"]').forEach(input => {
+            input.removeEventListener('input', calculerTotal);
+            input.addEventListener('input', calculerTotal);
+        });
+    }
+
+    // Calculer une ligne individuelle
+    function calculerLigne(event) {
+        const row = event.target.closest('.tarif-item');
+        if (!row) return;
+        
+        const qte = parseFloat(row.querySelector('.tarif-qte').value) || 0;
+        const prix = parseFloat(row.querySelector('.tarif-prix').value) || 0;
+        const totalInput = row.querySelector('.tarif-total');
+        
+        totalInput.value = (qte * prix).toFixed(2);
+        calculerTotal();
+    }
+
+    // Calculer le total général
+    function calculerTotal() {
+        let totalHT = 0;
+        let totalTVA = 0;
+        
+        document.querySelectorAll('.tarif-item').forEach(row => {
+            const montantLigne = parseFloat(row.querySelector('.tarif-total').value) || 0;
+            const tauxTVA = parseFloat(row.querySelector('[name="tarif_tva[]"]').value) || 0;
+            
+            totalHT += montantLigne;
+            totalTVA += (montantLigne * tauxTVA / 100);
+        });
+        
+        const totalTTC = totalHT + totalTVA;
+        
+        // Mettre à jour l'affichage
+        const totalHTEl = document.getElementById('total-ht');
+        const totalTVAEl = document.getElementById('total-tva');
+        const totalTTCEl = document.getElementById('total-ttc');
+        
+        if (totalHTEl) totalHTEl.textContent = totalHT.toFixed(2) + ' €';
+        if (totalTVAEl) totalTVAEl.textContent = totalTVA.toFixed(2) + ' €';
+        if (totalTTCEl) totalTTCEl.textContent = totalTTC.toFixed(2) + ' €';
+        
+        // Mettre à jour le champ prix principal (si existant)
+        const prixInput = document.getElementById('prix');
+        if (prixInput) {
+            prixInput.value = totalTTC.toFixed(2);
+        }
+    }
+
+    // Initialiser au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Initialisation tarifs...');
+        attachCalculEvents();
+        calculerTotal();
+    });
+</script>
 {% endblock %}
+
+{% endblock %}
+
 
