@@ -3,49 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Gestion Entreprise{% endblock %}</title>
+    <title>{% block title %}Gestion Entreprise Pro{% endblock %}</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <!-- AVANT le <style> -->
-    <nav class="navbar navbar-dark d-md-none" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+    
     <style>
-        .sidebar {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
         }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 250px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 0;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: left 0.3s ease;
+        }
+        
         .sidebar .nav-link {
             color: rgba(255,255,255,0.8);
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.25rem;
-            border-radius: 0.375rem;
+            padding: 12px 20px;
+            margin: 5px 15px;
+            border-radius: 8px;
             transition: all 0.3s;
-            font-weight: bold;
+            font-weight: 600;
         }
-        .sidebar .nav-link:hover {
+        
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
             background-color: rgba(255,255,255,0.1);
             color: white;
         }
-        .sidebar .nav-link.active {
-            background-color: rgba(255,255,255,0.2);
-            color: white;
+        
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
         }
         
-        /* Mobile : cacher sidebar par défaut */
-        @media (max-width: 767px) {
-            .sidebar {
-                position: fixed;
-                top: 56px;
-                left: -100%;
-                width: 250px;
-                z-index: 1000;
-                transition: left 0.3s;
-            }
-            .sidebar.show {
-                left: 0;
-            }
+        .navbar-brand {
+            color: white !important;
+            font-weight: bold;
+            font-size: 1.3rem;
+            padding: 10px 20px;
         }
-/* ===== RESPONSIVE MOBILE ===== */
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 10px 24px;
+            font-weight: 600;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .burger-btn {
+            display: none;
+        }
+        
+        /* ===== RESPONSIVE MOBILE ===== */
         @media (max-width: 767px) {
             .sidebar {
                 position: fixed;
@@ -78,105 +115,117 @@
             }
         }
     </style>
-        
-     
+    
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
-   
-    <nav class="navbar navbar-dark d-md-none" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-        <div class="container-fluid">
-            <span class="navbar-brand"><i class="fas fa-briefcase"></i> Gestion Entreprise</span>
-            <button class="navbar-toggler" type="button" onclick="toggleSidebar()">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+    <!-- Bouton burger pour mobile -->
+    <button class="burger-btn" onclick="toggleSidebar()">
+        <i class="bi bi-list"></i>
+    </button>
+
+    <div class="sidebar" id="sidebar">
+        <div class="navbar-brand">
+            <i class="bi bi-briefcase"></i> Gestion Entreprise
         </div>
-    </nav>
-
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Sidebar -->
-            <nav class="col-md-2 d-md-block sidebar" id="sidebarMenu">
-                <div class="position-sticky pt-3">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="/">
-                                <i class="fas fa-home"></i> Tableau de bord
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/clients">
-                                <i class="fas fa-users"></i> Clients
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/prestations">
-                                <i class="fas fa-briefcase"></i> Prestations
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/prospection">
-                                <i class="fas fa-chart-line"></i> Prospection
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/indisponibilite">
-                                <i class="fas fa-calendar-times"></i> Indisponibilités
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/factures">
-                                <i class="fas fa-file-invoice"></i> Factures
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/devis">
-                                <i class="fas fa-file-contract"></i> Devis
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/sauvegarde">
-                                <i class="fas fa-database"></i> Sauvegarde
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/parametres">
-                                <i class="fas fa-cog"></i> Paramètres
-                            </a>
-                        </li>
-                        <li class="nav-item mt-3">
-                            <a class="nav-link" href="/logout">
-                                <i class="fas fa-sign-out-alt"></i> Déconnexion
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-
-            <!-- Main content -->
-            <main class="col-md-10 ms-sm-auto px-md-4">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show mt-3" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-
-                {% block content %}{% endblock %}
-            </main>
-        </div>
+        
+        <ul class="nav flex-column mt-4">
+            <li class="nav-item">
+                <a class="nav-link" href="/">
+                    <i class="bi bi-speedometer2"></i> Tableau de bord
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/clients">
+                    <i class="bi bi-people"></i> Clients
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/prestations">
+                    <i class="bi bi-calendar-check"></i> Prestations
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/prospection">
+                    <i class="bi bi-graph-up"></i> Prospection
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/indisponibilite">
+                    <i class="bi bi-calendar-x"></i> Indisponibilités
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/factures">
+                    <i class="bi bi-file-earmark-text"></i> Factures
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/devis">
+                    <i class="bi bi-file-earmark-ruled"></i> Devis
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/sauvegarde">
+                    <i class="bi bi-cloud-arrow-down"></i> Sauvegarde
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/parametres">
+                    <i class="bi bi-gear"></i> Paramètres
+                </a>
+            </li>
+            <li class="nav-item mt-3">
+                <a class="nav-link" href="/logout">
+                    <i class="bi bi-box-arrow-right"></i> Déconnexion
+                </a>
+            </li>
+        </ul>
     </div>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function toggleSidebar() {
-            document.getElementById('sidebarMenu').classList.toggle('show');
+            document.getElementById('sidebar').classList.toggle('show');
         }
+        
+        // Fermer sidebar au clic extérieur sur mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const burgerBtn = document.querySelector('.burger-btn');
+            
+            if (window.innerWidth <= 767) {
+                if (!sidebar.contains(event.target) && !burgerBtn.contains(event.target)) {
+                    sidebar.classList.remove('show');
+                }
+            }
+        });
+        
+        // Marquer le lien actif
+        const currentPath = window.location.pathname;
+        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+            if (link.getAttribute('href') === currentPath) {
+                link.classList.add('active');
+            }
+        });
     </script>
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>
