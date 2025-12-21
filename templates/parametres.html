@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Paramètres - Gestion Entreprise Pro{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="display-5 fw-bold text-dark mb-4">
+            <i class="bi bi-gear text-primary"></i> Paramètres
+        </h1>
+    </div>
+</div>
+
+<!-- Onglets -->
+<ul class="nav nav-tabs mb-4" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#entreprise" type="button">
+            <i class="bi bi-building"></i> Entreprise
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#facture" type="button">
+            <i class="bi bi-file-earmark-text"></i> Facture
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#devis" type="button">
+            <i class="bi bi-file-earmark-ruled"></i> Devis
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#api" type="button">
+            <i class="bi bi-cloud"></i> API & Intégrations
+        </button>
+    </li>
+</ul>
+
+<!-- Contenu des onglets -->
+<div class="tab-content">
+    <!-- Onglet Entreprise -->
+    <div class="tab-pane fade show active" id="entreprise" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-building"></i> Informations de l'entreprise</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('parametres') }}">
+                    <input type="hidden" name="section" value="entreprise">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Nom de l'entreprise <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="nom_entreprise" 
+                                   value="{{ config.get('NOM_ENTREPRISE', '') }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">SIRET</label>
+                            <input type="text" class="form-control" name="siret" 
+                                   value="{{ config.get('SIRET', '') }}" placeholder="123 456 789 00000">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Adresse <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="adresse_entreprise" 
+                                   value="{{ config.get('ADRESSE_ENTREPRISE', '') }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Code postal <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="code_postal_entreprise" 
+                                   value="{{ config.get('CODE_POSTAL_ENTREPRISE', '') }}" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Ville <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" name="ville_entreprise" 
+                                   value="{{ config.get('VILLE_ENTREPRISE', '') }}" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label fw-bold">Pays</label>
+                            <input type="text" class="form-control" name="pays_entreprise" 
+                                   value="{{ config.get('PAYS_ENTREPRISE', 'France') }}">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Téléphone</label>
+                            <input type="tel" class="form-control" name="telephone_entreprise" 
+                                   value="{{ config.get('TELEPHONE_ENTREPRISE', '') }}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Email</label>
+                            <input type="email" class="form-control" name="email_entreprise" 
+                                   value="{{ config.get('EMAIL_ENTREPRISE', '') }}">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle"></i> Enregistrer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onglet Facture -->
+    <div class="tab-pane fade" id="facture" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Configuration des factures</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('parametres') }}">
+                    <input type="hidden" name="section" value="facture">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Préfixe des factures</label>
+                            <input type="text" class="form-control" name="prefixe_facture" 
+                                   value="{{ config.get('PREFIXE_FACTURE', 'FACT') }}" placeholder="FACT">
+                            <small class="text-muted">Ex: FACT-2025-001</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Numéro de facture actuel</label>
+                            <input type="number" class="form-control" name="numero_facture_actuel" 
+                                   value="{{ config.get('NUMERO_FACTURE_ACTUEL', 1) }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Conditions de paiement</label>
+                        <textarea class="form-control" name="conditions_paiement" rows="3">{{ config.get('CONDITIONS_PAIEMENT', 'Paiement à 30 jours fin de mois.') }}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Mentions légales</label>
+                        <textarea class="form-control" name="mentions_legales_facture" rows="3">{{ config.get('MENTIONS_LEGALES_FACTURE', 'TVA non applicable, art. 293 B du CGI') }}</textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Enregistrer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onglet Devis -->
+    <div class="tab-pane fade" id="devis" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-ruled"></i> Configuration des devis</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('parametres') }}">
+                    <input type="hidden" name="section" value="devis">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Préfixe des devis</label>
+                            <input type="text" class="form-control" name="prefixe_devis" 
+                                   value="{{ config.get('PREFIXE_DEVIS', 'DEV') }}" placeholder="DEV">
+                            <small class="text-muted">Ex: DEV-2025-001</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Numéro de devis actuel</label>
+                            <input type="number" class="form-control" name="numero_devis_actuel" 
+                                   value="{{ config.get('NUMERO_DEVIS_ACTUEL', 1) }}">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Durée de validité (jours)</label>
+                        <input type="number" class="form-control" name="validite_devis" 
+                               value="{{ config.get('VALIDITE_DEVIS', 30) }}">
+                        <small class="text-muted">Nombre de jours pendant lesquels le devis reste valide</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Conditions générales</label>
+                        <textarea class="form-control" name="conditions_generales_devis" rows="4">{{ config.get('CONDITIONS_GENERALES_DEVIS', 'Devis valable 30 jours. Prix HT.') }}</textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-info">
+                        <i class="bi bi-check-circle"></i> Enregistrer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Onglet API -->
+    <div class="tab-pane fade" id="api" role="tabpanel">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-cloud"></i> API & Intégrations</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('parametres') }}">
+                    <input type="hidden" name="section" value="api">
+                    
+                    <div class="mb-4">
+                        <h6 class="fw-bold">Google Calendar</h6>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Fichier credentials.json</label>
+                            <input type="file" class="form-control" name="google_credentials" accept=".json">
+                            <small class="text-muted">
+                                Fichier de configuration de l'API Google Calendar
+                                {% if config.get('GOOGLE_CREDENTIALS_PATH') %}
+                                    <br><span class="text-success">✓ Fichier configuré</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Calendrier ID</label>
+                            <input type="text" class="form-control" name="google_calendar_id" 
+                                   value="{{ config.get('GOOGLE_CALENDAR_ID', 'primary') }}">
+                            <small class="text-muted">Identifiant du calendrier Google (par défaut: "primary")</small>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-check-circle"></i> Enregistrer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
