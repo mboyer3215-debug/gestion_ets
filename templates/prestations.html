@@ -70,46 +70,26 @@
                     </thead>
                     <tbody>
                         {% for prestation in prestations %}
-                        <tr style="font-size: 0.875rem;">
-                            <td>{{ prestation.date_debut.strftime('%d/%m/%Y') }}</td>
-                            <td>{{ prestation.titre }}</td>
+                        <tr>
+                            <td>{{ prestation.date_debut.strftime('%d/%m/%Y') if prestation.date_debut else '-' }}</td>
                             <td>
-                                {% if prestation.client %}
-                                    <a href="{{ url_for('client_detail', client_id=prestation.client.id) }}">
-                                        {{ prestation.client.nom }}
-                                    </a>
-                                {% endif %}
+                                {{ prestation.client.nom }}{% if prestation.client.prenom %} {{ prestation.client.prenom }}{% endif %}
                             </td>
+                            <td>{{ prestation.type_prestation or '-' }}</td>
                             <td>{{ prestation.lieu or '-' }}</td>
                             <td>
-                                {% if prestation.tarif_total or prestation.frais_fournitures or prestation.frais_deplacement %}
-                                    {{ "%.2f"|format((prestation.tarif_total or 0) + (prestation.frais_fournitures or 0) + (prestation.frais_deplacement or 0)) }}€
-                                {% else %}
-                                    -
-                                {% endif %}
+                                <span class="badge bg-{{ 'success' if prestation.statut == 'Validée' else 'warning' if prestation.statut == 'En attente' else 'info' if prestation.statut == 'En cours' else 'secondary' }}">
+                                    {{ prestation.statut or 'En attente' }}
+                                </span>
                             </td>
+                            <td>{{ prestation.tarif_total }}€ {% if prestation.tarif_total else '-' %}</td>
                             <td>
-                                {% if prestation.statut == 'Planifiée' %}
-                                    <span class="badge bg-primary">{{ prestation.statut }}</span>
-                                {% elif prestation.statut == 'En cours' %}
-                                    <span class="badge bg-warning">{{ prestation.statut }}</span>
-                                {% elif prestation.statut == 'Terminée' %}
-                                    <span class="badge bg-success">{{ prestation.statut }}</span>
-                                {% else %}
-                                    <span class="badge bg-secondary">{{ prestation.statut }}</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}"
-                                       class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1.5;" title="Voir">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ url_for('prestation_modifier', prestation_id=prestation.id) }}"
-                                       class="btn" style="background-color: #ff8c00; color: white; border-color: #ff8c00; padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1.5;" title="Modifier">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                </div>
+                                <a href="/prestations/{{ prestation.id }}" class="btn btn-sm btn-outline-primary" title="Voir la fiche">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="/prestations/{{ prestation.id }}/modifier" class="btn btn-sm btn-outline-warning" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
