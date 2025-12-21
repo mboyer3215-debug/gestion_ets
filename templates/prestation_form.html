@@ -1,524 +1,256 @@
 {% extends "base.html" %}
 
-{% block title %}{% if prestation %}Modifier{% else %}Nouvelle{% endif %} prestation - Gestion Entreprise{% endblock %}
+{% block title %}{% if prestation %}Modifier{% else %}Nouvelle{% endif %} prestation{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h1 class="display-5 fw-bold text-dark mb-0">
-                <i class="fas fa-{% if prestation %}edit{% else %}plus{% endif %} text-primary"></i>
-                {% if prestation %}Modifier{% else %}Nouvelle{% endif %} prestation
-            </h1>
-            <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-md-none">
-                <i class="fas fa-home"></i>
-            </a>
-        </div>
-    </div>
-    <div class="col-md-4 text-end">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary me-2 d-none d-md-inline-block">
-            <i class="fas fa-home"></i> Accueil
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        <i class="bi bi-{% if prestation %}pencil{% else %}plus-circle{% endif %}"></i>
+        {% if prestation %}Modifier{% else %}Nouvelle{% endif %} prestation
+    </h1>
+    <div>
+        <a href="/" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-house"></i> Accueil
         </a>
-        <a href="{{ url_for('prestations') }}" class="btn btn-secondary">
-            <i class="fas fa-list"></i> Liste
+        <a href="/prestations" class="btn btn-outline-secondary">
+            <i class="bi bi-list"></i> Liste
         </a>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-lg-10 mx-auto">
-        <form method="POST">
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <i class="fas fa-user"></i> Client et demande
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3 position-relative">
-                            <label for="client_search" class="form-label fw-bold">Client <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="client_search" autocomplete="off"
-                                   placeholder="Tapez pour rechercher un client..." required
-                                   value="{% if prestation and prestation.client %}{% if prestation.client.prenom %}{{ prestation.client.prenom }} {% endif %}{{ prestation.client.nom }}{% if prestation.client.entreprise %} ({{ prestation.client.entreprise }}){% endif %}{% endif %}">
-                            <div id="client_suggestions" class="list-group position-absolute w-100" style="z-index: 1050; max-height: 300px; overflow-y: auto; display: none;"></div>
-                            <input type="hidden" id="client_id" name="client_id" value="{{ prestation.client_id if prestation else '' }}" required>
-                            <small class="text-muted"><i class="fas fa-search"></i> Recherche dans nom, prénom ou entreprise</small>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="date_demande" class="form-label fw-bold">Date de la demande</label>
-                            <input type="date" class="form-control" id="date_demande" name="date_demande"
-                                   value="{{ prestation.date_demande.strftime('%Y-%m-%d') if prestation and prestation.date_demande else '' }}">
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="reference_commande" class="form-label fw-bold">Référence de la commande</label>
-                            <input type="text" class="form-control" id="reference_commande" name="reference_commande"
-                                   value="{{ prestation.reference_commande if prestation else '' }}"
-                                   placeholder="Ex: CMD-2024-001">
-                        </div>
-                        <div class="col-md-6 mb-3 position-relative">
-                            <label for="demandeur" class="form-label fw-bold">Demandeur</label>
-                            <input type="text" class="form-control" id="demandeur" name="demandeur"
-                                   value="{{ prestation.demandeur if prestation else '' }}"
-                                   placeholder="Si différent du client" autocomplete="off" list="demandeurs_list">
-                            <datalist id="demandeurs_list">
-                                <!-- Sera rempli dynamiquement -->
-                            </datalist>
-                            <small class="text-muted"><i class="fas fa-search"></i> Recherche dans les demandeurs précédents</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mb-4">
-                <div class="card-header bg-success text-white">
-                    <i class="fas fa-tags"></i> Thème, domaine et type de prestation
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="theme_prestation" class="form-label fw-bold">Thème <span class="text-danger">*</span></label>
-                            <select class="form-select" id="theme_prestation" name="theme_prestation" required>
-                                <option value="">-- Sélectionnez --</option>
-                                <option value="Formation" {% if prestation and prestation.theme_prestation == 'Formation' %}selected{% endif %}>Formation</option>
-                                <option value="Service" {% if prestation and prestation.theme_prestation == 'Service' %}selected{% endif %}>Service</option>
-                                <option value="Audit" {% if prestation and prestation.theme_prestation == 'Audit' %}selected{% endif %}>Audit</option>
-                            </select>
-                            <small class="text-muted">La famille</small>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="domaine_prestation" class="form-label fw-bold">Domaine</label>
-                            <select class="form-select" id="domaine_prestation" name="domaine_prestation">
-                                <option value="">-- Sélectionnez un thème --</option>
-                            </select>
-                            <small class="text-muted">Le domaine</small>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="type_prestation" class="form-label fw-bold">Type</label>
-                            <select class="form-select" id="type_prestation" name="type_prestation">
-                                <option value="">-- Sélectionnez un domaine --</option>
-                            </select>
-                            <small class="text-muted">Le type précis</small>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="description" class="form-label fw-bold">Description</label>
-                        <textarea class="form-control" id="description" name="description" rows="2">{{ prestation.description if prestation else '' }}</textarea>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mb-4">
-                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                    <div>
-                        <i class="fas fa-calendar-alt"></i> Dates et horaires - Sessions multiples
-                    </div>
-                    <button type="button" class="btn btn-sm btn-light" id="btn-ajouter-session">
-                        <i class="fas fa-plus"></i> Ajouter une session
-                    </button>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted mb-3">
-                        <i class="fas fa-info-circle"></i> Pour les formations sur plusieurs dates non consécutives, ajoutez plusieurs sessions.
-                        Chaque session créera un événement distinct dans Google Calendar.
-                    </p>
-
-                    <!-- Conteneur des sessions -->
-                    <div id="sessions-container">
-                        <!-- Les sessions seront ajoutées ici dynamiquement -->
-                    </div>
-
-                                    <!-- Template de session (caché, sera cloné pour ajouter des sessions) -->
-                                  <template id="session-template">
-                    <div class="session-item card mb-3 border-primary">
-                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                            <strong><i class="fas fa-calendar-day"></i> Session <span class="session-numero">1</span></strong>
-                            <button type="button" class="btn btn-sm btn-danger btn-supprimer-session">
-                                <i class="fas fa-trash"></i> Supprimer
-                            </button>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">Date de début <span class="text-danger">*</span></label>
-                                    <input type="date" class="form-control session-date-debut" name="sessions_date_debut[]" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">Date de fin</label>
-                                    <input type="date" class="form-control session-date-fin" name="sessions_date_fin[]">
-                                </div>
-                            </div>
-                
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">Créneau</label>
-                                    <select class="form-select session-creneau" name="sessions_creneau[]">
-                                        <option value="">-- Sélectionnez --</option>
-                                        <option value="Matin">☀️ Matin (8h00 - 12h00)</option>
-                                        <option value="Après-midi">🌤️ Après-midi (13h00 - 17h00)</option>
-                                        <option value="Journée">🌞 Journée complète (8h00 - 18h00)</option>
-                                        <option value="Personnalisé">⏰ Horaires personnalisés</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label fw-bold">Durée (heures)</label>
-                                    <input type="number" step="0.5" class="form-control session-duree" name="sessions_duree[]">
-                                </div>
-                            </div>
-                
-                            <!-- Horaires personnalisés (masqués par défaut) -->
-                            <div class="horaires-personnalises" style="display: none;">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">Heure de début</label>
-                                        <input type="time" class="form-control session-heure-debut" name="sessions_heure_debut[]" value="08:00">
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label fw-bold">Heure de fin</label>
-                                        <input type="time" class="form-control session-heure-fin" name="sessions_heure_fin[]" value="18:00">
-                                    </div>
-                                </div>
-                            </div>
-                
-                            <!-- Champ caché pour journée complète -->
-                            <input type="hidden" class="session-journee-complete" name="sessions_journee_complete[]" value="">
-                            
-                            <!-- ID session pour édition -->
-                            <input type="hidden" class="session-id" name="sessions_id[]" value="">
-                        </div>
-                    </div>
-                </template>
-
-            <div class="card mb-4">
-                <div class="card-header bg-warning text-white">
-                    <i class="fas fa-map-marker-alt"></i> Lieu de la prestation
-                </div>
-                <div class="card-body">
-                    <div class="mb-3 position-relative">
-                        <label for="lieu" class="form-label fw-bold">
-                            Lieu
-                            <small class="text-muted">(Ex: Leclerc Toulouse, Carrefour Lyon...)</small>
-                        </label>
-                        <input type="text" class="form-control" id="lieu" name="lieu"
-                               value="{{ prestation.lieu if prestation else '' }}"
-                               placeholder="Tapez le nom d'une entreprise et sa ville..."
-                               autocomplete="off">
-                        <div id="lieu_suggestions" class="list-group position-absolute w-100" style="z-index: 1050; max-height: 300px; overflow-y: auto; display: none;"></div>
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle"></i> Tapez le nom d'une entreprise pour voir les suggestions d'adresse
-                        </small>
-                    </div>
-
-                    <div class="mb-3 position-relative">
-                        <label for="adresse_prestation" class="form-label fw-bold">
-                            Adresse de la prestation
-                            <small class="text-muted">(commencez à taper pour voir les suggestions)</small>
-                        </label>
-                        <input type="text"
-                               class="form-control"
-                               id="adresse_prestation_search"
-                               autocomplete="off"
-                               value="{{ prestation.adresse_prestation if prestation else '' }}{{ ', ' if prestation and prestation.adresse_prestation and prestation.ville_prestation else '' }}{{ prestation.code_postal_prestation if prestation and prestation.code_postal_prestation else '' }} {{ prestation.ville_prestation if prestation and prestation.ville_prestation else '' }}"
-                               placeholder="Ex: 10 Rue de la Paix, 75002 Paris">
-                        <div id="adresse_suggestions" class="list-group position-absolute w-100" style="z-index: 1000; max-height: 300px; overflow-y: auto; display: none;"></div>
-
-                        <!-- Champs cachés pour stocker les valeurs séparées -->
-                        <input type="hidden" id="adresse_prestation" name="adresse_prestation" value="{{ prestation.adresse_prestation if prestation else '' }}">
-                        <input type="hidden" id="code_postal_prestation" name="code_postal_prestation" value="{{ prestation.code_postal_prestation if prestation else '' }}">
-                        <input type="hidden" id="ville_prestation" name="ville_prestation" value="{{ prestation.ville_prestation if prestation else '' }}">
-                    </div>
-
-                    <div id="erreur_itineraire" class="mb-3" style="display: none;">
-                        <div class="alert alert-danger mb-0">
-                            <i class="fas fa-exclamation-triangle"></i> <span id="erreur_text"></span>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="distance_km" class="form-label fw-bold">Distance (km)</label>
-                            <input type="number" step="0.1" class="form-control" id="distance_km" name="distance_km"
-                                   value="{{ prestation.distance_km if prestation else '' }}" readonly>
-                            <small class="text-muted">Automatiquement rempli lors du calcul</small>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="duree_trajet_minutes" class="form-label fw-bold">Durée trajet (minutes)</label>
-                            <input type="number" class="form-control" id="duree_trajet_minutes" name="duree_trajet_minutes"
-                                   value="{{ prestation.duree_trajet_minutes if prestation else '' }}" readonly>
-                            <small class="text-muted">Automatiquement rempli lors du calcul</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mb-4">
-                <div class="card-header bg-secondary text-white">
-                    <i class="fas fa-users"></i> Participants et logistique
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="nb_stagiaires" class="form-label fw-bold">Nombre de stagiaires</label>
-                            <input type="number" class="form-control" id="nb_stagiaires" name="nb_stagiaires"
-                                   value="{{ prestation.nb_stagiaires if prestation else '' }}" min="0">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="nb_repas" class="form-label fw-bold">Nombre de repas</label>
-                            <input type="number" class="form-control" id="nb_repas" name="nb_repas"
-                                   value="{{ prestation.nb_repas if prestation else '' }}" min="0">
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label for="nb_hebergements" class="form-label fw-bold">Nombre d'hébergements</label>
-                            <input type="number" class="form-control" id="nb_hebergements" name="nb_hebergements"
-                                   value="{{ prestation.nb_hebergements if prestation else '' }}" min="0">
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card mb-4">
-                <div class="card-header bg-success text-white">
-                    <i class="fas fa-euro-sign"></i> Tarification
-                </div>
-<div class="card-header bg-success text-white">
-    <i class="fas fa-euro-sign"></i> Tarification détaillée
-</div>
-<div class="card-body">
-    <!-- Tarifs simples (gardés pour compatibilité) -->
-    <div class="row mb-3">
-        <div class="col-md-6">
-            <label for="tarif_horaire" class="form-label fw-bold">Tarif horaire (€)</label>
-            <input type="number" step="0.01" class="form-control" id="tarif_horaire" name="tarif_horaire"
-                   value="{{ prestation.tarif_horaire if prestation and prestation.tarif_horaire else '' }}">
+<form method="POST" enctype="multipart/form-data">
+    
+    <!-- CLIENT -->
+    <div class="card mb-3">
+        <div class="card-header bg-primary text-white">
+            <i class="bi bi-person"></i> Client
         </div>
-        <div class="col-md-6">
-            <label for="tarif_total" class="form-label fw-bold">Tarif total (€)</label>
-            <input type="number" step="0.01" class="form-control" id="tarif_total" name="tarif_total"
-                   value="{{ prestation.tarif_total if prestation and prestation.tarif_total else '' }}">
-        </div>
-    </div>
-
-    <hr>
-
-    <!-- Section détaillée avec tableaux -->
-    <div class="accordion" id="accordionTarifs">
-        <!-- 1. Frais de déplacement -->
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDeplacement">
-                    <i class="fas fa-car me-2"></i> Frais de déplacement
-                </button>
-            </h2>
-            <div id="collapseDeplacement" class="accordion-collapse collapse show" data-bs-parent="#accordionTarifs">
-                <div class="accordion-body p-2">
-                    <table class="table table-sm table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Code</th>
-                                <th>Type</th>
-                                <th>Qté</th>
-                                <th>PU HT</th>
-                                <th>Total HT</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="lignes-deplacement-form">
-                            <!-- Lignes dynamiques -->
-                        </tbody>
-                    </table>
-                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="ajouterLigneDeplacementForm()">
-                        <i class="fas fa-plus"></i> Ajouter
-                    </button>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3 position-relative">
+                    <label class="form-label fw-bold">Client <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control" id="client_search" autocomplete="off"
+                           placeholder="Rechercher un client..."
+                           value="{% if prestation and prestation.client %}{{ prestation.client.nom }}{% if prestation.client.prenom %} {{ prestation.client.prenom }}{% endif %}{% endif %}">
+                    <div id="client_suggestions" class="list-group position-absolute w-100" style="z-index:1050; display:none;"></div>
+                    <input type="hidden" id="client_id" name="client_id" value="{{ prestation.client_id if prestation else '' }}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Date de la demande</label>
+                    <input type="date" class="form-control" name="date_demande"
+                           value="{{ prestation.date_demande.strftime('%Y-%m-%d') if prestation and prestation.date_demande else '' }}">
                 </div>
             </div>
-        </div>
-
-        <!-- 2. Frais de fourniture -->
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFourniture">
-                    <i class="fas fa-box me-2"></i> Frais de fourniture
-                </button>
-            </h2>
-            <div id="collapseFourniture" class="accordion-collapse collapse" data-bs-parent="#accordionTarifs">
-                <div class="accordion-body p-2">
-                    <table class="table table-sm table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Code</th>
-                                <th>Type</th>
-                                <th>Qté</th>
-                                <th>PU HT</th>
-                                <th>Total HT</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="lignes-fourniture-form">
-                            <!-- Lignes dynamiques -->
-                        </tbody>
-                    </table>
-                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="ajouterLigneFournitureForm()">
-                        <i class="fas fa-plus"></i> Ajouter
-                    </button>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Référence commande</label>
+                    <input type="text" class="form-control" name="reference_commande"
+                           value="{{ prestation.reference_commande if prestation else '' }}"
+                           placeholder="CMD-2025-001">
                 </div>
-            </div>
-        </div>
-
-        <!-- 3. Tarif prestation -->
-        <div class="accordion-item">
-            <h2 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePrestation">
-                    <i class="fas fa-tasks me-2"></i> Tarif prestation
-                </button>
-            </h2>
-            <div id="collapsePrestation" class="accordion-collapse collapse" data-bs-parent="#accordionTarifs">
-                <div class="accordion-body p-2">
-                    <table class="table table-sm table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Code</th>
-                                <th>Type</th>
-                                <th>Qté</th>
-                                <th>PU HT</th>
-                                <th>Total HT</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="lignes-prestation-form">
-                            <!-- Lignes dynamiques -->
-                        </tbody>
-                    </table>
-                    <button type="button" class="btn btn-sm btn-outline-info" onclick="ajouterLignePrestationForm()">
-                        <i class="fas fa-plus"></i> Ajouter
-                    </button>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Demandeur</label>
+                    <input type="text" class="form-control" name="demandeur"
+                           value="{{ prestation.demandeur if prestation else '' }}"
+                           placeholder="Si différent du client">
                 </div>
             </div>
         </div>
     </div>
-</div>
-            <!-- Section tâches -->
-            <div class="card mb-4">
-                <div class="card-header bg-primary text-white">
-                    <i class="fas fa-tasks"></i> Tâches
+
+    <!-- THÈME / DOMAINE / TYPE -->
+    <div class="card mb-3">
+        <div class="card-header bg-success text-white">
+            <i class="bi bi-tags"></i> Thème, Domaine et Type
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Thème <span class="text-danger">*</span></label>
+                    <select class="form-select" id="theme_prestation" name="theme_prestation" required>
+                        <option value="">-- Sélectionnez --</option>
+                        <option value="Formation" {% if prestation and prestation.theme_prestation == 'Formation' %}selected{% endif %}>Formation</option>
+                        <option value="Service" {% if prestation and prestation.theme_prestation == 'Service' %}selected{% endif %}>Service</option>
+                        <option value="Audit" {% if prestation and prestation.theme_prestation == 'Audit' %}selected{% endif %}>Audit</option>
+                    </select>
                 </div>
-                <div class="card-body">
-
-
-                    <hr class="my-4">
-                    <h6 class="mb-3"><i class="fas fa-tasks"></i> Tâche associée (optionnel)</h6>
-
-                    <div class="mb-3">
-                        <label for="titre_tache" class="form-label fw-bold">Titre de la tâche</label>
-                        <input type="text" class="form-control" id="titre_tache" name="titre_tache"
-                               value="{{ prestation.titre_tache if prestation else '' }}"
-                               placeholder="Ex: Préparer les supports de formation">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="description_tache" class="form-label fw-bold">Description de la tâche</label>
-                        <textarea class="form-control" id="description_tache" name="description_tache" rows="2"
-                                  placeholder="Détails de ce qui doit être fait">{{ prestation.description_tache if prestation else '' }}</textarea>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="date_debut_tache" class="form-label fw-bold">Date de début</label>
-                            <input type="datetime-local" class="form-control" id="date_debut_tache" name="date_debut_tache"
-                                   value="{{ prestation.date_debut_tache.strftime('%Y-%m-%dT%H:%M') if prestation and prestation.date_debut_tache else '' }}">
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label for="date_echeance_tache" class="form-label fw-bold">
-                                Date d'échéance
-                                <span class="badge bg-warning text-dark">Important</span>
-                            </label>
-                            <input type="datetime-local" class="form-control" id="date_echeance_tache" name="date_echeance_tache"
-                                   value="{{ prestation.date_echeance_tache.strftime('%Y-%m-%dT%H:%M') if prestation and prestation.date_echeance_tache else '' }}">
-                            <small class="text-muted">Les tâches avec échéance proche apparaîtront sur le tableau de bord</small>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="priorite_tache" class="form-label fw-bold">Priorité</label>
-                            <select class="form-select" id="priorite_tache" name="priorite_tache">
-                                <option value="Basse" {% if prestation and prestation.priorite_tache == 'Basse' %}selected{% endif %}>
-                                    🟢 Basse
-                                </option>
-                                <option value="Moyenne" {% if not prestation or prestation.priorite_tache == 'Moyenne' %}selected{% endif %}>
-                                    🟠 Moyenne
-                                </option>
-                                <option value="Haute" {% if prestation and prestation.priorite_tache == 'Haute' %}selected{% endif %}>
-                                    🔴 Haute
-                                </option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label for="statut_tache" class="form-label fw-bold">Statut</label>
-                            <select class="form-select" id="statut_tache" name="statut_tache">
-                                <option value="À faire" {% if not prestation or prestation.statut_tache == 'À faire' %}selected{% endif %}>
-                                    📋 À faire
-                                </option>
-                                <option value="En cours" {% if prestation and prestation.statut_tache == 'En cours' %}selected{% endif %}>
-                                    ⚙️ En cours
-                                </option>
-                                <option value="Terminée" {% if prestation and prestation.statut_tache == 'Terminée' %}selected{% endif %}>
-                                    ✅ Terminée
-                                </option>
-                            </select>
-                        </div>
-                    </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Domaine</label>
+                    <select class="form-select" id="domaine_prestation" name="domaine_prestation">
+                        <option value="">-- Sélectionnez --</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label fw-bold">Type</label>
+                    <select class="form-select" id="type_prestation" name="type_prestation">
+                        <option value="">-- Sélectionnez --</option>
+                    </select>
                 </div>
             </div>
-
-            <div class="d-flex gap-2 justify-content-end align-items-center">
-                <a href="{{ url_for('prestations') }}" class="btn btn-secondary d-flex align-items-center">
-                    <i class="fas fa-times me-1"></i> Annuler
-                </a>
-                <button type="submit" class="btn btn-primary d-flex align-items-center">
-                    <i class="fas fa-save me-1"></i> Enregistrer
-                </button>
+            <div class="mb-3">
+                <label class="form-label fw-bold">Description</label>
+                <textarea class="form-control" name="description" rows="2">{{ prestation.description if prestation else '' }}</textarea>
             </div>
-        </form>
+        </div>
     </div>
-</div>
 
+    <!-- DATES ET SESSIONS -->
+    <div class="card mb-3">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-calendar"></i> Dates et Sessions</span>
+            <button type="button" class="btn btn-sm btn-light" id="btn-ajouter-session">
+                <i class="bi bi-plus"></i> Ajouter session
+            </button>
+        </div>
+        <div class="card-body">
+            <div id="sessions-container"></div>
+            
+            <template id="session-template">
+                <div class="session-item card mb-3 border-secondary">
+                    <div class="card-header bg-light d-flex justify-content-between">
+                        <strong>Session <span class="session-numero">1</span></strong>
+                        <button type="button" class="btn btn-sm btn-danger btn-supprimer-session">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label">Date début <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control session-date-debut" name="sessions_date_debut[]" required>
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label">Date fin</label>
+                                <input type="date" class="form-control session-date-fin" name="sessions_date_fin[]">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Créneau</label>
+                                <select class="form-select session-creneau" name="sessions_creneau[]">
+                                    <option value="">-- Sélectionnez --</option>
+                                    <option value="Matin">Matin (8h-12h)</option>
+                                    <option value="Après-midi">Après-midi (13h-17h)</option>
+                                    <option value="Journée">Journée (8h-18h)</option>
+                                    <option value="Personnalisé">Personnalisé</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label">Durée (h)</label>
+                                <input type="number" step="0.5" class="form-control session-duree" name="sessions_duree[]">
+                            </div>
+                            <div class="col-md-4 mb-2 horaires-personnalises" style="display:none;">
+                                <label class="form-label">Horaires</label>
+                                <div class="d-flex gap-1">
+                                    <input type="time" class="form-control session-heure-debut" name="sessions_heure_debut[]" value="08:00">
+                                    <input type="time" class="form-control session-heure-fin" name="sessions_heure_fin[]" value="18:00">
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" class="session-journee-complete" name="sessions_journee_complete[]" value="">
+                        <input type="hidden" class="session-id" name="sessions_id[]" value="">
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- LIEU -->
+    <div class="card mb-3">
+        <div class="card-header bg-warning text-dark">
+            <i class="bi bi-geo-alt"></i> Lieu
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Nom du lieu</label>
+                <input type="text" class="form-control" name="lieu"
+                       value="{{ prestation.lieu if prestation else '' }}"
+                       placeholder="Ex: Carrefour Toulouse">
+            </div>
+            <div class="mb-3 position-relative">
+                <label class="form-label fw-bold">Adresse complète</label>
+                <input type="text" class="form-control" id="adresse_prestation_search" autocomplete="off"
+                       placeholder="Ex: 10 Rue de la Paix, 75002 Paris"
+                       value="{{ prestation.adresse_prestation if prestation else '' }}">
+                <div id="adresse_suggestions" class="list-group position-absolute w-100" style="z-index:1000; display:none;"></div>
+                <input type="hidden" id="adresse_prestation" name="adresse_prestation" value="{{ prestation.adresse_prestation if prestation else '' }}">
+                <input type="hidden" id="code_postal_prestation" name="code_postal_prestation" value="{{ prestation.code_postal_prestation if prestation else '' }}">
+                <input type="hidden" id="ville_prestation" name="ville_prestation" value="{{ prestation.ville_prestation if prestation else '' }}">
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Distance (km)</label>
+                    <input type="number" step="0.1" class="form-control" id="distance_km" name="distance_km"
+                           value="{{ prestation.distance_km if prestation else '' }}" readonly>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Durée trajet (min)</label>
+                    <input type="number" class="form-control" id="duree_trajet_minutes" name="duree_trajet_minutes"
+                           value="{{ prestation.duree_trajet_minutes if prestation else '' }}" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PARTICIPANTS -->
+    <div class="card mb-3">
+        <div class="card-header bg-secondary text-white">
+            <i class="bi bi-people"></i> Participants
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 mb-2">
+                    <label class="form-label">Nb stagiaires</label>
+                    <input type="number" class="form-control" name="nb_stagiaires" value="{{ prestation.nb_stagiaires if prestation else '' }}" min="0">
+                </div>
+                <div class="col-md-4 mb-2">
+                    <label class="form-label">Nb repas</label>
+                    <input type="number" class="form-control" name="nb_repas" value="{{ prestation.nb_repas if prestation else '' }}" min="0">
+                </div>
+                <div class="col-md-4 mb-2">
+                    <label class="form-label">Nb hébergements</label>
+                    <input type="number" class="form-control" name="nb_hebergements" value="{{ prestation.nb_hebergements if prestation else '' }}" min="0">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TARIFICATION -->
+    <div class="card mb-3">
+        <div class="card-header bg-success text-white">
+            <i class="bi bi-currency-euro"></i> Tarification
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-2">
+                    <label class="form-label">Tarif horaire (€)</label>
+                    <input type="number" step="0.01" class="form-control" name="tarif_horaire"
+                           value="{{ prestation.tarif_horaire if prestation else '' }}">
+                </div>
+                <div class="col-md-6 mb-2">
+                    <label class="form-label">Tarif total (€)</label>
+                    <input type="number" step="0.01" class="form-control" name="tarif_total"
+                           value="{{ prestation.tarif_total if prestation else '' }}">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- BOUTONS -->
+    <div class="d-flex gap-2">
+        <a href="/prestations" class="btn btn-secondary">
+            <i class="bi bi-x-circle"></i> Annuler
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check-circle"></i> Enregistrer
+        </button>
+    </div>
+</form>
 {% endblock %}
 
 {% block extra_js %}
-<!-- Style pour le datalist du champ demandeur -->
-<style>
-    /* Forcer le fond blanc pour le datalist (autocomplete) */
-    input[list]::-webkit-calendar-picker-indicator {
-        filter: invert(0);
-    }
-
-    /* Style pour le datalist en mode light */
-    #demandeur {
-        background-color: white;
-        color: #212529;
-    }
-
-    /* Style pour le datalist en dark mode */
-    @media (prefers-color-scheme: dark) {
-        #demandeur {
-            background-color: white !important;
-            color: #212529 !important;
-        }
-    }
-
-    /* Forcer le fond blanc des options du datalist */
-    datalist option {
-        background-color: white;
-        color: #212529;
-    }
-</style>
-<!-- -->
 <script>
-// Données des sessions générées côté serveur (Jinja2)
+// DONNÉES SERVEUR
 window.PRESTATION_SESSIONS_DATA = [
     {% if prestation and prestation.sessions %}
         {% for session in prestation.sessions %}
@@ -526,921 +258,187 @@ window.PRESTATION_SESSIONS_DATA = [
                 id: {{ session.id }},
                 date_debut: '{{ session.date_debut.isoformat() if session.date_debut else "" }}',
                 date_fin: '{{ session.date_fin.isoformat() if session.date_fin else "" }}',
-                duree_heures: {{ session.duree_heures if session.duree_heures else 'null' }},
-                journee_complete: {{ 'true' if session.journee_complete else 'false' }}
+                duree_heures: {{ session.duree_heures if session.duree_heures else 'null' }}
             }{% if not loop.last %},{% endif %}
         {% endfor %}
     {% endif %}
 ];
-</script>
-<!-- -->
 
-<script>
+const prestationsStructure = {
+    'Formation': {
+        'Secourisme': ['FI SST', 'MAC SST'],
+        'Incendie': ['EPI', 'Extincteur', 'SSIAP 1'],
+        'Prévention': ['Gestes et Postures']
+    },
+    'Service': {
+        'Prévention ERP': ['Dossier sécurité', 'Notice accessibilité']
+    },
+    'Audit': {
+        'Risque professionnel': ['DUERP'],
+        'Risque incendie': ['RCCI']
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
-    // ============================================================================
-    // GESTION DES SESSIONS MULTIPLES
-    // ============================================================================
+    // SESSIONS
     const sessionsContainer = document.getElementById('sessions-container');
     const sessionTemplate = document.getElementById('session-template');
-    const btnAjouterSession = document.getElementById('btn-ajouter-session');
     let sessionCounter = 0;
 
-    // Récupérer les données des sessions depuis la variable globale
-    const sessionsData = window.PRESTATION_SESSIONS_DATA || [];
-
-    // Ajouter une nouvelle session
-    function ajouterSession(sessionData = null) {
+    function ajouterSession(data = null) {
         sessionCounter++;
-
-        // Cloner le template
         const clone = sessionTemplate.content.cloneNode(true);
         const sessionItem = clone.querySelector('.session-item');
-
-        // Mettre à jour le numéro de session
-        const sessionNumero = clone.querySelector('.session-numero');
-        sessionNumero.textContent = sessionCounter;
-
-        // Remplir les données si édition
-        if (sessionData) {
-            const dateDebut = sessionData.date_debut ? sessionData.date_debut.split('T')[0] : '';
-            const dateFin = sessionData.date_fin ? sessionData.date_fin.split('T')[0] : '';
-            const heureDebut = sessionData.date_debut ? sessionData.date_debut.split('T')[1]?.substring(0, 5) || '08:00' : '08:00';
-            const heureFin = sessionData.date_fin ? sessionData.date_fin.split('T')[1]?.substring(0, 5) || '18:00' : '18:00';
-
-            clone.querySelector('.session-date-debut').value = dateDebut;
-            clone.querySelector('.session-date-fin').value = dateFin;
-            clone.querySelector('.session-duree').value = sessionData.duree_heures || '';
-            clone.querySelector('.session-heure-debut').value = heureDebut;
-            clone.querySelector('.session-heure-fin').value = heureFin;
-            clone.querySelector('.session-journee-complete').value = sessionData.journee_complete ? '1' : '';
-            clone.querySelector('.session-id').value = sessionData.id || '';
-
-            // Déterminer le créneau basé sur les heures
-            const creneauSelect = clone.querySelector('.session-creneau');
-            if (sessionData.journee_complete) {
-                creneauSelect.value = 'Journée';
-            } else if (heureDebut === '08:00' && heureFin === '12:00') {
-                creneauSelect.value = 'Matin';
-            } else if (heureDebut === '13:00' && heureFin === '17:00') {
-                creneauSelect.value = 'Après-midi';
-            } else {
-                creneauSelect.value = 'Personnalisé';
-            }
+        
+        clone.querySelector('.session-numero').textContent = sessionCounter;
+        
+        if (data) {
+            clone.querySelector('.session-date-debut').value = data.date_debut ? data.date_debut.split('T')[0] : '';
+            clone.querySelector('.session-date-fin').value = data.date_fin ? data.date_fin.split('T')[0] : '';
+            clone.querySelector('.session-duree').value = data.duree_heures || '';
+            clone.querySelector('.session-id').value = data.id || '';
         }
-
-        // Ajouter au conteneur
+        
         sessionsContainer.appendChild(clone);
-
-        // Récupérer la session ajoutée pour bind les événements
-        const addedSession = sessionsContainer.lastElementChild;
-        bindSessionEvents(addedSession);
-
-        return addedSession;
+        bindSessionEvents(sessionsContainer.lastElementChild);
     }
 
-    // Bind les événements pour une session
     function bindSessionEvents(sessionEl) {
         const creneauSelect = sessionEl.querySelector('.session-creneau');
         const horairesDiv = sessionEl.querySelector('.horaires-personnalises');
-        const journeeCompleteCheckbox = sessionEl.querySelector('.session-journee-complete');
         const btnSupprimer = sessionEl.querySelector('.btn-supprimer-session');
-
-        // Gestion du créneau
+        
         creneauSelect.addEventListener('change', function() {
-            const creneau = this.value;
-
-            if (creneau === 'Personnalisé') {
-                horairesDiv.style.display = 'block';
-            } else {
-                horairesDiv.style.display = 'none';
-            }
-
-            // Auto-set journée complète si créneau = Journée
-            if (creneau === 'Journée') {
-                journeeCompleteCheckbox.value = '1';
-            } else {
-                journeeCompleteCheckbox.value = '';
-            }
+            horairesDiv.style.display = this.value === 'Personnalisé' ? 'block' : 'none';
         });
-
-        // Bouton supprimer
+        
         btnSupprimer.addEventListener('click', function() {
-            const nbSessions = sessionsContainer.querySelectorAll('.session-item').length;
-            if (nbSessions > 1) {
+            if (sessionsContainer.querySelectorAll('.session-item').length > 1) {
                 sessionEl.remove();
-                renumeroterSessions();
             } else {
-                showMessage('Vous devez avoir au moins une session', 'warning');
+                alert('Au moins une session requise');
             }
         });
-
-        // Trigger initial pour afficher/cacher horaires personnalisés
-        if (creneauSelect.value === 'Personnalisé') {
-            horairesDiv.style.display = 'block';
-        }
     }
 
-    // Renuméroter les sessions après suppression
-    function renumeroterSessions() {
-        const sessions = sessionsContainer.querySelectorAll('.session-item');
-        sessions.forEach((session, index) => {
-            session.querySelector('.session-numero').textContent = index + 1;
-        });
-        sessionCounter = sessions.length;
-    }
+    document.getElementById('btn-ajouter-session').addEventListener('click', () => ajouterSession());
 
-    // Message d'alerte simple
-    function showMessage(message, type = 'info') {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-        alertDiv.style.top = '20px';
-        alertDiv.style.right = '20px';
-        alertDiv.style.zIndex = '9999';
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        `;
-        document.body.appendChild(alertDiv);
-        setTimeout(() => alertDiv.remove(), 3000);
-    }
-
-    // Bouton ajouter session
-    btnAjouterSession.addEventListener('click', function() {
-        ajouterSession();
-    });
-
-    // Initialiser avec les sessions existantes ou créer une session vide
-    if (sessionsData && sessionsData.length > 0) {
-        sessionsData.forEach(sessionData => {
-            ajouterSession(sessionData);
-        });
+    // Init sessions
+    const sessionsData = window.PRESTATION_SESSIONS_DATA || [];
+    if (sessionsData.length > 0) {
+        sessionsData.forEach(s => ajouterSession(s));
     } else {
-        // Créer une session par défaut pour les nouvelles prestations
         ajouterSession();
     }
 
-    // ============================================================================
-    // AUTOCOMPLÉTION D'ADRESSE avec API Adresse (Gouvernement Français)
-    // ============================================================================
-    const adresseSearchInput = document.getElementById('adresse_prestation_search');
-    const adresseSuggestions = document.getElementById('adresse_suggestions');
-    const adresseHidden = document.getElementById('adresse_prestation');
-    const codePostalHidden = document.getElementById('code_postal_prestation');
-    const villeHidden = document.getElementById('ville_prestation');
-
-    let debounceTimer;
-
-    adresseSearchInput.addEventListener('input', function() {
-        const query = this.value.trim();
-
-        // Vider les suggestions si moins de 3 caractères
-        if (query.length < 3) {
-            adresseSuggestions.style.display = 'none';
-            return;
-        }
-
-        // Debounce pour éviter trop de requêtes
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            rechercherAdresse(query);
-        }, 300);
-    });
-
-    async function rechercherAdresse(query) {
-        try {
-            const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=10`;
-            const response = await fetch(url);
-            const data = await response.json();
-
-            afficherSuggestions(data.features);
-        } catch (error) {
-            console.error('Erreur recherche adresse:', error);
-        }
-    }
-
-    function afficherSuggestions(features) {
-        adresseSuggestions.innerHTML = '';
-
-        if (features.length === 0) {
-            adresseSuggestions.style.display = 'none';
-            return;
-        }
-
-        features.forEach(feature => {
-            const props = feature.properties;
-            const item = document.createElement('button');
-            item.type = 'button';
-            item.className = 'list-group-item list-group-item-action';
-            item.style.cursor = 'pointer';
-            item.style.textAlign = 'left';
-
-            // Affichage avec rue, code postal et ville
-            item.innerHTML = `
-                <div>
-                    <strong>${props.name}</strong>
-                    <br>
-                    <small class="text-muted">${props.postcode} ${props.city}</small>
-                </div>
-            `;
-
-            item.addEventListener('click', function() {
-                selectionnerAdresse(feature);
-            });
-
-            adresseSuggestions.appendChild(item);
-        });
-
-        adresseSuggestions.style.display = 'block';
-    }
-
-    function selectionnerAdresse(feature) {
-        const props = feature.properties;
-
-        // Remplir le champ visible
-        adresseSearchInput.value = `${props.name}, ${props.postcode} ${props.city}`;
-
-        // Remplir les champs cachés
-        adresseHidden.value = props.name || '';
-        codePostalHidden.value = props.postcode || '';
-        villeHidden.value = props.city || '';
-
-        // Cacher les suggestions
-        adresseSuggestions.style.display = 'none';
-
-        // Lancer automatiquement le calcul de distance
-        calculerItineraire();
-    }
-
-    // Calculer aussi quand on quitte le champ adresse (si rempli manuellement)
-    adresseSearchInput.addEventListener('blur', function() {
-        const adresse = adresseHidden.value.trim();
-        const ville = villeHidden.value.trim();
-
-        // Ne calculer que si on a au moins une adresse et une ville
-        if (adresse && ville) {
-            // Petit délai pour laisser le temps à la sélection de se faire
-            setTimeout(() => {
-                calculerItineraire();
-            }, 300);
-        }
-    });
-
-    // Fermer les suggestions si on clique ailleurs
-    document.addEventListener('click', function(e) {
-        if (!adresseSearchInput.contains(e.target) && !adresseSuggestions.contains(e.target)) {
-            adresseSuggestions.style.display = 'none';
-        }
-    });
-
-    // ============================================================================
-    // CALCUL D'ITINÉRAIRE AUTOMATIQUE
-    // ============================================================================
-    const adressePrestation = document.getElementById('adresse_prestation');
-    const codePostalPrestation = document.getElementById('code_postal_prestation');
-    const villePrestation = document.getElementById('ville_prestation');
-    const distanceKm = document.getElementById('distance_km');
-    const dureeTrajetMinutes = document.getElementById('duree_trajet_minutes');
-    const erreurDiv = document.getElementById('erreur_itineraire');
-    const erreurText = document.getElementById('erreur_text');
-
-    async function calculerItineraire() {
-        const adresse = adressePrestation.value.trim();
-        const codePostal = codePostalPrestation.value.trim();
-        const ville = villePrestation.value.trim();
-
-        if (!adresse || !ville) {
-            // Ne pas afficher d'erreur si les champs sont vides (c'est normal)
-            erreurDiv.style.display = 'none';
-            return;
-        }
-
-        // Cacher les messages d'erreur précédents
-        erreurDiv.style.display = 'none';
-
-        try {
-            // Récupérer l'adresse de l'entreprise
-            const reponseEntreprise = await fetch('/api/entreprise/adresse');
-            const dataEntreprise = await reponseEntreprise.json();
-
-            if (!dataEntreprise.success) {
-                throw new Error('Veuillez d\'abord configurer l\'adresse de votre entreprise dans l\'onglet Entreprise');
-            }
-
-            const adresseEntreprise = dataEntreprise.adresse;
-
-            // Construire l'adresse complète de la prestation
-            const adresseComplete = `${adresse}, ${codePostal} ${ville}`;
-
-            // Calculer la distance en utilisant OpenRouteService API (gratuite)
-            const result = await calculerDistanceReelle(adresseEntreprise, adresseComplete);
-
-            if (result) {
-                // Remplir directement les champs distance et durée
-                distanceKm.value = result.distance.toFixed(1);
-                dureeTrajetMinutes.value = result.duree;
-            } else {
-                throw new Error('Impossible de calculer la distance. Vérifiez les adresses.');
-            }
-
-        } catch (error) {
-            erreurText.textContent = error.message;
-            erreurDiv.style.display = 'block';
-        }
-    }
-
-    // Fonction pour calculer la distance réelle avec OpenRouteService (itinéraire routier réel)
-    async function calculerDistanceReelle(adresse1, adresse2) {
-        try {
-            // Geocoder les deux adresses avec Nominatim
-            const coords1 = await geocodeAddress(adresse1);
-            const coords2 = await geocodeAddress(adresse2);
-
-            if (!coords1 || !coords2) {
-                throw new Error('Impossible de géocoder une ou plusieurs adresses');
-            }
-
-            // Utiliser OpenRouteService pour calculer l'itinéraire routier réel
-            const url = `https://api.openrouteservice.org/v2/directions/driving-car?start=${coords1.lon},${coords1.lat}&end=${coords2.lon},${coords2.lat}`;
-
-            const response = await fetch(url, {
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                // Si l'API OpenRouteService ne fonctionne pas, utiliser la méthode approximative
-                console.warn('OpenRouteService indisponible, utilisation du calcul approximatif');
-                return calculerDistanceApproximative(coords1, coords2);
-            }
-
-            const data = await response.json();
-
-            if (data.features && data.features.length > 0) {
-                const route = data.features[0].properties.summary;
-                const distanceMeters = route.distance;
-                const dureeSecondes = route.duration;
-
-                return {
-                    distance: distanceMeters / 1000, // Convertir en km
-                    duree: Math.round(dureeSecondes / 60) // Convertir en minutes
-                };
-            } else {
-                // Fallback sur calcul approximatif
-                return calculerDistanceApproximative(coords1, coords2);
-            }
-        } catch (error) {
-            console.error('Erreur calcul distance:', error);
-            // En cas d'erreur, utiliser le calcul approximatif
-            const coords1 = await geocodeAddress(adresse1);
-            const coords2 = await geocodeAddress(adresse2);
-            if (coords1 && coords2) {
-                return calculerDistanceApproximative(coords1, coords2);
-            }
-            return null;
-        }
-    }
-
-    // Fonction de fallback avec calcul approximatif
-    function calculerDistanceApproximative(coords1, coords2) {
-        const distance = calculateHaversineDistance(coords1.lat, coords1.lon, coords2.lat, coords2.lon);
-        const distanceRoute = distance * 1.2; // Facteur plus optimiste
-        const duree = Math.round((distanceRoute / 70) * 60); // 70 km/h moyenne plus réaliste
-
-        return {
-            distance: distanceRoute,
-            duree: duree
-        };
-    }
-
-    // Géocoder une adresse avec Nominatim (OpenStreetMap)
-    async function geocodeAddress(adresse) {
-        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(adresse)}&format=json&limit=1`;
-
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'GestionEntreprise/1.0' // Nominatim requiert un User-Agent
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Erreur de géocodage');
-        }
-
-        const data = await response.json();
-
-        if (data && data.length > 0) {
-            return {
-                lat: parseFloat(data[0].lat),
-                lon: parseFloat(data[0].lon)
-            };
-        }
-
-        return null;
-    }
-
-    // Formule de Haversine pour calculer la distance entre deux points GPS
-    function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Rayon de la Terre en km
-        const dLat = toRad(lat2 - lat1);
-        const dLon = toRad(lon2 - lon1);
-
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                  Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-                  Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distance = R * c;
-
-        return distance;
-    }
-
-    function toRad(degrees) {
-        return degrees * (Math.PI / 180);
-    }
-
-    // ============================================================================
-    // LISTES EN CASCADE : Thème → Domaine → Type
-    // ============================================================================
-    const prestationsStructure = {
-        'Formation': {
-            'Secourisme': ['FI SST', 'MAC SST', 'Gestes de Premiers Secours'],
-            'Incendie': ['EPI', 'Extincteur', 'Evacuation', 'SSIAP 1', 'SSIAP 2', 'SSIAP 3'],
-            'Prévention': ['Gestes et Postures']
-        },
-        'Service': {
-            'Prévention ERP': ['Dossier sécurité', 'Notice de sécurité', 'Notice accessibilité']
-        },
-        'Audit': {
-            'Risque professionnel': ['DUERP'],
-            'Risque incendie': ['RCCI']
-        }
-    };
-
+    // THÈME/DOMAINE/TYPE
     const themeSelect = document.getElementById('theme_prestation');
     const domaineSelect = document.getElementById('domaine_prestation');
     const typeSelect = document.getElementById('type_prestation');
 
-    // Valeurs initiales (pour édition)
-    const initialTheme = themeSelect.value;
-    const initialDomaine = '{{ prestation.domaine_prestation if prestation else "" }}';
-    const initialType = '{{ prestation.type_prestation if prestation else "" }}';
-
-    // Quand le thème change, mettre à jour les domaines
     themeSelect.addEventListener('change', function() {
-        const theme = this.value;
-        updateDomaines(theme);
-        updateTypes(''); // Vider les types
-    });
-
-    // Quand le domaine change, mettre à jour les types
-    domaineSelect.addEventListener('change', function() {
-        const theme = themeSelect.value;
-        const domaine = this.value;
-        updateTypes(theme, domaine);
-    });
-
-    function updateDomaines(theme) {
-        // Vider les domaines
         domaineSelect.innerHTML = '<option value="">-- Sélectionnez --</option>';
-        typeSelect.innerHTML = '<option value="">-- Sélectionnez un domaine --</option>';
-
-        if (!theme || !prestationsStructure[theme]) {
-            domaineSelect.disabled = true;
-            typeSelect.disabled = true;
-            return;
-        }
-
-        domaineSelect.disabled = false;
-        const domaines = Object.keys(prestationsStructure[theme]);
-
-        domaines.forEach(domaine => {
-            const option = document.createElement('option');
-            option.value = domaine;
-            option.textContent = domaine;
-            domaineSelect.appendChild(option);
-        });
-    }
-
-    function updateTypes(theme, domaine) {
-        // Vider les types
         typeSelect.innerHTML = '<option value="">-- Sélectionnez --</option>';
-
-        if (!theme || !domaine || !prestationsStructure[theme] || !prestationsStructure[theme][domaine]) {
-            typeSelect.disabled = true;
-            return;
+        
+        if (this.value && prestationsStructure[this.value]) {
+            Object.keys(prestationsStructure[this.value]).forEach(domaine => {
+                const opt = document.createElement('option');
+                opt.value = domaine;
+                opt.textContent = domaine;
+                domaineSelect.appendChild(opt);
+            });
         }
+    });
 
-        typeSelect.disabled = false;
-        const types = prestationsStructure[theme][domaine];
-
-        types.forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = type;
-            typeSelect.appendChild(option);
-        });
-    }
-
-    // Initialisation au chargement (pour édition de prestation existante)
-    if (initialTheme) {
-        updateDomaines(initialTheme);
-        if (initialDomaine) {
-            domaineSelect.value = initialDomaine;
-            updateTypes(initialTheme, initialDomaine);
-            if (initialType) {
-                typeSelect.value = initialType;
-            }
+    domaineSelect.addEventListener('change', function() {
+        typeSelect.innerHTML = '<option value="">-- Sélectionnez --</option>';
+        
+        const theme = themeSelect.value;
+        if (theme && this.value && prestationsStructure[theme][this.value]) {
+            prestationsStructure[theme][this.value].forEach(type => {
+                const opt = document.createElement('option');
+                opt.value = type;
+                opt.textContent = type;
+                typeSelect.appendChild(opt);
+            });
         }
-    }
+    });
 
-    // ============================================================================
     // RECHERCHE CLIENT
-    // ============================================================================
-    const clientSearchInput = document.getElementById('client_search');
+    const clientSearch = document.getElementById('client_search');
     const clientSuggestions = document.getElementById('client_suggestions');
     const clientIdHidden = document.getElementById('client_id');
+    let debounce;
 
-    let clientDebounceTimer;
-
-    clientSearchInput.addEventListener('input', function() {
+    clientSearch.addEventListener('input', function() {
         const query = this.value.trim();
-
-        // Vider les suggestions si moins de 2 caractères
         if (query.length < 2) {
             clientSuggestions.style.display = 'none';
             return;
         }
-
-        // Debounce pour éviter trop de requêtes
-        clearTimeout(clientDebounceTimer);
-        clientDebounceTimer = setTimeout(() => {
-            rechercherClients(query);
-        }, 300);
-    });
-
-    async function rechercherClients(query) {
-        try {
-            const url = `/api/rechercher-clients?q=${encodeURIComponent(query)}`;
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (data.success) {
-                afficherSuggestionsClients(data.clients);
-            }
-        } catch (error) {
-            console.error('Erreur recherche clients:', error);
-        }
-    }
-
-    function afficherSuggestionsClients(clients) {
-        clientSuggestions.innerHTML = '';
-
-        if (clients.length === 0) {
-            clientSuggestions.style.display = 'none';
-            return;
-        }
-
-        clients.forEach(client => {
-            const item = document.createElement('button');
-            item.type = 'button';
-            item.className = 'list-group-item list-group-item-action';
-            item.style.cursor = 'pointer';
-            item.style.textAlign = 'left';
-
-            item.innerHTML = `
-                <div>
-                    <strong>${client.display}</strong>
-                    ${client.email ? `<br><small class="text-muted"><i class="fas fa-envelope"></i> ${client.email}</small>` : ''}
-                </div>
-            `;
-
-            item.addEventListener('click', function() {
-                selectionnerClient(client);
-            });
-
-            clientSuggestions.appendChild(item);
-        });
-
-        clientSuggestions.style.display = 'block';
-    }
-
-    function selectionnerClient(client) {
-        // Remplir le champ visible
-        clientSearchInput.value = client.display;
-
-        // Remplir le champ caché
-        clientIdHidden.value = client.id;
-
-        // Cacher les suggestions
-        clientSuggestions.style.display = 'none';
-    }
-
-    // Fermer les suggestions si on clique ailleurs
-    document.addEventListener('click', function(e) {
-        if (!clientSearchInput.contains(e.target) && !clientSuggestions.contains(e.target)) {
-            clientSuggestions.style.display = 'none';
-        }
-    });
-
-    // ============================================================================
-    // AUTOCOMPLÉTION LIEU avec RECHERCHE D'ENTREPRISE (OVERPASS API)
-    // ============================================================================
-    const lieuInput = document.getElementById('lieu');
-    const lieuSuggestions = document.getElementById('lieu_suggestions');
-    let lieuDebounceTimer;
-
-    // Empêcher la soumission du formulaire avec Entrée
-    lieuInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            return false;
-        }
-    });
-
-    lieuInput.addEventListener('input', function() {
-        const query = this.value.trim();
-        console.log('Recherche lieu:', query);
-
-        // Vider les suggestions si moins de 3 caractères
-        if (query.length < 3) {
-            lieuSuggestions.style.display = 'none';
-            return;
-        }
-
-        // Debounce pour éviter trop de requêtes
-        clearTimeout(lieuDebounceTimer);
-        lieuDebounceTimer = setTimeout(() => {
-            console.log('Lancement recherche entreprise pour:', query);
-            rechercherEntreprises(query);
-        }, 500);
-    });
-
-    async function rechercherEntreprises(query) {
-        try {
-            const url = `/api/rechercher-entreprise?q=${encodeURIComponent(query)}`;
-            console.log('Appel API:', url);
-
-            const response = await fetch(url);
-            console.log('Réponse reçue:', response.status);
-
-            const data = await response.json();
-            console.log('Données JSON:', data);
-
-            if (data.success && data.entreprises && data.entreprises.length > 0) {
-                console.log('Entreprises trouvées:', data.entreprises.length);
-                afficherSuggestionsLieu(data.entreprises);
-            } else {
-                console.log('Aucune entreprise trouvée');
-                lieuSuggestions.style.display = 'none';
-            }
-        } catch (error) {
-            console.error('Erreur recherche entreprises:', error);
-            lieuSuggestions.style.display = 'none';
-        }
-    }
-
-    function afficherSuggestionsLieu(entreprises) {
-        lieuSuggestions.innerHTML = '';
-
-        if (entreprises.length === 0) {
-            lieuSuggestions.style.display = 'none';
-            return;
-        }
-
-        entreprises.forEach(entreprise => {
-            const item = document.createElement('button');
-            item.type = 'button';
-            item.className = 'list-group-item list-group-item-action';
-            item.style.cursor = 'pointer';
-            item.style.textAlign = 'left';
-
-            // Construire l'affichage de l'adresse
-            let adresseComplete = entreprise.adresse || '';
-            if (entreprise.ville) {
-                adresseComplete += (adresseComplete ? ', ' : '') + entreprise.ville;
-            }
-            if (entreprise.code_postal) {
-                adresseComplete = (entreprise.code_postal + ' ' + adresseComplete).trim();
-            }
-
-            item.innerHTML = `
-                <div>
-                    <strong><i class="fas fa-building text-info"></i> ${entreprise.nom || 'Entreprise'}</strong>
-                    <br>
-                    <small class="text-muted">
-                        <i class="fas fa-map-marker-alt"></i> ${adresseComplete || 'Adresse non disponible'}
-                    </small>
-                    ${entreprise.distance_km ? `<br><small class="text-muted"><i class="fas fa-route"></i> ${entreprise.distance_km} km de votre entreprise</small>` : ''}
-                </div>
-            `;
-
-            item.addEventListener('click', function() {
-                selectionnerEntrepriseLieu(entreprise);
-            });
-
-            lieuSuggestions.appendChild(item);
-        });
-
-        lieuSuggestions.style.display = 'block';
-    }
-
-    function selectionnerEntrepriseLieu(entreprise) {
-        // Mettre le NOM de l'entreprise dans le champ Lieu
-        lieuInput.value = entreprise.nom || '';
-
-        // Construire l'adresse complète pour le champ d'adresse
-        let adresseAffichage = '';
-        if (entreprise.adresse) {
-            adresseAffichage = entreprise.adresse;
-        }
-        if (entreprise.code_postal && entreprise.ville) {
-            adresseAffichage += (adresseAffichage ? ', ' : '') + entreprise.code_postal + ' ' + entreprise.ville;
-        } else if (entreprise.ville) {
-            adresseAffichage += (adresseAffichage ? ', ' : '') + entreprise.ville;
-        }
-
-        // Remplir le champ de recherche d'adresse visible
-        adresseSearchInput.value = adresseAffichage;
-
-        // Remplir les champs cachés
-        adresseHidden.value = entreprise.adresse || '';
-        codePostalHidden.value = entreprise.code_postal || '';
-        villeHidden.value = entreprise.ville || '';
-
-        // Cacher les suggestions
-        lieuSuggestions.style.display = 'none';
-
-        // Lancer le calcul d'itinéraire automatiquement
-        setTimeout(() => {
-            calculerItineraire();
-        }, 300);
-
-        // Message de succès
-        showMessage('Entreprise sélectionnée, adresse remplie et distance calculée !', 'success');
-    }
-
-    // Fermer les suggestions si on clique ailleurs
-    document.addEventListener('click', function(e) {
-        if (!lieuInput.contains(e.target) && !lieuSuggestions.contains(e.target)) {
-            lieuSuggestions.style.display = 'none';
-        }
-    });
-
-    // ============================================================================
-    // AUTOCOMPLÉTION DEMANDEUR (charger la liste au démarrage)
-    // ============================================================================
-    async function chargerDemandeurs() {
-        try {
-            const response = await fetch('/api/demandeurs');
-            const data = await response.json();
-
-            if (data.success && data.demandeurs && data.demandeurs.length > 0) {
-                const datalist = document.getElementById('demandeurs_list');
-                datalist.innerHTML = ''; // Vider d'abord
-
-                // Ajouter chaque demandeur comme option
-                data.demandeurs.forEach(demandeur => {
-                    const option = document.createElement('option');
-                    option.value = demandeur;
-                    datalist.appendChild(option);
+        
+        clearTimeout(debounce);
+        debounce = setTimeout(async () => {
+            const res = await fetch(`/api/rechercher-clients?q=${encodeURIComponent(query)}`);
+            const data = await res.json();
+            
+            if (data.success && data.clients.length > 0) {
+                clientSuggestions.innerHTML = '';
+                data.clients.forEach(client => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.textContent = client.display;
+                    item.onclick = () => {
+                        clientSearch.value = client.display;
+                        clientIdHidden.value = client.id;
+                        clientSuggestions.style.display = 'none';
+                    };
+                    clientSuggestions.appendChild(item);
                 });
+                clientSuggestions.style.display = 'block';
             }
-        } catch (error) {
-            console.error('Erreur chargement demandeurs:', error);
-        }
-    }
+        }, 300);
+    });
 
-    // Charger les demandeurs au démarrage de la page
-    chargerDemandeurs();
+    // ADRESSE
+    const adresseSearch = document.getElementById('adresse_prestation_search');
+    const adresseSuggestions = document.getElementById('adresse_suggestions');
+    
+    adresseSearch.addEventListener('input', function() {
+        const query = this.value.trim();
+        if (query.length < 3) {
+            adresseSuggestions.style.display = 'none';
+            return;
+        }
+        
+        clearTimeout(debounce);
+        debounce = setTimeout(async () => {
+            const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=10`;
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            if (data.features.length > 0) {
+                adresseSuggestions.innerHTML = '';
+                data.features.forEach(feature => {
+                    const props = feature.properties;
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.innerHTML = `<strong>${props.name}</strong><br><small>${props.postcode} ${props.city}</small>`;
+                    item.onclick = () => {
+                        adresseSearch.value = `${props.name}, ${props.postcode} ${props.city}`;
+                        document.getElementById('adresse_prestation').value = props.name;
+                        document.getElementById('code_postal_prestation').value = props.postcode;
+                        document.getElementById('ville_prestation').value = props.city;
+                        adresseSuggestions.style.display = 'none';
+                    };
+                    adresseSuggestions.appendChild(item);
+                });
+                adresseSuggestions.style.display = 'block';
+            }
+        }, 300);
+    });
 });
 </script>
-
-{% block extra_js %}
-<script>
-    // ===== GESTION TARIFS DÉTAILLÉS =====
-    
-    // Ajouter une ligne de tarif
-    function ajouterTarif() {
-        const container = document.getElementById('tarifs-container');
-        if (!container) {
-            console.error('Container tarifs-container non trouvé !');
-            return;
-        }
-        
-        const nouveauTarif = document.createElement('div');
-        nouveauTarif.className = 'row mb-2 tarif-item';
-        nouveauTarif.innerHTML = `
-            <div class="col-md-3">
-                <input type="text" class="form-control" name="tarif_description[]" placeholder="Description" required>
-            </div>
-            <div class="col-md-2">
-                <input type="number" step="0.01" class="form-control tarif-qte" name="tarif_quantite[]" placeholder="Quantité" value="1" required>
-            </div>
-            <div class="col-md-2">
-                <input type="number" step="0.01" class="form-control tarif-prix" name="tarif_prix_unitaire[]" placeholder="Prix unitaire" required>
-            </div>
-            <div class="col-md-2">
-                <input type="number" step="0.01" class="form-control tarif-total" placeholder="Total" readonly>
-            </div>
-            <div class="col-md-2">
-                <input type="number" step="0.01" class="form-control" name="tarif_tva[]" placeholder="TVA %" value="20">
-            </div>
-            <div class="col-md-1">
-                <button type="button" class="btn btn-danger btn-sm" onclick="supprimerTarif(this)">
-                    <i class="bi bi-trash"></i>
-                </button>
-            </div>
-        `;
-        
-        container.appendChild(nouveauTarif);
-        attachCalculEvents();
-        calculerTotal();
-    }
-
-    // Supprimer une ligne de tarif
-    function supprimerTarif(btn) {
-        const container = document.getElementById('tarifs-container');
-        const items = container.querySelectorAll('.tarif-item');
-        
-        // Garder au moins une ligne
-        if (items.length > 1) {
-            btn.closest('.tarif-item').remove();
-            calculerTotal();
-        } else {
-            alert('Vous devez conserver au moins une ligne de tarif');
-        }
-    }
-
-    // Attacher les événements de calcul
-    function attachCalculEvents() {
-        document.querySelectorAll('.tarif-qte, .tarif-prix').forEach(input => {
-            input.removeEventListener('input', calculerLigne); // Éviter les doublons
-            input.addEventListener('input', calculerLigne);
-        });
-        
-        document.querySelectorAll('[name="tarif_tva[]"]').forEach(input => {
-            input.removeEventListener('input', calculerTotal);
-            input.addEventListener('input', calculerTotal);
-        });
-    }
-
-    // Calculer une ligne individuelle
-    function calculerLigne(event) {
-        const row = event.target.closest('.tarif-item');
-        if (!row) return;
-        
-        const qte = parseFloat(row.querySelector('.tarif-qte').value) || 0;
-        const prix = parseFloat(row.querySelector('.tarif-prix').value) || 0;
-        const totalInput = row.querySelector('.tarif-total');
-        
-        totalInput.value = (qte * prix).toFixed(2);
-        calculerTotal();
-    }
-
-    // Calculer le total général
-    function calculerTotal() {
-        let totalHT = 0;
-        let totalTVA = 0;
-        
-        document.querySelectorAll('.tarif-item').forEach(row => {
-            const montantLigne = parseFloat(row.querySelector('.tarif-total').value) || 0;
-            const tauxTVA = parseFloat(row.querySelector('[name="tarif_tva[]"]').value) || 0;
-            
-            totalHT += montantLigne;
-            totalTVA += (montantLigne * tauxTVA / 100);
-        });
-        
-        const totalTTC = totalHT + totalTVA;
-        
-        // Mettre à jour l'affichage
-        const totalHTEl = document.getElementById('total-ht');
-        const totalTVAEl = document.getElementById('total-tva');
-        const totalTTCEl = document.getElementById('total-ttc');
-        
-        if (totalHTEl) totalHTEl.textContent = totalHT.toFixed(2) + ' €';
-        if (totalTVAEl) totalTVAEl.textContent = totalTVA.toFixed(2) + ' €';
-        if (totalTTCEl) totalTTCEl.textContent = totalTTC.toFixed(2) + ' €';
-        
-        // Mettre à jour le champ prix principal (si existant)
-        const prixInput = document.getElementById('prix');
-        if (prixInput) {
-            prixInput.value = totalTTC.toFixed(2);
-        }
-    }
-
-    // Initialiser au chargement de la page
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Initialisation tarifs...');
-        attachCalculEvents();
-        calculerTotal();
-    });
-</script>
 {% endblock %}
-
-
-
-
-
-
-
