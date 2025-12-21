@@ -1,100 +1,58 @@
 {% extends "base.html" %}
 
-{% block title %}Clients - Gestion Entreprise{% endblock %}
+{% block title %}Clients{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h1 class="display-5 fw-bold text-dark mb-0">
-                <i class="fas fa-users text-primary"></i> Clients
-            </h1>
-            <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-md-none">
-                <i class="fas fa-home"></i>
-            </a>
-        </div>
-        <p class="text-muted">Gérez vos clients et leurs informations</p>
-    </div>
-    <div class="col-md-4 text-end">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary me-2 d-none d-md-inline-block fw-normal">
-            <i class="fas fa-home"></i> Accueil
-        </a>
-        <a href="{{ url_for('client_nouveau') }}" class="btn btn-primary fw-normal">
-            <i class="fas fa-user-plus"></i> Nouveau client
-        </a>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-people"></i> Clients</h1>
+    <a href="/clients/nouveau" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nouveau client
+    </a>
 </div>
 
 <div class="card">
-    <div class="card-header">
-        <i class="fas fa-list"></i> Liste des clients ({{ clients|length }})
-    </div>
     <div class="card-body">
-        <!-- Barre de recherche -->
         <div class="mb-3">
-            <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                <input type="text" id="searchClient" class="form-control" placeholder="Rechercher un client (nom, entreprise, email, téléphone, ville)...">
-            </div>
+            <input type="text" class="form-control" id="searchClient" placeholder="Rechercher un client...">
         </div>
-
-        {% if clients %}
-            <div class="table-responsive">
-                <table class="table table-hover" id="clientsTable">
-                    <thead>
-                        <tr>
-                            <th style="width: 30px;"></th>
-                            <th>Nom</th>
-                            <th>Email</th>
-                            <th>Téléphone</th>
-                            <th>Ville</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for client in clients %}
-                        <tr>
-                            <td>{{ client.nom }}</td>
-                            <td>{{ client.prenom or '-' }}</td>
-                            <td>{{ client.entreprise or '-' }}</td>
-                            <td>{{ client.email or '-' }}</td>
-                            <td>{{ client.telephone or '-' }}</td>
-                            <td>
-                                <a href="/clients/{{ client.id }}" class="btn btn-sm btn-outline-primary" title="Voir la fiche">
+        
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nom</th>
+                        <th>Prénom</th>
+                        <th>Entreprise</th>
+                        <th>Email</th>
+                        <th>Téléphone</th>
+                        <th>Ville</th>
+                        <th style="width: 120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                    <tr>
+                        <td>{{ client.nom }}</td>
+                        <td>{{ client.prenom or '-' }}</td>
+                        <td>{{ client.entreprise or '-' }}</td>
+                        <td>{{ client.email or '-' }}</td>
+                        <td>{{ client.telephone or '-' }}</td>
+                        <td>{{ client.ville or '-' }}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="/clients/{{ client.id }}" class="btn btn-sm btn-outline-primary" title="Voir">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 <a href="/clients/{{ client.id }}/modifier" class="btn btn-sm btn-outline-warning" title="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <div class="alert alert-info mb-0">
-                <i class="fas fa-info-circle"></i> Aucun client enregistré. Cliquez sur "Nouveau client" pour en ajouter un.
-            </div>
-        {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
-
-<script>
-// Recherche en temps réel dans la liste des clients
-document.getElementById('searchClient').addEventListener('keyup', function() {
-    const searchTerm = this.value.toLowerCase();
-    const tableRows = document.querySelectorAll('#clientsTable tbody tr');
-
-    tableRows.forEach(function(row) {
-        const text = row.textContent.toLowerCase();
-        if (text.includes(searchTerm)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-});
-</script>
-
 {% endblock %}
