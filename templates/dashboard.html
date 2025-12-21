@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Tableau de bord - Gestion Entreprise Pro{% endblock %}
+{% block title %}Tableau de bord{% endblock %}
 
 {% block content %}
 <h1 class="mb-4">
@@ -57,7 +57,7 @@
     </div>
 </div>
 
-<!-- TÂCHES URGENTES -->
+<!-- Tâches urgentes -->
 <div class="card">
     <div class="card-header bg-danger text-white">
         <i class="bi bi-exclamation-triangle"></i> Tâches urgentes
@@ -81,7 +81,6 @@
                             </span>
                             <br>
                             <small class="text-muted">
-                                <i class="bi bi-calendar"></i>
                                 {{ tache.date_echeance_tache.strftime('%d/%m/%Y') if tache.date_echeance_tache else 'Pas de date' }}
                             </small>
                         </div>
@@ -91,9 +90,31 @@
             </div>
         {% else %}
             <p class="text-muted mb-0">
-                <i class="bi bi-check-circle text-success"></i> Aucune tâche urgente pour le moment
+                <i class="bi bi-check-circle text-success"></i> Aucune tâche urgente
             </p>
         {% endif %}
+    </div>
+</div>
+
+<!-- MODAL CHOIX CRÉATION -->
+<div class="modal fade" id="modalChoixCreation" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Créer pour le <span id="dateSelectionnee"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-grid gap-3">
+                    <a href="#" id="btnCreerPrestation" class="btn btn-lg btn-success">
+                        <i class="bi bi-calendar-check"></i> Nouvelle Prestation
+                    </a>
+                    <a href="#" id="btnCreerIndispo" class="btn btn-lg btn-warning">
+                        <i class="bi bi-calendar-x"></i> Nouvelle Indisponibilité
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -103,7 +124,6 @@
 <style>
     .fc-event { cursor: pointer; }
     .fc-daygrid-day { cursor: pointer; }
-    .fc-daygrid-day-top { padding: 4px; }
 </style>
 {% endblock %}
 
@@ -113,6 +133,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
+    const modal = new bootstrap.Modal(document.getElementById('modalChoixCreation'));
+    
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridWeek',
         locale: 'fr',
@@ -127,31 +149,16 @@ document.addEventListener('DOMContentLoaded', function() {
             month: 'Mois'
         },
         events: '/api/prestations/calendrier',
-        
-        // CLIC SUR UNE PRESTATION → Ouvrir la fiche
         eventClick: function(info) {
-            const prestationId = info.event.id;
-            window.location.href = '/prestations/' + prestationId + '/modifier';
+            window.location.href = '/prestations/' + info.event.id + '/modifier';
         },
-        
-        // CLIC SUR UN JOUR VIDE → Menu choix prestation/indispo
         dateClick: function(info) {
-            const dateSelectionnee = info.dateStr;
-            
-            const choix = confirm(
-                'Que souhaitez-vous créer pour le ' + new Date(dateSelectionnee).toLocaleDateString('fr-FR') + ' ?\n\n' +
-                'OK = Nouvelle Prestation\n' +
-                'Annuler = Nouvelle Indisponibilité'
-            );
-            
-            if (choix) {
-                window.location.href = '/prestations/nouvelle?date=' + dateSelectionnee;
-            } else {
-                window.location.href = '/indisponibilite/nouvelle?date=' + dateSelectionnee;
-            }
-        },
-        
-        navLinks: true
+            const date = new Date(info.dateStr);
+            document.getElementById('dateSelectionnee').textContent = date.toLocaleDateString('fr-FR');
+            document.getElementById('btnCreerPrestation').href = '/prestations/nouvelle?date=' + info.dateStr;
+            document.getElementById('btnCreerIndispo').href = '/indisponibilite/nouvelle?date=' + info.dateStr;
+            modal.show();
+        }
     });
     
     calendar.render();
