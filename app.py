@@ -1488,8 +1488,10 @@ def modifier_statut_prestation(prestation_id):
 
     return redirect(url_for('prestation_detail', prestation_id=prestation.id))
 
-@app.route('/prestation/nouvelle', methods=['GET', 'POST'])
-def prestation_nouvelle():
+@app.route('/prestations/<int:prestation_id>')
+def prestations_detail_alias(prestation_id):
+    """Alias pluriel - redirige vers prestation_detail"""
+    return prestation_detail(prestation_id)
     """Créer une nouvelle prestation"""
     if request.method == 'POST':
         # Générer automatiquement le titre à partir du type ou du thème
@@ -1692,8 +1694,10 @@ def prestation_nouvelle():
 
     return render_template('prestation_form.html', prestation=None, clients=clients, calendriers=calendriers)
 
-@app.route('/prestation/<int:prestation_id>/modifier', methods=['GET', 'POST'])
-def prestation_modifier(prestation_id):
+@app.route('/prestations/<int:prestation_id>/modifier', methods=['GET', 'POST'])
+def prestations_modifier_alias(prestation_id):
+    """Alias pluriel - redirige vers prestation_modifier"""
+    return prestation_modifier(prestation_id)
     """Modifier une prestation"""
     prestation = Prestation.query.get_or_404(prestation_id)
 
@@ -1884,8 +1888,10 @@ def prestation_modifier(prestation_id):
 
     return render_template('prestation_form.html', prestation=prestation, clients=clients, calendriers=calendriers)
 
-@app.route('/prestation/<int:prestation_id>/supprimer', methods=['POST'])
-def prestation_supprimer(prestation_id):
+@app.route('/prestations/<int:prestation_id>/supprimer', methods=['POST'])
+def prestations_supprimer_alias(prestation_id):
+    """Alias pluriel - redirige vers prestation_supprimer"""
+    return prestation_supprimer(prestation_id)
     """Supprimer une prestation"""
     prestation = Prestation.query.get_or_404(prestation_id)
 
@@ -5579,6 +5585,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
