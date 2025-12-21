@@ -1,166 +1,93 @@
 {% extends "base.html" %}
 
-{% block title %}Tableau de bord - Gestion Entreprise{% endblock %}
+{% block title %}Tableau de bord - Gestion Entreprise Pro{% endblock %}
 
 {% block content %}
-<div class="container-fluid mt-4">
-    <h1><i class="fas fa-chart-line"></i> Tableau de bord</h1>
-    <p class="text-muted">Vue d'ensemble de votre activité</p>
+<h1 class="mb-4">
+    <i class="bi bi-speedometer2 text-primary"></i> Tableau de bord
+</h1>
 
-<div class="row mb-4">
-    <div class="col-md-2 col-sm-6 mb-3">
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.nb_clients }}</div>
-            <div class="stat-label">Clients</div>
+<!-- KPIs -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card kpi-blue">
+            <div class="kpi-number">{{ stats.nb_clients }}</div>
+            <div class="kpi-label">Clients</div>
         </div>
     </div>
-    <div class="col-md-2 col-sm-6 mb-3">
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.nb_prestations }}</div>
-            <div class="stat-label">Total</div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card kpi-green">
+            <div class="kpi-number">{{ stats.nb_prestations }}</div>
+            <div class="kpi-label">Total</div>
         </div>
     </div>
-    <div class="col-md-2 col-sm-6 mb-3">
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.nb_en_cours }}</div>
-            <div class="stat-label">En cours</div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card kpi-orange">
+            <div class="kpi-number">{{ stats.nb_en_cours }}</div>
+            <div class="kpi-label">En cours</div>
         </div>
     </div>
-    <div class="col-md-2 col-sm-6 mb-3">
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.nb_ce_mois }}</div>
-            <div class="stat-label">Ce mois</div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card kpi-cyan">
+            <div class="kpi-number">{{ stats.nb_ce_mois }}</div>
+            <div class="kpi-label">Ce mois</div>
         </div>
     </div>
-    <div class="col-md-2 col-sm-6 mb-3">
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.ca_total }}€</div>
-            <div class="stat-label">CA total</div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card kpi-red">
+            <div class="kpi-number" style="font-size: 2rem;">{{ stats.ca_total }}€</div>
+            <div class="kpi-label">CA total</div>
         </div>
     </div>
-    <div class="col-md-2 col-sm-6 mb-3">
-        <div class="stat-card">
-            <div class="stat-number">{{ stats.nb_factures_payees }}</div>
-            <div class="stat-label">Fact. payées</div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card kpi-purple">
+            <div class="kpi-number">{{ stats.nb_factures_payees }}</div>
+            <div class="kpi-label">Fact. payées</div>
         </div>
     </div>
 </div>
 
-    <!-- CALENDRIER avec vues multiples -->
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-calendar-alt"></i> Calendrier</h5>
-            <div class="btn-group" role="group">
-                <button type="button" class="btn btn-sm btn-outline-primary" data-view="week">Semaine</button>
-                <button type="button" class="btn btn-sm btn-outline-primary active" data-view="month">Mois</button>
-                <!-- Désactivé temporairement
-                <button type="button" class="btn btn-sm btn-outline-primary" data-view="quarter">Trimestre</button>
-                <button type="button" class="btn btn-sm btn-outline-primary" data-view="semester">Semestre</button>
-                <button type="button" class="btn btn-sm btn-outline-primary" data-view="year">Année</button>
-                -->
-            </div>
-        </div>
-        <div class="card-body">
-            <div id="calendar"></div>
-        </div>
-    </div>
-
-    <!-- TÂCHES URGENTES sous le calendrier -->
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Tâches urgentes</h5>
-        </div>
-        <div class="card-body">
-            {% if taches_urgentes %}
-                <div class="list-group">
-                    {% for tache in taches_urgentes %}
-                    <div class="list-group-item">
-                        <div class="d-flex justify-content-between">
-                            <h6>{{ tache.titre }}</h6>
-                            <span class="badge bg-danger">{{ tache.priorite }}</span>
-                        </div>
-                        <small class="text-muted">Échéance: {{ tache.date_echeance.strftime('%d/%m/%Y') }}</small>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="alert alert-success mb-0">
-                    <i class="fas fa-check-circle"></i> Aucune tâche urgente
-                </div>
-            {% endif %}
-        </div>
+<!-- Calendrier -->
+<div class="card">
+    <div class="card-body">
+        <div id="calendar"></div>
     </div>
 </div>
+{% endblock %}
 
-<!-- Modal ajout prestation/indispo -->
-<div class="modal fade" id="modalAjoutEvent" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Ajouter un événement</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center">
-                <p class="mb-4">Que souhaitez-vous ajouter ?</p>
-                <a href="/prestation/nouveau" class="btn btn-primary btn-lg me-2">
-                    <i class="fas fa-briefcase"></i> Nouvelle prestation
-                </a>
-                <a href="/indisponibilite" class="btn btn-danger btn-lg">
-                    <i class="fas fa-calendar-times"></i> Nouvelle indisponibilité
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
+{% block extra_css %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+<style>
+    .fc-event { cursor: pointer; }
+    .fc-daygrid-day-top { padding: 4px; }
+</style>
+{% endblock %}
 
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fr.js"></script>
-
+{% block extra_js %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/fr.js'></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    var calendarEl = document.getElementById('calendar');
-    var currentView = 'timeGridWeek';
-    
-    var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: currentView,
+    const calendarEl = document.getElementById('calendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridWeek',
         locale: 'fr',
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: ''
+            right: 'dayGridWeek,dayGridMonth'
+        },
+        buttonText: {
+            today: "Aujourd'hui",
+            week: 'Semaine',
+            month: 'Mois'
         },
         events: '/api/prestations/calendrier',
-        
-        // Clic sur date → Modal
-        dateClick: function(info) {
-            var modal = new bootstrap.Modal(document.getElementById('modalAjoutEvent'));
-            modal.show();
-        },
-        
-        // Clic sur événement → Détail
         eventClick: function(info) {
-            window.location.href = '/prestation/' + info.event.id;
+            window.location.href = '/prestations/' + info.event.id;
         }
     });
-    
     calendar.render();
-    
-    // Changement de vue
-   document.querySelectorAll('[data-view]').forEach(btn => {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('[data-view]').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        
-        var view = this.dataset.view;
-        
-        if (view === 'week') {
-            calendar.changeView('timeGridWeek');
-        } else if (view === 'month') {
-            calendar.changeView('dayGridMonth');
-        }
-    });
 });
-});    
 </script>
 {% endblock %}
