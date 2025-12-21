@@ -53,52 +53,19 @@
                     </thead>
                     <tbody>
                         {% for client in clients %}
-                        {% set nb_prestations = client.prestations|selectattr('statut', 'ne', 'Annulée')|list|length %}
-                        {% set nb_contacts = client.contacts|selectattr('actif', 'equalto', True)|list|length %}
-                        {% set a_devis = client.prestations|selectattr('statut_devis', 'ne', None)|list|length > 0 %}
-                        <tr style="font-size: 0.875rem;">
+                        <tr>
+                            <td>{{ client.nom }}</td>
+                            <td>{{ client.prenom or '-' }}</td>
+                            <td>{{ client.entreprise or '-' }}</td>
+                            <td>{{ client.email or '-' }}</td>
+                            <td>{{ client.telephone or '-' }}</td>
                             <td>
-                                {% if nb_prestations > 0 %}
-                                    <i class="fas fa-circle text-success" title="Au moins une prestation"></i>
-                                {% elif a_devis %}
-                                    <i class="fas fa-circle text-warning" title="Devis en cours"></i>
-                                {% elif nb_contacts > 0 %}
-                                    <i class="fas fa-circle" style="color: #ffc107;" title="A des contacts"></i>
-                                {% else %}
-                                    <i class="fas fa-circle text-danger" title="Pas de contact"></i>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <strong>
-                                    {% if client.prenom %}{{ client.prenom }} {% endif %}{{ client.nom }}
-                                </strong>
-                            </td>
-                            <td>
-                                {% if client.email %}
-                                    <a href="mailto:{{ client.email }}">{{ client.email }}</a>
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td style="white-space: nowrap;">
-                                {% if client.telephone %}
-                                    <a href="tel:{{ client.telephone }}">{{ client.telephone }}</a>
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            <td>{{ client.ville or '-' }}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <a href="{{ url_for('client_detail', client_id=client.id) }}"
-                                       class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1.5;" title="Voir">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ url_for('client_modifier', client_id=client.id) }}"
-                                       class="btn" style="background-color: #ff8c00; color: white; border-color: #ff8c00; padding: 0.25rem 0.5rem; font-size: 0.875rem; line-height: 1.5;" title="Modifier">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                </div>
+                                <a href="/clients/{{ client.id }}" class="btn btn-sm btn-outline-primary" title="Voir la fiche">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a href="/clients/{{ client.id }}/modifier" class="btn btn-sm btn-outline-warning" title="Modifier">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
