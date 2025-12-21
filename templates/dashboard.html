@@ -48,9 +48,52 @@
 </div>
 
 <!-- Calendrier -->
-<div class="card">
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <i class="bi bi-calendar3"></i> Calendrier des prestations
+    </div>
     <div class="card-body">
         <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- TÂCHES URGENTES -->
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <i class="bi bi-exclamation-triangle"></i> Tâches urgentes
+    </div>
+    <div class="card-body">
+        {% if taches_urgentes and taches_urgentes|length > 0 %}
+            <div class="list-group">
+                {% for tache in taches_urgentes %}
+                <a href="/prestations/{{ tache.id }}/modifier" class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">{{ tache.titre_tache or 'Tâche sans titre' }}</h6>
+                            <p class="mb-1 text-muted small">
+                                <i class="bi bi-person"></i> 
+                                {{ tache.client.nom }}{% if tache.client.prenom %} {{ tache.client.prenom }}{% endif %}
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge bg-{{ 'danger' if tache.priorite_tache == 'Haute' else 'warning' if tache.priorite_tache == 'Moyenne' else 'secondary' }}">
+                                {{ tache.priorite_tache or 'Moyenne' }}
+                            </span>
+                            <br>
+                            <small class="text-muted">
+                                <i class="bi bi-calendar"></i>
+                                {{ tache.date_echeance_tache.strftime('%d/%m/%Y') if tache.date_echeance_tache else 'Pas de date' }}
+                            </small>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">
+                <i class="bi bi-check-circle text-success"></i> Aucune tâche urgente pour le moment
+            </p>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -59,6 +102,7 @@
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
 <style>
     .fc-event { cursor: pointer; }
+    .fc-daygrid-day { cursor: pointer; }
     .fc-daygrid-day-top { padding: 4px; }
 </style>
 {% endblock %}
@@ -83,10 +127,33 @@ document.addEventListener('DOMContentLoaded', function() {
             month: 'Mois'
         },
         events: '/api/prestations/calendrier',
+        
+        // CLIC SUR UNE PRESTATION → Ouvrir la fiche
         eventClick: function(info) {
-            window.location.href = '/prestations/' + info.event.id;
-        }
+            const prestationId = info.event.id;
+            window.location.href = '/prestations/' + prestationId + '/modifier';
+        },
+        
+        // CLIC SUR UN JOUR VIDE → Menu choix prestation/indispo
+        dateClick: function(info) {
+            const dateSelectionnee = info.dateStr;
+            
+            const choix = confirm(
+                'Que souhaitez-vous créer pour le ' + new Date(dateSelectionnee).toLocaleDateString('fr-FR') + ' ?\n\n' +
+                'OK = Nouvelle Prestation\n' +
+                'Annuler = Nouvelle Indisponibilité'
+            );
+            
+            if (choix) {
+                window.location.href = '/prestations/nouvelle?date=' + dateSelectionnee;
+            } else {
+                window.location.href = '/indisponibilite/nouvelle?date=' + dateSelectionnee;
+            }
+        },
+        
+        navLinks: true
     });
+    
     calendar.render();
 });
 </script>
