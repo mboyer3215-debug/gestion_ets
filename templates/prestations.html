@@ -1,107 +1,58 @@
 {% extends "base.html" %}
 
-{% block title %}Prestations - Gestion Entreprise{% endblock %}
+{% block title %}Prestations{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h1 class="display-5 fw-bold text-dark mb-0">
-                <i class="fas fa-tasks text-primary"></i> Prestations
-            </h1>
-            <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-md-none">
-                <i class="fas fa-home"></i>
-            </a>
-        </div>
-        <p class="text-muted">Gérez vos formations et services</p>
-    </div>
-    <div class="col-md-4 text-end">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary me-2 d-none d-md-inline-block fw-normal">
-            <i class="fas fa-home"></i> Accueil
-        </a>
-        <a href="{{ url_for('prestation_nouvelle') }}" class="btn btn-primary fw-normal">
-            <i class="fas fa-plus"></i> Nouvelle prestation
-        </a>
-    </div>
-</div>
-
-<!-- Filtres -->
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="btn-group" role="group">
-            <a href="{{ url_for('prestations', statut='all') }}"
-               class="btn {% if filtre_statut == 'all' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                <i class="fas fa-list"></i> Toutes
-            </a>
-            <a href="{{ url_for('prestations', statut='Planifiée') }}"
-               class="btn {% if filtre_statut == 'Planifiée' %}btn-primary{% else %}btn-outline-primary{% endif %}">
-                <i class="fas fa-clock"></i> Planifiées
-            </a>
-            <a href="{{ url_for('prestations', statut='En cours') }}"
-               class="btn {% if filtre_statut == 'En cours' %}btn-warning{% else %}btn-outline-warning{% endif %}">
-                <i class="fas fa-spinner"></i> En cours
-            </a>
-            <a href="{{ url_for('prestations', statut='Terminée') }}"
-               class="btn {% if filtre_statut == 'Terminée' %}btn-success{% else %}btn-outline-success{% endif %}">
-                <i class="fas fa-check"></i> Terminées
-            </a>
-        </div>
-    </div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-calendar-check"></i> Prestations</h1>
+    <a href="/prestations/nouvelle" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> Nouvelle prestation
+    </a>
 </div>
 
 <div class="card">
-    <div class="card-header">
-        <i class="fas fa-list"></i> Liste des prestations
-    </div>
     <div class="card-body">
-        {% if prestations %}
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Titre</th>
-                            <th>Client</th>
-                            <th>Lieu</th>
-                            <th>Tarif</th>
-                            <th>Statut</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for prestation in prestations %}
-                        <tr>
-                            <td>{{ prestation.date_debut.strftime('%d/%m/%Y') if prestation.date_debut else '-' }}</td>
-                            <td>
-                                {{ prestation.client.nom }}{% if prestation.client.prenom %} {{ prestation.client.prenom }}{% endif %}
-                            </td>
-                            <td>{{ prestation.type_prestation or '-' }}</td>
-                            <td>{{ prestation.lieu or '-' }}</td>
-                            <td>
-                                <span class="badge bg-{{ 'success' if prestation.statut == 'Validée' else 'warning' if prestation.statut == 'En attente' else 'info' if prestation.statut == 'En cours' else 'secondary' }}">
-                                    {{ prestation.statut or 'En attente' }}
-                                </span>
-                            </td>
-                            <td>{{ prestation.tarif_total }}€ {% if prestation.tarif_total else '-' %}</td>
-                            <td>
-                                <a href="/prestations/{{ prestation.id }}" class="btn btn-sm btn-outline-primary" title="Voir la fiche">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Client</th>
+                        <th>Type</th>
+                        <th>Lieu</th>
+                        <th>Statut</th>
+                        <th>Tarif</th>
+                        <th style="width: 120px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prestation in prestations %}
+                    <tr>
+                        <td>{{ prestation.date_debut.strftime('%d/%m/%Y') if prestation.date_debut else '-' }}</td>
+                        <td>{{ prestation.client.nom }}{% if prestation.client.prenom %} {{ prestation.client.prenom }}{% endif %}</td>
+                        <td>{{ prestation.type_prestation or '-' }}</td>
+                        <td>{{ prestation.lieu or '-' }}</td>
+                        <td>
+                            <span class="badge bg-{{ 'success' if prestation.statut == 'Validée' else 'warning' if prestation.statut == 'En attente' else 'info' }}">
+                                {{ prestation.statut or 'En attente' }}
+                            </span>
+                        </td>
+                        <td>{{ prestation.tarif_total }}€</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="/prestations/{{ prestation.id }}" class="btn btn-sm btn-outline-primary" title="Voir">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 <a href="/prestations/{{ prestation.id }}/modifier" class="btn btn-sm btn-outline-warning" title="Modifier">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <div class="alert alert-info mb-0">
-                <i class="fas fa-info-circle"></i> Aucune prestation trouvée. Cliquez sur "Nouvelle prestation" pour en ajouter une.
-            </div>
-        {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
-
 {% endblock %}
