@@ -672,7 +672,22 @@ def verifier_statuts_prestations():
     if prestations:
         db.session.commit()
 
-
+def verifier_statuts_prestations():
+    """Met à jour automatiquement les prestations dépassées"""
+    from datetime import datetime
+    today = datetime.now()
+    
+    prestations = Prestation.query.filter(
+        Prestation.statut.in_(['Planifiée', 'En cours', 'Demandée']),
+        Prestation.date_fin < today
+    ).all()
+    
+    for p in prestations:
+        p.statut = 'Terminée'
+        print(f"✅ Prestation {p.id} passée en Terminée")
+    
+    if prestations:
+        db.session.commit()
 
 # ============================================================================
 # LIGNES DE TARIF DE PRESTATION (sauvegardées au niveau de la prestation)
@@ -5519,6 +5534,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
