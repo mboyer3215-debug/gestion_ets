@@ -32,7 +32,7 @@
                     <input type="text" class="form-control" id="client_search" autocomplete="off"
                            placeholder="Rechercher un client..."
                            value="{% if prestation and prestation.client %}{{ prestation.client.nom }}{% if prestation.client.prenom %} {{ prestation.client.prenom }}{% endif %}{% endif %}">
-                    <div id="client_suggestions" class="list-group position-absolute w-100" style="z-index:1050; display:none;"></div>
+                    <div id="client_suggestions" class="list-group position-absolute w-100" style="z-index:1050; display:none; max-height:300px; overflow-y:auto;"></div>
                     <input type="hidden" id="client_id" name="client_id" value="{{ prestation.client_id if prestation else '' }}" required>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -142,8 +142,8 @@
                             <div class="col-md-4 mb-2 horaires-personnalises" style="display:none;">
                                 <label class="form-label">Horaires</label>
                                 <div class="d-flex gap-1">
-                                    <input type="time" class="form-control session-heure-debut" name="sessions_heure_debut[]" value="08:00">
-                                    <input type="time" class="form-control session-heure-fin" name="sessions_heure_fin[]" value="18:00">
+                                    <input type="time" class="form-control form-control-sm session-heure-debut" name="sessions_heure_debut[]" value="08:00">
+                                    <input type="time" class="form-control form-control-sm session-heure-fin" name="sessions_heure_fin[]" value="18:00">
                                 </div>
                             </div>
                         </div>
@@ -171,8 +171,8 @@
                 <label class="form-label fw-bold">Adresse complète</label>
                 <input type="text" class="form-control" id="adresse_prestation_search" autocomplete="off"
                        placeholder="Ex: 10 Rue de la Paix, 75002 Paris"
-                       value="{{ prestation.adresse_prestation if prestation else '' }}">
-                <div id="adresse_suggestions" class="list-group position-absolute w-100" style="z-index:1000; display:none;"></div>
+                       value="{% if prestation %}{{ prestation.adresse_prestation }}{% if prestation.code_postal_prestation %}, {{ prestation.code_postal_prestation }}{% endif %}{% if prestation.ville_prestation %} {{ prestation.ville_prestation }}{% endif %}{% endif %}">
+                <div id="adresse_suggestions" class="list-group position-absolute w-100" style="z-index:1000; display:none; max-height:300px; overflow-y:auto;"></div>
                 <input type="hidden" id="adresse_prestation" name="adresse_prestation" value="{{ prestation.adresse_prestation if prestation else '' }}">
                 <input type="hidden" id="code_postal_prestation" name="code_postal_prestation" value="{{ prestation.code_postal_prestation if prestation else '' }}">
                 <input type="hidden" id="ville_prestation" name="ville_prestation" value="{{ prestation.ville_prestation if prestation else '' }}">
@@ -215,13 +215,14 @@
         </div>
     </div>
 
-    <!-- TARIFICATION -->
+    <!-- TARIFICATION DÉTAILLÉE -->
     <div class="card mb-3">
         <div class="card-header bg-success text-white">
-            <i class="bi bi-currency-euro"></i> Tarification
+            <i class="bi bi-currency-euro"></i> Tarification détaillée
         </div>
         <div class="card-body">
-            <div class="row">
+            <!-- Tarifs simples -->
+            <div class="row mb-3">
                 <div class="col-md-6 mb-2">
                     <label class="form-label">Tarif horaire (€)</label>
                     <input type="number" step="0.01" class="form-control" name="tarif_horaire"
@@ -229,8 +230,88 @@
                 </div>
                 <div class="col-md-6 mb-2">
                     <label class="form-label">Tarif total (€)</label>
-                    <input type="number" step="0.01" class="form-control" name="tarif_total"
+                    <input type="number" step="0.01" class="form-control" id="tarif_total" name="tarif_total"
                            value="{{ prestation.tarif_total if prestation else '' }}">
+                </div>
+            </div>
+
+            <hr>
+            <h6 class="mb-3"><i class="bi bi-table"></i> Détail des tarifs</h6>
+
+            <div id="tarifs-container"></div>
+
+            <button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="ajouterLigneTarif()">
+                <i class="bi bi-plus-circle"></i> Ajouter une ligne
+            </button>
+
+            <!-- Totaux -->
+            <div class="p-3 bg-light rounded">
+                <div class="row">
+                    <div class="col-md-4">
+                        <strong>Total HT :</strong> <span id="total-ht">0.00 €</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Total TVA :</strong> <span id="total-tva">0.00 €</span>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Total TTC :</strong> <span id="total-ttc">0.00 €</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TÂCHES -->
+    <div class="card mb-3">
+        <div class="card-header bg-danger text-white">
+            <i class="bi bi-check2-square"></i> Tâche associée (optionnel)
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Titre de la tâche</label>
+                <input type="text" class="form-control" name="titre_tache"
+                       value="{{ prestation.titre_tache if prestation else '' }}"
+                       placeholder="Ex: Préparer les supports de formation">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold">Description de la tâche</label>
+                <textarea class="form-control" name="description_tache" rows="2"
+                          placeholder="Détails de ce qui doit être fait">{{ prestation.description_tache if prestation else '' }}</textarea>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Date de début</label>
+                    <input type="datetime-local" class="form-control" name="date_debut_tache"
+                           value="{{ prestation.date_debut_tache.strftime('%Y-%m-%dT%H:%M') if prestation and prestation.date_debut_tache else '' }}">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Date d'échéance</label>
+                    <input type="datetime-local" class="form-control" name="date_echeance_tache"
+                           value="{{ prestation.date_echeance_tache.strftime('%Y-%m-%dT%H:%M') if prestation and prestation.date_echeance_tache else '' }}">
+                    <small class="text-muted">Les tâches avec échéance proche apparaissent sur le tableau de bord</small>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Priorité</label>
+                    <select class="form-select" name="priorite_tache">
+                        <option value="Basse" {% if prestation and prestation.priorite_tache == 'Basse' %}selected{% endif %}>Basse</option>
+                        <option value="Moyenne" {% if not prestation or prestation.priorite_tache == 'Moyenne' %}selected{% endif %}>Moyenne</option>
+                        <option value="Haute" {% if prestation and prestation.priorite_tache == 'Haute' %}selected{% endif %}>Haute</option>
+                    </select>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Statut</label>
+                    <select class="form-select" name="statut_tache">
+                        <option value="À faire" {% if not prestation or prestation.statut_tache == 'À faire' %}selected{% endif %}>À faire</option>
+                        <option value="En cours" {% if prestation and prestation.statut_tache == 'En cours' %}selected{% endif %}>En cours</option>
+                        <option value="Terminée" {% if prestation and prestation.statut_tache == 'Terminée' %}selected{% endif %}>Terminée</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -258,7 +339,8 @@ window.PRESTATION_SESSIONS_DATA = [
                 id: {{ session.id }},
                 date_debut: '{{ session.date_debut.isoformat() if session.date_debut else "" }}',
                 date_fin: '{{ session.date_fin.isoformat() if session.date_fin else "" }}',
-                duree_heures: {{ session.duree_heures if session.duree_heures else 'null' }}
+                duree_heures: {{ session.duree_heures if session.duree_heures else 'null' }},
+                journee_complete: {{ 'true' if session.journee_complete else 'false' }}
             }{% if not loop.last %},{% endif %}
         {% endfor %}
     {% endif %}
@@ -266,21 +348,24 @@ window.PRESTATION_SESSIONS_DATA = [
 
 const prestationsStructure = {
     'Formation': {
-        'Secourisme': ['FI SST', 'MAC SST'],
-        'Incendie': ['EPI', 'Extincteur', 'SSIAP 1'],
-        'Prévention': ['Gestes et Postures']
+        'Secourisme': ['FI SST', 'MAC SST', 'Gestes de Premiers Secours'],
+        'Incendie': ['EPI', 'Extincteur', 'Evacuation', 'SSIAP 1', 'SSIAP 2'],
+        'Prévention': ['Gestes et Postures', 'TMS', 'PRAP']
     },
     'Service': {
-        'Prévention ERP': ['Dossier sécurité', 'Notice accessibilité']
+        'Prévention ERP': ['Dossier sécurité', 'Notice accessibilité', 'Notice de sécurité']
     },
     'Audit': {
-        'Risque professionnel': ['DUERP'],
-        'Risque incendie': ['RCCI']
+        'Risque professionnel': ['DUERP', 'Evaluation des risques'],
+        'Risque incendie': ['RCCI', 'Audit incendie']
     }
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    // SESSIONS
+    
+    // ============================================================================
+    // GESTION DES SESSIONS
+    // ============================================================================
     const sessionsContainer = document.getElementById('sessions-container');
     const sessionTemplate = document.getElementById('session-template');
     let sessionCounter = 0;
@@ -288,7 +373,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function ajouterSession(data = null) {
         sessionCounter++;
         const clone = sessionTemplate.content.cloneNode(true);
-        const sessionItem = clone.querySelector('.session-item');
         
         clone.querySelector('.session-numero').textContent = sessionCounter;
         
@@ -297,6 +381,16 @@ document.addEventListener('DOMContentLoaded', function() {
             clone.querySelector('.session-date-fin').value = data.date_fin ? data.date_fin.split('T')[0] : '';
             clone.querySelector('.session-duree').value = data.duree_heures || '';
             clone.querySelector('.session-id').value = data.id || '';
+            
+            const heureDebut = data.date_debut ? data.date_debut.split('T')[1]?.substring(0, 5) || '08:00' : '08:00';
+            const heureFin = data.date_fin ? data.date_fin.split('T')[1]?.substring(0, 5) || '18:00' : '18:00';
+            clone.querySelector('.session-heure-debut').value = heureDebut;
+            clone.querySelector('.session-heure-fin').value = heureFin;
+            
+            if (data.journee_complete) {
+                clone.querySelector('.session-creneau').value = 'Journée';
+                clone.querySelector('.session-journee-complete').value = '1';
+            }
         }
         
         sessionsContainer.appendChild(clone);
@@ -306,10 +400,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function bindSessionEvents(sessionEl) {
         const creneauSelect = sessionEl.querySelector('.session-creneau');
         const horairesDiv = sessionEl.querySelector('.horaires-personnalises');
+        const journeeCompleteInput = sessionEl.querySelector('.session-journee-complete');
         const btnSupprimer = sessionEl.querySelector('.btn-supprimer-session');
         
         creneauSelect.addEventListener('change', function() {
-            horairesDiv.style.display = this.value === 'Personnalisé' ? 'block' : 'none';
+            if (this.value === 'Personnalisé') {
+                horairesDiv.style.display = 'block';
+                journeeCompleteInput.value = '';
+            } else {
+                horairesDiv.style.display = 'none';
+                if (this.value === 'Journée') {
+                    journeeCompleteInput.value = '1';
+                } else {
+                    journeeCompleteInput.value = '';
+                }
+            }
         });
         
         btnSupprimer.addEventListener('click', function() {
@@ -319,6 +424,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Au moins une session requise');
             }
         });
+        
+        // Init affichage horaires
+        if (creneauSelect.value === 'Personnalisé') {
+            horairesDiv.style.display = 'block';
+        }
     }
 
     document.getElementById('btn-ajouter-session').addEventListener('click', () => ajouterSession());
@@ -331,10 +441,16 @@ document.addEventListener('DOMContentLoaded', function() {
         ajouterSession();
     }
 
+    // ============================================================================
     // THÈME/DOMAINE/TYPE
+    // ============================================================================
     const themeSelect = document.getElementById('theme_prestation');
     const domaineSelect = document.getElementById('domaine_prestation');
     const typeSelect = document.getElementById('type_prestation');
+    
+    const initialTheme = themeSelect.value;
+    const initialDomaine = '{{ prestation.domaine_prestation if prestation else "" }}';
+    const initialType = '{{ prestation.type_prestation if prestation else "" }}';
 
     themeSelect.addEventListener('change', function() {
         domaineSelect.innerHTML = '<option value="">-- Sélectionnez --</option>';
@@ -363,8 +479,22 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     });
+    
+    // Init pour édition
+    if (initialTheme) {
+        themeSelect.dispatchEvent(new Event('change'));
+        if (initialDomaine) {
+            domaineSelect.value = initialDomaine;
+            domaineSelect.dispatchEvent(new Event('change'));
+            if (initialType) {
+                typeSelect.value = initialType;
+            }
+        }
+    }
 
+    // ============================================================================
     // RECHERCHE CLIENT
+    // ============================================================================
     const clientSearch = document.getElementById('client_search');
     const clientSuggestions = document.getElementById('client_suggestions');
     const clientIdHidden = document.getElementById('client_id');
@@ -379,29 +509,37 @@ document.addEventListener('DOMContentLoaded', function() {
         
         clearTimeout(debounce);
         debounce = setTimeout(async () => {
-            const res = await fetch(`/api/rechercher-clients?q=${encodeURIComponent(query)}`);
-            const data = await res.json();
-            
-            if (data.success && data.clients.length > 0) {
-                clientSuggestions.innerHTML = '';
-                data.clients.forEach(client => {
-                    const item = document.createElement('button');
-                    item.type = 'button';
-                    item.className = 'list-group-item list-group-item-action';
-                    item.textContent = client.display;
-                    item.onclick = () => {
-                        clientSearch.value = client.display;
-                        clientIdHidden.value = client.id;
-                        clientSuggestions.style.display = 'none';
-                    };
-                    clientSuggestions.appendChild(item);
-                });
-                clientSuggestions.style.display = 'block';
+            try {
+                const res = await fetch(`/api/rechercher-clients?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                
+                if (data.success && data.clients.length > 0) {
+                    clientSuggestions.innerHTML = '';
+                    data.clients.forEach(client => {
+                        const item = document.createElement('button');
+                        item.type = 'button';
+                        item.className = 'list-group-item list-group-item-action';
+                        item.textContent = client.display;
+                        item.onclick = () => {
+                            clientSearch.value = client.display;
+                            clientIdHidden.value = client.id;
+                            clientSuggestions.style.display = 'none';
+                        };
+                        clientSuggestions.appendChild(item);
+                    });
+                    clientSuggestions.style.display = 'block';
+                } else {
+                    clientSuggestions.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Erreur recherche client:', error);
             }
         }, 300);
     });
 
-    // ADRESSE
+    // ============================================================================
+    // ADRESSE AUTOCOMPLÉTION
+    // ============================================================================
     const adresseSearch = document.getElementById('adresse_prestation_search');
     const adresseSuggestions = document.getElementById('adresse_suggestions');
     
@@ -414,31 +552,107 @@ document.addEventListener('DOMContentLoaded', function() {
         
         clearTimeout(debounce);
         debounce = setTimeout(async () => {
-            const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=10`;
-            const res = await fetch(url);
-            const data = await res.json();
-            
-            if (data.features.length > 0) {
-                adresseSuggestions.innerHTML = '';
-                data.features.forEach(feature => {
-                    const props = feature.properties;
-                    const item = document.createElement('button');
-                    item.type = 'button';
-                    item.className = 'list-group-item list-group-item-action';
-                    item.innerHTML = `<strong>${props.name}</strong><br><small>${props.postcode} ${props.city}</small>`;
-                    item.onclick = () => {
-                        adresseSearch.value = `${props.name}, ${props.postcode} ${props.city}`;
-                        document.getElementById('adresse_prestation').value = props.name;
-                        document.getElementById('code_postal_prestation').value = props.postcode;
-                        document.getElementById('ville_prestation').value = props.city;
-                        adresseSuggestions.style.display = 'none';
-                    };
-                    adresseSuggestions.appendChild(item);
-                });
-                adresseSuggestions.style.display = 'block';
+            try {
+                const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(query)}&limit=10`;
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (data.features.length > 0) {
+                    adresseSuggestions.innerHTML = '';
+                    data.features.forEach(feature => {
+                        const props = feature.properties;
+                        const item = document.createElement('button');
+                        item.type = 'button';
+                        item.className = 'list-group-item list-group-item-action';
+                        item.innerHTML = `<strong>${props.name}</strong><br><small class="text-muted">${props.postcode} ${props.city}</small>`;
+                        item.onclick = () => {
+                            adresseSearch.value = `${props.name}, ${props.postcode} ${props.city}`;
+                            document.getElementById('adresse_prestation').value = props.name;
+                            document.getElementById('code_postal_prestation').value = props.postcode;
+                            document.getElementById('ville_prestation').value = props.city;
+                            adresseSuggestions.style.display = 'none';
+                        };
+                        adresseSuggestions.appendChild(item);
+                    });
+                    adresseSuggestions.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Erreur recherche adresse:', error);
             }
         }, 300);
     });
+
+    // ============================================================================
+    // TARIFS DÉTAILLÉS
+    // ============================================================================
 });
+
+// Fonctions globales tarifs
+function ajouterLigneTarif() {
+    const container = document.getElementById('tarifs-container');
+    const ligne = document.createElement('div');
+    ligne.className = 'row mb-2 tarif-item';
+    ligne.innerHTML = `
+        <div class="col-md-3">
+            <input type="text" class="form-control form-control-sm" name="tarif_description[]" placeholder="Description">
+        </div>
+        <div class="col-md-2">
+            <input type="number" step="0.01" class="form-control form-control-sm tarif-qte" name="tarif_quantite[]" placeholder="Qté" value="1">
+        </div>
+        <div class="col-md-2">
+            <input type="number" step="0.01" class="form-control form-control-sm tarif-prix" name="tarif_prix_unitaire[]" placeholder="PU HT">
+        </div>
+        <div class="col-md-2">
+            <input type="number" step="0.01" class="form-control form-control-sm tarif-total" placeholder="Total HT" readonly>
+        </div>
+        <div class="col-md-2">
+            <input type="number" step="0.01" class="form-control form-control-sm" name="tarif_tva[]" placeholder="TVA %" value="20">
+        </div>
+        <div class="col-md-1">
+            <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.tarif-item').remove(); calculerTotaux();">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
+    `;
+    container.appendChild(ligne);
+    
+    // Attacher événements
+    ligne.querySelectorAll('.tarif-qte, .tarif-prix').forEach(input => {
+        input.addEventListener('input', function() {
+            const row = this.closest('.tarif-item');
+            const qte = parseFloat(row.querySelector('.tarif-qte').value) || 0;
+            const prix = parseFloat(row.querySelector('.tarif-prix').value) || 0;
+            row.querySelector('.tarif-total').value = (qte * prix).toFixed(2);
+            calculerTotaux();
+        });
+    });
+    
+    ligne.querySelector('[name="tarif_tva[]"]').addEventListener('input', calculerTotaux);
+}
+
+function calculerTotaux() {
+    let totalHT = 0;
+    let totalTVA = 0;
+    
+    document.querySelectorAll('.tarif-item').forEach(row => {
+        const montant = parseFloat(row.querySelector('.tarif-total').value) || 0;
+        const tva = parseFloat(row.querySelector('[name="tarif_tva[]"]').value) || 0;
+        
+        totalHT += montant;
+        totalTVA += (montant * tva / 100);
+    });
+    
+    const totalTTC = totalHT + totalTVA;
+    
+    document.getElementById('total-ht').textContent = totalHT.toFixed(2) + ' €';
+    document.getElementById('total-tva').textContent = totalTVA.toFixed(2) + ' €';
+    document.getElementById('total-ttc').textContent = totalTTC.toFixed(2) + ' €';
+    document.getElementById('tarif_total').value = totalTTC.toFixed(2);
+}
+
+// Ajouter une ligne par défaut au chargement
+setTimeout(() => {
+    ajouterLigneTarif();
+}, 100);
 </script>
 {% endblock %}
