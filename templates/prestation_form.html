@@ -182,8 +182,8 @@
                                     </div>
                                 </div>
 
-                                <!-- Case journée entière masquée (gérée automatiquement par le créneau) -->
-                                <input class="session-journee-complete" type="hidden" name="sessions_journee_complete[]" value="">
+                                <!-- Les horaires sont gérés automatiquement selon le créneau -->
+                                <input type="hidden" class="session-journee-complete" name="sessions_journee_complete[]" value="">
 
                                 <!-- Champs cachés pour l'ID de session (édition) -->
                                 <input type="hidden" class="session-id" name="sessions_id[]" value="">
@@ -1440,6 +1440,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 </script>
 {% endblock %}
+
 
 
 
