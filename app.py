@@ -3729,7 +3729,52 @@ def notifications_historique():
     notifications = Notification.query.order_by(Notification.date_programmee.desc()).limit(100).all()
     return render_template('notifications_historique.html', notifications=notifications)
 
-
+@app.route('/parametres', methods=['GET', 'POST'])
+@login_required
+def parametres():
+    """Page de configuration de l'application"""
+    
+    if request.method == 'POST':
+        section = request.form.get('section')
+        
+        if section == 'entreprise':
+            # Sauvegarder config entreprise
+            app.config['NOM_ENTREPRISE'] = request.form.get('nom_entreprise', '')
+            app.config['SIRET'] = request.form.get('siret', '')
+            app.config['ADRESSE_ENTREPRISE'] = request.form.get('adresse_entreprise', '')
+            app.config['CODE_POSTAL_ENTREPRISE'] = request.form.get('code_postal_entreprise', '')
+            app.config['VILLE_ENTREPRISE'] = request.form.get('ville_entreprise', '')
+            app.config['PAYS_ENTREPRISE'] = request.form.get('pays_entreprise', 'France')
+            app.config['TELEPHONE_ENTREPRISE'] = request.form.get('telephone_entreprise', '')
+            app.config['EMAIL_ENTREPRISE'] = request.form.get('email_entreprise', '')
+            
+            flash('Informations entreprise enregistrées', 'success')
+        
+        elif section == 'facture':
+            app.config['PREFIXE_FACTURE'] = request.form.get('prefixe_facture', 'FACT')
+            app.config['NUMERO_FACTURE_ACTUEL'] = int(request.form.get('numero_facture_actuel', 1))
+            app.config['CONDITIONS_PAIEMENT'] = request.form.get('conditions_paiement', '')
+            app.config['MENTIONS_LEGALES_FACTURE'] = request.form.get('mentions_legales_facture', '')
+            
+            flash('Configuration factures enregistrée', 'success')
+        
+        elif section == 'devis':
+            app.config['PREFIXE_DEVIS'] = request.form.get('prefixe_devis', 'DEV')
+            app.config['NUMERO_DEVIS_ACTUEL'] = int(request.form.get('numero_devis_actuel', 1))
+            app.config['VALIDITE_DEVIS'] = int(request.form.get('validite_devis', 30))
+            app.config['CONDITIONS_GENERALES_DEVIS'] = request.form.get('conditions_generales_devis', '')
+            
+            flash('Configuration devis enregistrée', 'success')
+        
+        elif section == 'api':
+            app.config['GOOGLE_CALENDAR_ID'] = request.form.get('google_calendar_id', 'primary')
+            
+            flash('Configuration API enregistrée', 'success')
+        
+        return redirect(url_for('parametres'))
+    
+    # Passer la config au template
+    return render_template('parametres.html', config=app.config)
 # ============================================================================
 # FONCTIONS RECHERCHE ENTREPRISES (OpenStreetMap)
 # ============================================================================
@@ -5534,6 +5579,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
