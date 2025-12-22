@@ -1488,9 +1488,7 @@ def modifier_statut_prestation(prestation_id):
 
     return redirect(url_for('prestation_detail', prestation_id=prestation.id))
 
-@app.route('/prestation/<int:prestation_id>')
-def prestation_detail(prestation_id):
-    return prestation_detail(prestation_id)
+
     """Créer une nouvelle prestation"""
     if request.method == 'POST':
         # Générer automatiquement le titre à partir du type ou du thème
@@ -5582,6 +5580,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
