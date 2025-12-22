@@ -18,7 +18,7 @@
     <div class="col-lg-2 col-md-4 col-sm-6">
         <div class="kpi-card kpi-green">
             <div class="kpi-number">{{ stats.nb_prestations }}</div>
-            <div class="kpi-label">Total</div>
+            <div class="kpi-label">Total {{ now().year }}</div>
         </div>
     </div>
     <div class="col-lg-2 col-md-4 col-sm-6">
@@ -30,14 +30,22 @@
     <div class="col-lg-2 col-md-4 col-sm-6">
         <div class="kpi-card kpi-cyan">
             <div class="kpi-number">{{ stats.nb_ce_mois }}</div>
-            <div class="kpi-label">Ce mois</div>
+            <div class="kpi-label">{{ now().strftime('%B %Y')|capitalize }}</div>
         </div>
     </div>
     <div class="col-lg-2 col-md-4 col-sm-6">
         <div class="kpi-card kpi-red">
-            <div class="kpi-number" style="font-size: 2rem;">{{ stats.ca_total }}€</div>
-            <div class="kpi-label">CA total</div>
+            <div class="kpi-number" style="font-size: 2rem;">{{ stats.ca_total|int }} €</div>
+            <div class="kpi-label">CA {{ now().year }}</div>
         </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+        <div class="kpi-card kpi-purple">
+            <div class="kpi-number">{{ stats.nb_factures_payees }}</div>
+            <div class="kpi-label">Fact. payées</div>
+        </div>
+    </div>
+</div>
     </div>
     <div class="col-lg-2 col-md-4 col-sm-6">
         <div class="kpi-card kpi-purple">
