@@ -30,7 +30,15 @@
     <div class="col-lg-2 col-md-4 col-sm-6">
         <div class="kpi-card kpi-cyan">
             <div class="kpi-number">{{ stats.nb_ce_mois }}</div>
-            <div class="kpi-label">{{ now().strftime('%B %Y')|capitalize }}</div>
+            <div class="kpi-label">
+            {% set mois_fr = {
+                'January': 'Janvier', 'February': 'Février', 'March': 'Mars',
+                'April': 'Avril', 'May': 'Mai', 'June': 'Juin',
+                'July': 'Juillet', 'August': 'Août', 'September': 'Septembre',
+                'October': 'Octobre', 'November': 'Novembre', 'December': 'Décembre'
+            } %}
+            {{ mois_fr[now().strftime('%B')] }} {{ now().year }}
+        </div>
         </div>
     </div>
     <div class="col-lg-2 col-md-4 col-sm-6">
@@ -38,14 +46,6 @@
             <div class="kpi-number" style="font-size: 2rem;">{{ stats.ca_total|int }} €</div>
             <div class="kpi-label">CA {{ now().year }}</div>
         </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="kpi-card kpi-purple">
-            <div class="kpi-number">{{ stats.nb_factures_payees }}</div>
-            <div class="kpi-label">Fact. payées</div>
-        </div>
-    </div>
-</div>
     </div>
     <div class="col-lg-2 col-md-4 col-sm-6">
         <div class="kpi-card kpi-purple">
@@ -74,7 +74,7 @@
         {% if taches_urgentes and taches_urgentes|length > 0 %}
             <div class="list-group">
                 {% for tache in taches_urgentes %}
-                <a href="/prestations/{{ tache.id }}/modifier" class="list-group-item list-group-item-action">
+                <a href="/prestation/{{ tache.id }}/modifier" class="list-group-item list-group-item-action">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <h6 class="mb-1">{{ tache.titre_tache or 'Tâche sans titre' }}</h6>
@@ -114,12 +114,12 @@
             </div>
             <div class="modal-body">
                 <div class="d-grid gap-3">
-                    <a href="#" id="btnCreerPrestation" class="btn btn-lg btn-success">
+                    <button type="button" class="btn btn-lg btn-success" id="btnCreerPrestation">
                         <i class="bi bi-calendar-check"></i> Nouvelle Prestation
-                    </a>
-                    <a href="#" id="btnCreerIndispo" class="btn btn-lg btn-warning">
+                    </button>
+                    <button type="button" class="btn btn-lg btn-warning" id="btnCreerIndispo">
                         <i class="bi bi-calendar-x"></i> Nouvelle Indisponibilité
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -142,6 +142,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
     const modal = new bootstrap.Modal(document.getElementById('modalChoixCreation'));
+    let dateCliquee = '';
     
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridWeek',
@@ -156,20 +157,28 @@ document.addEventListener('DOMContentLoaded', function() {
             week: 'Semaine',
             month: 'Mois'
         },
-        events: '/api/prestation/calendrier',
+        events: '/api/prestations/calendrier',
         eventClick: function(info) {
             window.location.href = '/prestation/' + info.event.id + '/modifier';
         },
         dateClick: function(info) {
+            dateCliquee = info.dateStr;
             const date = new Date(info.dateStr);
             document.getElementById('dateSelectionnee').textContent = date.toLocaleDateString('fr-FR');
-            document.getElementById('btnCreerPrestation').href = '/prestations/nouvelle?date=' + info.dateStr;
-            document.getElementById('btnCreerIndispo').href = '/indisponibilite/nouvelle?date=' + info.dateStr;
             modal.show();
         }
     });
     
     calendar.render();
+    
+    // Boutons modal
+    document.getElementById('btnCreerPrestation').addEventListener('click', function() {
+        window.location.href = '/prestation/nouvelle?date=' + dateCliquee;
+    });
+    
+    document.getElementById('btnCreerIndispo').addEventListener('click', function() {
+        window.location.href = '/indisponibilite/nouvelle?date=' + dateCliquee;
+    });
 });
 </script>
 {% endblock %}
