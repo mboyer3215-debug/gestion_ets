@@ -33,9 +33,20 @@
                         <td>{{ prestation.type_prestation or '-' }}</td>
                         <td>{{ prestation.lieu or '-' }}</td>
                         <td>
-                            <span class="badge bg-{{ 'success' if prestation.statut == 'Validée' else 'warning' if prestation.statut == 'En attente' else 'info' }}">
-                                {{ prestation.statut or 'En attente' }}
-                            </span>
+                            {% set statut = prestation.statut or 'En attente' %}
+                            {% if statut == 'Demandée' %}
+                                <span class="badge bg-secondary">{{ statut }}</span>
+                            {% elif statut == 'Planifiée' %}
+                                <span class="badge bg-primary">{{ statut }}</span>
+                            {% elif statut == 'En cours' %}
+                                <span class="badge bg-info">{{ statut }}</span>
+                            {% elif statut == 'Terminée' %}
+                                <span class="badge bg-success">{{ statut }}</span>
+                            {% elif statut == 'Annulée' %}
+                                <span class="badge bg-danger">{{ statut }}</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ statut }}</span>
+                            {% endif %}
                         </td>
                         <td>{{ prestation.tarif_total }}€</td>
                         <td>
