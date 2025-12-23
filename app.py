@@ -2333,12 +2333,38 @@ def statistiques():
             fin_mois = datetime(annee_en_cours, mois + 1, 1)
 
         # Récupérer les prestations du mois
-        prestations_mois = Prestation.query.filter(
+        nb_ce_mois_count = Prestation.query.filter(
             Prestation.date_debut >= debut_mois,
             Prestation.date_debut < fin_mois
-            Prestation.statut != 'Annulée'
+        ).count()
+        
+        print(f"🔍 DEBUG CE MOIS:")
+        print(f"  Début mois: {debut_mois}")
+        print(f"  Fin mois: {fin_mois}")
+        print(f"  Prestations trouvées: {nb_ce_mois_count}")
+        
+        # Afficher les prestations de décembre
+        prestations_decembre = Prestation.query.filter(
+            Prestation.date_debut >= debut_mois,
+            Prestation.date_debut < fin_mois
+        ).all()
+        for p in prestations_decembre:
+            print(f"  - {p.id}: {p.date_debut} - {p.type_prestation}")
+        
+        stats = {
+            'nb_clients': Client.query.filter_by(actif=True).count(),
+            'nb_prestations': Prestation.query.filter(
+                Prestation.date_debut >= debut_annee,
+                Prestation.date_debut <= fin_annee
             ).count(),
-
+            'nb_en_cours': Prestation.query.filter_by(statut='En cours').count(),
+            'nb_ce_mois': nb_ce_mois_count,
+            'ca_total': int(db.session.query(func.sum(Prestation.tarif_total)).filter(
+                Prestation.date_debut >= debut_annee,
+                Prestation.date_debut <= fin_annee
+            ).scalar() or 0),
+            'nb_factures_payees': Facture.query.filter_by(statut='Payée').count() if 'Facture' in globals() else 0
+        }
         # Nombre de prestations du mois
         nb_prestations = len(prestations_mois)
 
@@ -5580,6 +5606,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
