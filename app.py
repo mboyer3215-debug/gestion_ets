@@ -2335,9 +2335,9 @@ def statistiques():
         # Récupérer les prestations du mois
         prestations_mois = Prestation.query.filter(
             Prestation.date_debut >= debut_mois,
-            Prestation.date_debut < fin_mois,
+            Prestation.date_debut < fin_mois
             Prestation.statut != 'Annulée'
-        ).all()
+            ).count(),
 
         # Nombre de prestations du mois
         nb_prestations = len(prestations_mois)
@@ -5580,6 +5580,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
