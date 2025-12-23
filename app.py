@@ -1694,7 +1694,6 @@ def prestation_nouvelle():
 
 @app.route('/prestation/<int:prestation_id>/modifier', methods=['GET', 'POST'])
 def prestation_modifier(prestation_id):
-    return prestation_modifier(prestation_id)
     """Modifier une prestation"""
     prestation = Prestation.query.get_or_404(prestation_id)
 
@@ -5581,6 +5580,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
