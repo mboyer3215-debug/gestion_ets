@@ -38,7 +38,7 @@
                 'October': 'Octobre', 'November': 'Novembre', 'December': 'Décembre'
             } %}
             {{ mois_fr[now().strftime('%B')] }} {{ now().year }}
-        </div>
+            </div>
         </div>
     </div>
     <div class="col-lg-2 col-md-4 col-sm-6">
@@ -130,8 +130,105 @@
 {% block extra_css %}
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
 <style>
-    .fc-event { cursor: pointer; }
-    .fc-daygrid-day { cursor: pointer; }
+    /* Style Google-like pour le calendrier */
+    .fc { 
+        font-family: 'Segoe UI', 'Google Sans', sans-serif;
+        border: none;
+        background: white;
+        border-radius: 12px;
+        padding: 12px;
+    }
+    
+    .fc-header-toolbar {
+        margin-bottom: 1.5rem;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .fc-button {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border: none;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-weight: 500;
+        text-transform: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: all 0.2s;
+    }
+    
+    .fc-button:hover {
+        background: linear-gradient(135deg, #764ba2, #667eea);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        transform: translateY(-1px);
+    }
+    
+    .fc-button-active {
+        background: linear-gradient(135deg, #764ba2, #667eea) !important;
+    }
+    
+    .fc-col-header-cell {
+        background: #f8f9fa;
+        font-weight: 600;
+        padding: 12px;
+        border: none;
+        color: #5f6368;
+        font-size: 0.875rem;
+    }
+    
+    .fc-daygrid-day {
+        cursor: pointer;
+        transition: background 0.15s;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .fc-daygrid-day:hover {
+        background: #f8f9fa;
+    }
+    
+    .fc-daygrid-day-number {
+        padding: 8px;
+        font-weight: 500;
+        color: #3c4043;
+    }
+    
+    .fc-day-today {
+        background: #e8f0fe !important;
+    }
+    
+    .fc-day-today .fc-daygrid-day-number {
+        background: #1a73e8;
+        color: white;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .fc-event {
+        cursor: pointer;
+        border-radius: 6px;
+        padding: 3px 6px;
+        font-size: 0.85rem;
+        border: none;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        transition: all 0.2s;
+        margin-bottom: 2px;
+    }
+    
+    .fc-event:hover {
+        box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+        transform: translateY(-1px);
+    }
+    
+    .fc-daygrid-event-dot {
+        display: none;
+    }
+    
+    .fc-event-title {
+        font-weight: 500;
+    }
 </style>
 {% endblock %}
 
@@ -158,14 +255,29 @@ document.addEventListener('DOMContentLoaded', function() {
             month: 'Mois'
         },
         events: '/api/prestations/calendrier',
+        
+        // Clic sur prestation → Ouvre le DÉTAIL
         eventClick: function(info) {
             window.location.href = '/prestation/' + info.event.id;
         },
+        
+        // Clic sur jour vide → Modal choix
         dateClick: function(info) {
             dateCliquee = info.dateStr;
             const date = new Date(info.dateStr);
             document.getElementById('dateSelectionnee').textContent = date.toLocaleDateString('fr-FR');
             modal.show();
+        },
+        
+        // Hauteur automatique
+        height: 'auto',
+        
+        // Affichage des événements
+        displayEventTime: true,
+        eventTimeFormat: {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
         }
     });
     
