@@ -2345,8 +2345,8 @@ def statistiques():
             # print(f"🔍 Prestations En cours: {nb_en_cours}")
             
             # Afficher TOUS les statuts existants
-            statuts_uniques = db.session.query(Prestation.statut).distinct().all()
-            print(f"🔍 Statuts dans la BDD: {[s[0] for s in statuts_uniques]}")
+            # statuts_uniques = db.session.query(Prestation.statut).distinct().all()
+           # print(f"🔍 Statuts dans la BDD: {[s[0] for s in statuts_uniques]}")
             
             'nb_ce_mois': nb_ce_mois_count,
             'ca_total': int(db.session.query(func.sum(Prestation.tarif_total)).filter(
@@ -5596,6 +5596,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
