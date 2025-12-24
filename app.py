@@ -1912,24 +1912,35 @@ def indisponibilite():
     indisponibilites = Indisponibilite.query.order_by(Indisponibilite.date_debut.desc()).all()
     return render_template('indisponibilite.html', indisponibilites=indisponibilites)
 
-@app.route('/indisponibilite/creer', methods=['POST'])
-def creer_indisponibilite():
-    """Créer une nouvelle période d'indisponibilité sur tous les calendriers"""
-    try:
-        date_debut = datetime.strptime(request.form['date_debut'], '%Y-%m-%d').date()
-        date_fin = datetime.strptime(request.form['date_fin'], '%Y-%m-%d').date()
-        motif = request.form['motif']
-        note = request.form.get('note', '')
-
-        # Créer l'indisponibilité
-        indispo = Indisponibilite(
-            date_debut=date_debut,
-            date_fin=date_fin,
-            motif=motif,
-            note=note
-        )
-        db.session.add(indispo)
-        db.session.flush()
+@app.route('/indisponibilite/nouvelle', methods=['GET', 'POST'])
+@login_required
+def indisponibilite_nouvelle():
+    """Créer une nouvelle indisponibilité"""
+    if request.method == 'POST':
+        date_debut_str = request.form.get('date_debut')
+        date_fin_str = request.form.get('date_fin')
+        motif = request.form.get('motif')
+        
+        if date_debut_str:
+            date_debut = datetime.strptime(date_debut_str, '%Y-%m-%dT%H:%M')
+            date_fin = datetime.strptime(date_fin_str, '%Y-%m-%dT%H:%M') if date_fin_str else date_debut
+            
+            indispo = Indisponibilite(
+                date_debut=date_debut,
+                date_fin=date_fin,
+                motif=motif
+            )
+            
+            db.session.add(indispo)
+            db.session.commit()
+            
+            flash('Indisponibilité créée avec succès', 'success')
+            return redirect(url_for('index'))
+    
+    # GET - Pré-remplir avec la date cliquée si fournie
+    date_param = request.args.get('date')
+    
+    return render_template('indisponibilite_form.html', indisponibilite=None, date_prefill=date_param)
 
         # Synchroniser avec Google Calendar sur TOUS les calendriers filtrés
         gcal_events_dict = {}
@@ -5599,6 +5610,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
