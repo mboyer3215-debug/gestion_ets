@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         events: '/api/prestations/calendrier',
         eventClick: function(info) {
-            window.location.href = '/prestation/' + info.event.id + '/modifier';
+            window.location.href = '/prestation/' + info.event.id;
         },
         dateClick: function(info) {
             dateCliquee = info.dateStr;
