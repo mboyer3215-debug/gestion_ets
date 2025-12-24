@@ -258,8 +258,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Clic sur prestation → Ouvre le DÉTAIL
         eventClick: function(info) {
-            window.location.href = '/prestation/' + info.event.id;
+            window.location.href = '/prestation/' + info.event.id;  // ← DÉTAIL
         },
+
         
         // Clic sur jour vide → Modal choix
         dateClick: function(info) {
