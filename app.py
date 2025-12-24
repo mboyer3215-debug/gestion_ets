@@ -920,88 +920,78 @@ def check_login():
         return redirect(url_for('login'))
 @app.route('/')
 @login_required
+@app.route('/')
+@login_required
 def index():
     """Page d'accueil - Tableau de bord"""
-    verifier_statuts_prestations()  # ← AJOUTEZ CETTE LIGNE
-    # Statistiques
-    total_clients = Client.query.filter_by(actif=True).count()
-    total_prestations = Prestation.query.count()
-
-    # Prestations à venir (7 prochains jours)
-    date_limite = datetime.now() + timedelta(days=7)
-    prestations_a_venir = Prestation.query.filter(
-        Prestation.date_debut >= datetime.now(),
-        Prestation.date_debut <= date_limite,
-        Prestation.statut != 'Annulée'
-    ).order_by(Prestation.date_debut).all()
-
-    # Prestations en cours
-    prestations_en_cours = Prestation.query.filter_by(statut='En cours').count()
-
-    # Prestations en attente (Planifiées)
-    prestations_planifiees = Prestation.query.filter_by(statut='Planifiée').count()
-
-    # CA du mois en cours
-    debut_mois = datetime.now().replace(day=1, hour=0, minute=0, second=0)
-    ca_mois = db.session.query(db.func.sum(Prestation.tarif_total)).filter(
-        Prestation.date_debut >= debut_mois,
-        Prestation.statut != 'Annulée'
-    ).scalar() or 0
-
-    # Vérifier la dernière sauvegarde (alerte si > 7 jours)
-    derniere_sauvegarde = Sauvegarde.query.order_by(Sauvegarde.date_sauvegarde.desc()).first()
-    afficher_alerte_backup = False
-    jours_depuis_backup = None
-
-    if derniere_sauvegarde:
-        delta = datetime.now() - derniere_sauvegarde.date_sauvegarde
-        jours_depuis_backup = delta.days
-        if jours_depuis_backup > 7:
-            afficher_alerte_backup = True
+    verifier_statuts_prestations()
+    
+    # Dates pour filtres
+    now = datetime.now()
+    debut_annee = datetime(now.year, 1, 1)
+    fin_annee = datetime(now.year, 12, 31, 23, 59, 59)
+    debut_mois = datetime(now.year, now.month, 1)
+    
+    if now.month == 12:
+        fin_mois = datetime(now.year + 1, 1, 1)
     else:
-        afficher_alerte_backup = True  # Aucune sauvegarde jamais effectuée
-
-    # Statistiques de prospection
-    total_prospects = Client.query.filter_by(actif=True, statut_client='Prospect').count()
-    total_clients_confirmes = Client.query.filter_by(actif=True, statut_client='Client').count()
-
-    # Calculer le taux de conversion
-    total_tous = total_prospects + total_clients_confirmes
-    taux_conversion = (total_clients_confirmes / total_tous * 100) if total_tous > 0 else 0
-
-    # Conversions ce mois (clients avec date_conversion dans le mois en cours)
-    conversions_ce_mois = Client.query.filter(
-        Client.actif == True,
-        Client.statut_client == 'Client',
-        Client.date_conversion >= debut_mois
+        fin_mois = datetime(now.year, now.month + 1, 1)
+    
+    # DEBUG CE MOIS
+    nb_ce_mois_count = Prestation.query.filter(
+        Prestation.date_debut >= debut_mois,
+        Prestation.date_debut < fin_mois
     ).count()
-
-    # Conversions récentes (5 dernières conversions)
-    conversions_recentes = Client.query.filter(
-        Client.actif == True,
-        Client.statut_client == 'Client',
-        Client.date_conversion.isnot(None)
-    ).order_by(Client.date_conversion.desc()).limit(5).all()
-
-    stats_prospects = {
-        'total_prospects': total_prospects,
-        'total_clients_confirmes': total_clients_confirmes,
-        'taux_conversion': taux_conversion,
-        'conversions_ce_mois': conversions_ce_mois
-    }
-
-# Préparer les stats pour le dashboard
+    
+    print(f"🔍 DEBUG CE MOIS:")
+    print(f"  Début mois: {debut_mois}")
+    print(f"  Fin mois: {fin_mois}")
+    print(f"  Prestations trouvées: {nb_ce_mois_count}")
+    
+    # Afficher les prestations du mois
+    prestations_mois = Prestation.query.filter(
+        Prestation.date_debut >= debut_mois,
+        Prestation.date_debut < fin_mois
+    ).all()
+    for p in prestations_mois:
+        print(f"  → {p.id}: {p.date_debut} | {p.type_prestation} | Statut: {p.statut}")
+    
+    # DEBUG EN COURS
+    nb_en_cours = Prestation.query.filter_by(statut='En cours').count()
+    print(f"🔍 Prestations 'En cours': {nb_en_cours}")
+    
+    # Afficher TOUS les statuts uniques
+    statuts_uniques = db.session.query(Prestation.statut).distinct().all()
+    print(f"🔍 Statuts dans la BDD: {[s[0] for s in statuts_uniques]}")
+    
+    # Afficher les prestations "En cours"
+    prestations_en_cours = Prestation.query.filter_by(statut='En cours').all()
+    for p in prestations_en_cours:
+        print(f"  → {p.id}: {p.type_prestation} | {p.date_debut}")
+    
+    # KPIs
     stats = {
-        'nb_clients': total_clients,
-        'nb_prestations': total_prestations,
-        'nb_prospects': total_prospects,
-        'prestations_ce_mois': prestations_en_cours,
-        'ca_total': ca_mois,
-        'nb_factures': prestations_planifiees
+        'nb_clients': Client.query.filter_by(actif=True).count(),
+        'nb_prestations': Prestation.query.filter(
+            Prestation.date_debut >= debut_annee,
+            Prestation.date_debut <= fin_annee
+        ).count(),
+        'nb_en_cours': nb_en_cours,
+        'nb_ce_mois': nb_ce_mois_count,
+        'ca_total': int(db.session.query(func.sum(Prestation.tarif_total)).filter(
+            Prestation.date_debut >= debut_annee,
+            Prestation.date_debut <= fin_annee
+        ).scalar() or 0),
+        'nb_factures_payees': Facture.query.filter_by(statut='Payée').count() if 'Facture' in globals() else 0
     }
     
-    # Récupérer les tâches urgentes
-    taches_urgentes = []
+    # Tâches urgentes (échéance dans les 7 prochains jours)
+    date_limite_taches = datetime.now() + timedelta(days=7)
+    taches_urgentes = Prestation.query.filter(
+        Prestation.date_echeance_tache.isnot(None),
+        Prestation.date_echeance_tache <= date_limite_taches,
+        Prestation.statut_tache != 'Terminée'
+    ).order_by(Prestation.date_echeance_tache).limit(10).all()
     
     return render_template('dashboard.html', stats=stats, taches_urgentes=taches_urgentes)
 
@@ -5612,6 +5602,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
