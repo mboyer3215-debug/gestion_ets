@@ -918,15 +918,13 @@ def check_login():
     # Vérifier si l'utilisateur est connecté
     if request.endpoint and 'user_id' not in session:
         return redirect(url_for('login'))
-@app.route('/')
-@login_required
+
 @app.route('/')
 @login_required
 def index():
     """Page d'accueil - Tableau de bord"""
     verifier_statuts_prestations()
     
-    # Dates pour filtres
     now = datetime.now()
     debut_annee = datetime(now.year, 1, 1)
     fin_annee = datetime(now.year, 12, 31, 23, 59, 59)
@@ -943,31 +941,28 @@ def index():
         Prestation.date_debut < fin_mois
     ).count()
     
-    print(f"🔍 DEBUG CE MOIS:")
-    print(f"  Début mois: {debut_mois}")
+    print("DEBUG CE MOIS:")
+    print(f"  Debut mois: {debut_mois}")
     print(f"  Fin mois: {fin_mois}")
-    print(f"  Prestations trouvées: {nb_ce_mois_count}")
+    print(f"  Prestations trouvees: {nb_ce_mois_count}")
     
-    # Afficher les prestations du mois
     prestations_mois = Prestation.query.filter(
         Prestation.date_debut >= debut_mois,
         Prestation.date_debut < fin_mois
     ).all()
     for p in prestations_mois:
-        print(f"  → {p.id}: {p.date_debut} | {p.type_prestation} | Statut: {p.statut}")
+        print(f"  ID {p.id}: {p.date_debut} | {p.type_prestation} | Statut: {p.statut}")
     
     # DEBUG EN COURS
     nb_en_cours = Prestation.query.filter_by(statut='En cours').count()
-    print(f"🔍 Prestations 'En cours': {nb_en_cours}")
+    print(f"DEBUG EN COURS: {nb_en_cours}")
     
-    # Afficher TOUS les statuts uniques
     statuts_uniques = db.session.query(Prestation.statut).distinct().all()
-    print(f"🔍 Statuts dans la BDD: {[s[0] for s in statuts_uniques]}")
+    print(f"Statuts existants: {[s[0] for s in statuts_uniques]}")
     
-    # Afficher les prestations "En cours"
     prestations_en_cours = Prestation.query.filter_by(statut='En cours').all()
     for p in prestations_en_cours:
-        print(f"  → {p.id}: {p.type_prestation} | {p.date_debut}")
+        print(f"  En cours - ID {p.id}: {p.type_prestation}")
     
     # KPIs
     stats = {
@@ -985,7 +980,6 @@ def index():
         'nb_factures_payees': Facture.query.filter_by(statut='Payée').count() if 'Facture' in globals() else 0
     }
     
-    # Tâches urgentes (échéance dans les 7 prochains jours)
     date_limite_taches = datetime.now() + timedelta(days=7)
     taches_urgentes = Prestation.query.filter(
         Prestation.date_echeance_tache.isnot(None),
@@ -2348,7 +2342,7 @@ def statistiques():
                 Prestation.date_debut <= fin_annee
             ).count(),
             'nb_en_cours': Prestation.query.filter_by(statut='En cours').count(),
-            print(f"🔍 Prestations 'En cours': {nb_en_cours}")
+            print(f"🔍 Prestations En cours: {nb_en_cours}")
             
             # Afficher TOUS les statuts existants
             statuts_uniques = db.session.query(Prestation.statut).distinct().all()
@@ -5602,6 +5596,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
