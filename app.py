@@ -1281,6 +1281,26 @@ def contact_supprimer(contact_id):
 # ROUTES PRESTATIONS
 # ============================================================================
 
+@app.route('/api/prestations')
+def api_prestations():
+    """API pour récupérer toutes les prestations en JSON"""
+    prestations = Prestation.query.order_by(Prestation.date_debut.desc()).all()
+    
+    data = []
+    for p in prestations:
+        data.append({
+            'id': p.id,
+            'date_debut': p.date_debut.strftime('%d/%m/%Y') if p.date_debut else '-',
+            'client': f"{p.client.prenom or ''} {p.client.nom}".strip() if p.client else 'Sans client',
+            'type': p.type_prestation or '-',
+            'lieu': p.lieu or '-',
+            'statut': p.statut or 'En attente',
+            'tarif': p.tarif_total or 0
+        })
+    
+    return jsonify(data)
+
+
 @app.route('/prestations')
 def prestations():
     """Liste des prestations"""
@@ -1346,6 +1366,13 @@ def prestation_detail(prestation_id):
     """Détail d'une prestation"""
     prestation = Prestation.query.get_or_404(prestation_id)
     return render_template('prestation_detail.html', prestation=prestation)
+
+@app.route('/prestation/<int:prestation_id>/tarifs')
+def prestation_tarifs(prestation_id):
+    """Page de gestion des tarifs détaillés"""
+    prestation = Prestation.query.get_or_404(prestation_id)
+    return render_template('prestation_tarifs.html', prestation=prestation)
+
 
 @app.route('/prestation/<int:prestation_id>/tarifs', methods=['POST'])
 def prestation_sauvegarder_tarifs(prestation_id):
@@ -5509,6 +5536,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
