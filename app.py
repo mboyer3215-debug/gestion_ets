@@ -1877,10 +1877,6 @@ def prestation_supprimer(prestation_id):
 # ROUTES INDISPONIBILITÉ
 # ============================================================================
 
-# ============================================================================
-# ROUTES INDISPONIBILITÉ
-# ============================================================================
-
 @app.route('/indisponibilite')
 @login_required
 def indisponibilites():
@@ -5467,6 +5463,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
