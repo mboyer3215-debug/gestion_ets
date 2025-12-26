@@ -2254,7 +2254,7 @@ def statistiques():
                 Prestation.date_debut <= fin_annee
             ).count(),
             'nb_en_cours': Prestation.query.filter_by(statut='En cours').count(),
-             print("Prestations En cours: {nb_en_cours}")
+             print("Prestations En cours =", nb_en_cours)
             
             # Afficher TOUS les statuts existants
              statuts_uniques = db.session.query(Prestation.statut).distinct().all()
@@ -5508,6 +5508,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
