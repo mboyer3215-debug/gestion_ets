@@ -1,279 +1,157 @@
 {% extends "base.html" %}
 
-{% block title %}Statistiques - Gestion Entreprise{% endblock %}
+{% block title %}Statistiques{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h1 class="display-5 fw-bold text-dark mb-0">
-                <i class="fas fa-chart-line text-primary"></i> Statistiques
-            </h1>
-            <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-md-none">
-                <i class="fas fa-home"></i>
-            </a>
-        </div>
-        <p class="text-muted">Analyse de votre activité sur l'année {{ annee }}</p>
-    </div>
-    <div class="col-md-4 text-end">
-        <a href="{{ url_for('index') }}" class="btn btn-outline-primary d-none d-md-inline-block">
-            <i class="fas fa-home"></i> Retour accueil
-        </a>
-    </div>
-</div>
+<div class="container-fluid">
+    <h1 class="mb-4"><i class="bi bi-graph-up"></i> Statistiques {{ annee }}</h1>
 
-<!-- Graphique Prestations par mois -->
-<div class="row mb-4">
-    <div class="col-lg-12 mb-4">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <i class="fas fa-chart-bar"></i> Nombre de prestations par mois
+    <div class="row g-4">
+        <!-- Chiffre d'affaires par mois -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-bar-chart"></i> Chiffre d'affaires par mois
+                </div>
+                <div class="card-body">
+                    <canvas id="chartCA"></canvas>
+                </div>
             </div>
-            <div class="card-body">
-                <canvas id="prestationsParMoisChart" style="height: 300px;"></canvas>
+        </div>
+
+        <!-- Nombre de prestations par mois -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <i class="bi bi-graph-up-arrow"></i> Nombre de prestations
+                </div>
+                <div class="card-body">
+                    <canvas id="chartPrestations"></canvas>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Graphique CA par mois -->
-<div class="row mb-4">
-    <div class="col-lg-12 mb-4">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <i class="fas fa-euro-sign"></i> Chiffre d'affaires par mois
+    <!-- Statistiques logistique -->
+    <div class="row g-4 mt-4">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <i class="bi bi-geo-alt"></i> Distance totale
+                </div>
+                <div class="card-body text-center">
+                    <h2 class="text-warning">{{ stats_logistique.total_distance_km }} km</h2>
+                </div>
             </div>
-            <div class="card-body">
-                <canvas id="caParMoisChart" style="height: 300px;"></canvas>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <i class="bi bi-cup-hot"></i> Repas
+                </div>
+                <div class="card-body text-center">
+                    <h2 class="text-danger">{{ stats_logistique.total_repas }}</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-door-closed"></i> Hébergements
+                </div>
+                <div class="card-body text-center">
+                    <h2 class="text-primary">{{ stats_logistique.total_hebergements }}</h2>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Graphique Top 10 clients -->
-<div class="row mb-4">
-    <div class="col-lg-12 mb-4">
-        <div class="card">
-            <div class="card-header bg-warning text-white">
-                <i class="fas fa-users"></i> Top 10 clients (nombre de prestations)
-            </div>
-            <div class="card-body">
-                <canvas id="topClientsChart" style="height: 400px;"></canvas>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Tableau récapitulatif -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header bg-secondary text-white">
-                <i class="fas fa-table"></i> Récapitulatif mensuel {{ annee }}
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
+    <!-- Clients - Top 10 -->
+    <div class="row g-4 mt-4">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <i class="bi bi-people"></i> Clients - Top 10
+                </div>
+                <div class="card-body">
                     <table class="table table-hover">
-                        <thead>
+                        <thead class="table-light">
                             <tr>
-                                <th>Mois</th>
-                                <th class="text-end">Nb Prestations</th>
-                                <th class="text-end">CA (€)</th>
-                                <th class="text-end">CA Moyen (€)</th>
+                                <th>Client</th>
+                                <th class="text-end">Nombre de prestations</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for stat in stats_mois %}
+                            {% for client, nombre in stats_clients %}
                             <tr>
-                                <td><strong>{{ stat.nom_mois|capitalize }}</strong></td>
-                                <td class="text-end">{{ stat.nb_prestations }}</td>
-                                <td class="text-end">{{ "%.2f"|format(stat.ca) }} €</td>
-                                <td class="text-end">
-                                    {% if stat.nb_prestations > 0 %}
-                                        {{ "%.2f"|format(stat.ca / stat.nb_prestations) }} €
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
+                                <td>{{ client }}</td>
+                                <td class="text-end"><span class="badge bg-info">{{ nombre }}</span></td>
                             </tr>
                             {% endfor %}
                         </tbody>
-                        <tfoot>
-                            <tr class="table-primary fw-bold">
-                                <td>TOTAL {{ annee }}</td>
-                                <td class="text-end">{{ stats_mois|sum(attribute='nb_prestations') }}</td>
-                                <td class="text-end">{{ "%.2f"|format(stats_mois|sum(attribute='ca')) }} €</td>
-                                <td class="text-end">
-                                    {% if stats_mois|sum(attribute='nb_prestations') > 0 %}
-                                        {{ "%.2f"|format(stats_mois|sum(attribute='ca') / stats_mois|sum(attribute='nb_prestations')) }} €
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                            </tr>
-                        </tfoot>
                     </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Données JSON cachées pour JavaScript -->
-<script type="application/json" id="stats-mois-data">{{ stats_mois|tojson }}</script>
-<script type="application/json" id="stats-clients-data">{{ stats_clients|tojson }}</script>
-
 {% endblock %}
 
 {% block extra_js %}
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Récupérer les données depuis les éléments JSON
-const statsMois = JSON.parse(document.getElementById('stats-mois-data').textContent);
-const statsClients = JSON.parse(document.getElementById('stats-clients-data').textContent);
+const stats_mois = {{ stats_mois|tojson }};
 
-// Préparer les données pour le graphique prestations par mois
-const moisLabels = statsMois.map(s => s.nom_mois);
-const prestationsData = statsMois.map(s => s.nb_prestations);
-
-// Graphique Prestations par mois
-const ctxPrestations = document.getElementById('prestationsParMoisChart');
-new Chart(ctxPrestations, {
+// Chiffre d'affaires par mois
+const ctxCA = document.getElementById('chartCA').getContext('2d');
+new Chart(ctxCA, {
     type: 'bar',
     data: {
-        labels: moisLabels,
+        labels: stats_mois.map(m => m.nom_mois),
         datasets: [{
-            label: 'Nombre de prestations',
-            data: prestationsData,
-            backgroundColor: 'rgba(93, 92, 222, 0.7)',
-            borderColor: 'rgba(93, 92, 222, 1)',
+            label: 'CA (€)',
+            data: stats_mois.map(m => m.ca),
+            backgroundColor: '#28a745',
+            borderColor: '#28a745',
             borderWidth: 2
         }]
     },
     options: {
         responsive: true,
-        maintainAspectRatio: false,
         plugins: {
-            legend: {
-                display: true,
-                position: 'top',
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return context.dataset.label + ': ' + context.parsed.y + ' prestation(s)';
-                    }
-                }
-            }
+            legend: { display: false }
         },
         scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 1
-                }
-            }
+            y: { beginAtZero: true }
         }
     }
 });
 
-// Préparer les données pour le graphique CA par mois
-const caData = statsMois.map(s => s.ca);
-
-// Graphique CA par mois
-const ctxCA = document.getElementById('caParMoisChart');
-new Chart(ctxCA, {
+// Nombre de prestations par mois
+const ctxPrestations = document.getElementById('chartPrestations').getContext('2d');
+new Chart(ctxPrestations, {
     type: 'line',
     data: {
-        labels: moisLabels,
+        labels: stats_mois.map(m => m.nom_mois),
         datasets: [{
-            label: 'Chiffre d\'affaires (€)',
-            data: caData,
-            backgroundColor: 'rgba(76, 175, 80, 0.2)',
-            borderColor: 'rgba(76, 175, 80, 1)',
-            borderWidth: 3,
-            fill: true,
-            tension: 0.3
+            label: 'Prestations',
+            data: stats_mois.map(m => m.nb_prestations),
+            borderColor: '#007bff',
+            backgroundColor: 'rgba(0,123,255,0.1)',
+            borderWidth: 2,
+            tension: 0.4,
+            fill: true
         }]
     },
     options: {
         responsive: true,
-        maintainAspectRatio: false,
         plugins: {
-            legend: {
-                display: true,
-                position: 'top',
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return context.dataset.label + ': ' + context.parsed.y.toFixed(2) + ' €';
-                    }
-                }
-            }
+            legend: { display: false }
         },
         scales: {
-            y: {
-                beginAtZero: true,
-                ticks: {
-                    callback: function(value) {
-                        return value.toFixed(0) + ' €';
-                    }
-                }
-            }
-        }
-    }
-});
-
-// Préparer les données pour le graphique top clients
-const clientsLabels = statsClients.map(c => c[0]); // Nom du client
-const clientsData = statsClients.map(c => c[1]); // Nombre de prestations
-
-// Générer des couleurs aléatoires pour chaque client
-const clientsColors = clientsLabels.map((_, index) => {
-    const hue = (index * 137.5) % 360; // Golden angle pour répartition uniforme
-    return `hsla(${hue}, 70%, 60%, 0.7)`;
-});
-
-// Graphique Top 10 clients
-const ctxClients = document.getElementById('topClientsChart');
-new Chart(ctxClients, {
-    type: 'bar',
-    data: {
-        labels: clientsLabels,
-        datasets: [{
-            label: 'Nombre de prestations',
-            data: clientsData,
-            backgroundColor: clientsColors,
-            borderColor: clientsColors.map(c => c.replace('0.7', '1')),
-            borderWidth: 2
-        }]
-    },
-    options: {
-        indexAxis: 'y', // Barres horizontales
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return 'Prestations: ' + context.parsed.x;
-                    }
-                }
-            }
-        },
-        scales: {
-            x: {
-                beginAtZero: true,
-                ticks: {
-                    stepSize: 1
-                }
-            }
+            y: { beginAtZero: true }
         }
     }
 });
