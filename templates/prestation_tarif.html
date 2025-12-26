@@ -1,119 +1,536 @@
 {% extends "base.html" %}
 
-{% block title %}Gestion du tarif - {{ prestation.titre }}{% endblock %}
+{% block title %}Gestion des tarifs - {{ prestation.titre }}{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h1 class="display-6 fw-bold text-dark mb-0">
-                <i class="fas fa-euro-sign text-success"></i> Gestion du tarif
-            </h1>
-        </div>
-        <p class="text-muted mb-0">
-            <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="text-decoration-none">
-                {{ prestation.titre }}
-            </a>
-        </p>
-    </div>
-    <div class="col-md-4 text-md-end mt-3 mt-md-0">
-        <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="btn btn-outline-primary">
-            <i class="fas fa-arrow-left"></i> Retour
-        </a>
-    </div>
-</div>
-
-<div class="row">
-    <div class="col-lg-8 mx-auto">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <h5 class="mb-0"><i class="fas fa-calculator"></i> Calcul du tarif</h5>
+<div class="container-fluid">
+    <!-- En-tête -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h1 class="display-6 fw-bold text-dark mb-0">
+                    <i class="bi bi-calculator text-success"></i> Gestion des tarifs
+                </h1>
             </div>
-            <div class="card-body">
-                <form method="POST" action="{{ url_for('prestation_tarif', prestation_id=prestation.id) }}">
-                    <!-- Tarif de la prestation -->
-                    <div class="mb-4">
-                        <label for="tarif_total" class="form-label fw-bold">
-                            <i class="fas fa-briefcase text-primary"></i> Tarif de la prestation (€)
-                        </label>
-                        <input type="number" step="0.01" class="form-control" id="tarif_total" name="tarif_total"
-                               value="{{ prestation.tarif_total if prestation.tarif_total else '' }}"
-                               placeholder="0.00">
-                        <small class="text-muted">Tarif de base pour la prestation</small>
+            <p class="text-muted mb-0">
+                <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="text-decoration-none">
+                    👤 {{ prestation.client.nom if prestation.client else 'Sans client' }}
+                    {% if prestation.client and prestation.client.prenom %}- {{ prestation.client.prenom }}{% endif %}
+                </a>
+                <br>
+                <strong>{{ prestation.titre }}</strong>
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Retour à la prestation
+            </a>
+        </div>
+    </div>
+
+    <form method="POST" action="{{ url_for('prestation_sauvegarder_tarifs', prestation_id=prestation.id) }}" id="formTarifs">
+        <div class="row">
+            <!-- COLONNE GAUCHE : Détails tarifs -->
+            <div class="col-lg-8">
+                <!-- SECTION 1 : TARIF PRESTATION -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-briefcase"></i> 1️⃣ Tarif Prestation
+                        </h5>
                     </div>
-
-                    <!-- Frais de fournitures -->
-                    <div class="mb-4">
-                        <label for="frais_fournitures" class="form-label fw-bold">
-                            <i class="fas fa-box text-warning"></i> Frais de fournitures (€)
-                        </label>
-                        <input type="number" step="0.01" class="form-control" id="frais_fournitures" name="frais_fournitures"
-                               value="{{ prestation.frais_fournitures if prestation.frais_fournitures else '' }}"
-                               placeholder="0.00">
-                        <small class="text-muted">Matériel, supports de formation, etc.</small>
-                    </div>
-
-                    <!-- Frais de déplacement -->
-                    <div class="mb-4">
-                        <label for="frais_deplacement" class="form-label fw-bold">
-                            <i class="fas fa-car text-info"></i> Frais de déplacement (€)
-                        </label>
-                        <input type="number" step="0.01" class="form-control" id="frais_deplacement" name="frais_deplacement"
-                               value="{{ prestation.frais_deplacement if prestation.frais_deplacement else '' }}"
-                               placeholder="0.00">
-                        <small class="text-muted">
-                            {% if prestation.distance_km %}
-                                Distance : {{ "%.1f"|format(prestation.distance_km) }} km
-                            {% endif %}
-                        </small>
-                    </div>
-
-                    <hr class="my-4">
-
-                    <!-- Total calculé -->
-                    <div class="mb-4 p-3 bg-light rounded">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="fas fa-calculator text-success"></i> Total</h5>
-                            <h4 class="mb-0 text-success fw-bold" id="total_calcule">
-                                {{ "%.2f"|format((prestation.tarif_total or 0) + (prestation.frais_fournitures or 0) + (prestation.frais_deplacement or 0)) }} €
-                            </h4>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="tablePrestation">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 25%;">Code</th>
+                                        <th style="width: 35%;">Description</th>
+                                        <th style="width: 15%;">Quantité</th>
+                                        <th style="width: 13%;">P.U. (€)</th>
+                                        <th style="width: 12%;">Total (€)</th>
+                                        <th style="width: 5%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyPrestation">
+                                    <!-- Rempli par JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-primary" id="btnAjouterPrestation">
+                            <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                        </button>
+                        <div class="alert alert-info mt-3 mb-0">
+                            <strong>Total prestation :</strong> <span id="totalPrestation" class="float-end fw-bold">0.00 €</span>
                         </div>
                     </div>
+                </div>
 
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="fas fa-save"></i> Enregistrer le tarif
-                        </button>
-                        <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="btn btn-outline-secondary">
-                            <i class="fas fa-times"></i> Annuler
-                        </a>
+                <!-- SECTION 2 : TARIF MATÉRIEL/FOURNITURES -->
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0">
+                            <i class="bi bi-box"></i> 2️⃣ Tarif Matériel/Fournitures
+                        </h5>
                     </div>
-                </form>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="tableFourniture">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 25%;">Code</th>
+                                        <th style="width: 35%;">Description</th>
+                                        <th style="width: 15%;">Quantité</th>
+                                        <th style="width: 13%;">P.U. (€)</th>
+                                        <th style="width: 12%;">Total (€)</th>
+                                        <th style="width: 5%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyFourniture">
+                                    <!-- Rempli par JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-warning" id="btnAjouterFourniture">
+                            <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                        </button>
+                        <div class="alert alert-warning mt-3 mb-0">
+                            <strong>Total matériel :</strong> <span id="totalFourniture" class="float-end fw-bold">0.00 €</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SECTION 3 : TARIF DÉPLACEMENT -->
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-car-front"></i> 3️⃣ Tarif Déplacement
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Infos distance -->
+                        {% if prestation.distance_km or prestation.duree_trajet_minutes %}
+                        <div class="alert alert-info mb-3">
+                            <div class="row">
+                                {% if prestation.distance_km %}
+                                <div class="col-md-6">
+                                    <strong><i class="bi bi-map"></i> Distance</strong><br>
+                                    {{ "%.1f"|format(prestation.distance_km) }} km
+                                </div>
+                                {% endif %}
+                                {% if prestation.duree_trajet_minutes %}
+                                <div class="col-md-6">
+                                    <strong><i class="bi bi-clock"></i> Durée</strong><br>
+                                    {% set heures = prestation.duree_trajet_minutes // 60 %}
+                                    {% set mins = prestation.duree_trajet_minutes % 60 %}
+                                    {% if heures > 0 %}{{ heures }}h{% endif %}{{ mins }}min
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="tableDeplacement">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 25%;">Code</th>
+                                        <th style="width: 35%;">Description</th>
+                                        <th style="width: 15%;">Quantité</th>
+                                        <th style="width: 13%;">P.U. (€)</th>
+                                        <th style="width: 12%;">Total (€)</th>
+                                        <th style="width: 5%;"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tbodyDeplacement">
+                                    <!-- Rempli par JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-info" id="btnAjouterDeplacement">
+                            <i class="bi bi-plus-circle"></i> Ajouter une ligne
+                        </button>
+                        <div class="alert alert-info mt-3 mb-0">
+                            <strong>Total déplacement :</strong> <span id="totalDeplacement" class="float-end fw-bold">0.00 €</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COLONNE DROITE : Résumé et actions -->
+            <div class="col-lg-4">
+                <!-- Résumé des tarifs -->
+                <div class="card sticky-top" style="top: 20px;">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-calculator"></i> Résumé</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span><i class="bi bi-briefcase text-primary"></i> Prestation</span>
+                                <strong id="summaryPrestation">0.00 €</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span><i class="bi bi-box text-warning"></i> Matériel</span>
+                                <strong id="summaryFourniture">0.00 €</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span><i class="bi bi-car-front text-info"></i> Déplacement</span>
+                                <strong id="summaryDeplacement">0.00 €</strong>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <h6 class="mb-0"><i class="bi bi-calculator-fill"></i> TOTAL HT</h6>
+                                <h6 id="totalHT" class="mb-0 text-primary fw-bold">0.00 €</h6>
+                            </div>
+                        </div>
+
+                        <!-- TVA -->
+                        <div class="mb-3">
+                            <label for="inputTVA" class="form-label">TVA (%)</label>
+                            <input type="number" step="0.01" class="form-control" id="inputTVA" value="20" min="0" max="100">
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between">
+                                <span>TVA ({{ "%.1f"|format(20) }}%)</span>
+                                <strong id="montantTVA" class="text-warning">0.00 €</strong>
+                            </div>
+                        </div>
+
+                        <hr>
+
+                        <div class="mb-4 p-3 bg-light rounded">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0"><i class="bi bi-currency-euro text-success"></i> TOTAL TTC</h5>
+                                <h4 id="totalTTC" class="mb-0 text-success fw-bold">0.00 €</h4>
+                            </div>
+                        </div>
+
+                        <!-- Boutons d'action -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle"></i> Enregistrer les tarifs
+                            </button>
+                            <a href="{{ url_for('prestation_detail', prestation_id=prestation.id) }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Annuler
+                            </a>
+                        </div>
+
+                        <!-- Presets rapides -->
+                        <hr class="my-3">
+                        <h6 class="mb-2">Presets rapides</h6>
+                        <div class="btn-group w-100 mb-2" role="group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-preset="standard">
+                                Standard
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary preset-btn" data-preset="premium">
+                                Premium
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
 
 {% endblock %}
 
-{% block extra_js %}
-<script>
-    // Calcul automatique du total
-    const tarifTotal = document.getElementById('tarif_total');
-    const fraisFournitures = document.getElementById('frais_fournitures');
-    const fraisDeplacement = document.getElementById('frais_deplacement');
-    const totalCalcule = document.getElementById('total_calcule');
-
-    function calculerTotal() {
-        const tarif = parseFloat(tarifTotal.value) || 0;
-        const fournitures = parseFloat(fraisFournitures.value) || 0;
-        const deplacement = parseFloat(fraisDeplacement.value) || 0;
-        const total = tarif + fournitures + deplacement;
-        totalCalcule.textContent = total.toFixed(2) + ' €';
+{% block extra_css %}
+<style>
+    .table-sm td, .table-sm th {
+        padding: 0.5rem;
+        vertical-align: middle;
     }
 
-    tarifTotal.addEventListener('input', calculerTotal);
-    fraisFournitures.addEventListener('input', calculerTotal);
-    fraisDeplacement.addEventListener('input', calculerTotal);
+    .input-tarif {
+        font-size: 0.9rem;
+    }
+
+    .input-tarif:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+
+    .btn-supprimer {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .card {
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        transition: all 0.3s;
+    }
+
+    .card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+    }
+
+    .card-header {
+        border-radius: 11px 11px 0 0;
+        font-weight: 600;
+        padding: 1rem;
+    }
+
+    .alert {
+        border-radius: 8px;
+        border: none;
+    }
+
+    .sticky-top {
+        z-index: 10;
+    }
+
+    @media (max-width: 991px) {
+        .sticky-top {
+            position: relative;
+            top: auto !important;
+            margin-top: 20px;
+        }
+
+        .input-tarif {
+            font-size: 1rem;
+        }
+    }
+
+    .preset-btn {
+        flex: 1;
+    }
+
+    .preset-btn:hover {
+        background-color: #f0f0f0;
+    }
+
+    /* Colorer les lignes de tarif */
+    tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Données des tarifs
+    let tarifs = {
+        prestation: [],
+        fourniture: [],
+        deplacement: []
+    };
+
+    // Charger les tarifs existants (depuis le serveur)
+    document.addEventListener('DOMContentLoaded', () => {
+        chargerTarifsExistants();
+        attacherEvenements();
+        calculerTotaux();
+    });
+
+    // Charger les tarifs existants depuis les données du serveur
+    function chargerTarifsExistants() {
+        // Récupérer les données du formulaire caché (si elles existent)
+        const existants = {
+            prestation: {{ prestation.lignes_tarif_prestation|tojson if prestation.lignes_tarif_prestation else '[]' }},
+            fourniture: {{ prestation.lignes_tarif_fourniture|tojson if prestation.lignes_tarif_fourniture else '[]' }},
+            deplacement: {{ prestation.lignes_tarif_deplacement|tojson if prestation.lignes_tarif_deplacement else '[]' }}
+        };
+
+        // Charger prestation
+        if (existants.prestation && existants.prestation.length > 0) {
+            existants.prestation.forEach(ligne => {
+                ajouterLigne('prestation', ligne);
+            });
+        } else {
+            ajouterLigne('prestation');
+        }
+
+        // Charger fourniture
+        if (existants.fourniture && existants.fourniture.length > 0) {
+            existants.fourniture.forEach(ligne => {
+                ajouterLigne('fourniture', ligne);
+            });
+        } else {
+            ajouterLigne('fourniture');
+        }
+
+        // Charger déplacement
+        if (existants.deplacement && existants.deplacement.length > 0) {
+            existants.deplacement.forEach(ligne => {
+                ajouterLigne('deplacement', ligne);
+            });
+        } else {
+            ajouterLigne('deplacement');
+        }
+    }
+
+    // Ajouter une ligne de tarif
+    function ajouterLigne(type, donnees = {}) {
+        const tbody = document.getElementById(`tbody${type.charAt(0).toUpperCase() + type.slice(1)}`);
+        const index = tarifs[type].length;
+
+        const ligne = {
+            index: index,
+            code: donnees.code || '',
+            type: donnees.type || '',
+            nbre: donnees.nbre || 0,
+            pu_ht: donnees.pu_ht || 0,
+            pt_ht: donnees.pt_ht || 0
+        };
+
+        tarifs[type].push(ligne);
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <input type="text" class="form-control form-control-sm input-tarif" 
+                       name="${type}_code[]" value="${ligne.code}" placeholder="Code">
+            </td>
+            <td>
+                <input type="text" class="form-control form-control-sm input-tarif" 
+                       name="${type}_type[]" value="${ligne.type}" placeholder="Description">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control form-control-sm input-tarif input-nbre" 
+                       name="${type}_nbre[]" value="${ligne.nbre}" placeholder="0.00">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control form-control-sm input-tarif input-pu" 
+                       name="${type}_pu_ht[]" value="${ligne.pu_ht}" placeholder="0.00">
+            </td>
+            <td>
+                <input type="number" step="0.01" class="form-control form-control-sm input-tarif input-pt" 
+                       name="${type}_pt_ht[]" value="${ligne.pt_ht}" readonly style="background: #f8f9fa;">
+            </td>
+            <td>
+                <button type="button" class="btn btn-sm btn-danger btn-supprimer" title="Supprimer">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+
+        // Event listeners pour calcul automatique
+        const inputNbre = row.querySelector('.input-nbre');
+        const inputPu = row.querySelector('.input-pu');
+        const inputPt = row.querySelector('.input-pt');
+
+        const calculerPt = () => {
+            const nbre = parseFloat(inputNbre.value) || 0;
+            const pu = parseFloat(inputPu.value) || 0;
+            const pt = (nbre * pu).toFixed(2);
+            inputPt.value = pt;
+            calculerTotaux();
+        };
+
+        inputNbre.addEventListener('input', calculerPt);
+        inputPu.addEventListener('input', calculerPt);
+
+        // Supprimer la ligne
+        row.querySelector('.btn-supprimer').addEventListener('click', () => {
+            row.remove();
+            calculerTotaux();
+        });
+
+        tbody.appendChild(row);
+    }
+
+    // Attacher les événements aux boutons
+    function attacherEvenements() {
+        document.getElementById('btnAjouterPrestation').addEventListener('click', () => {
+            ajouterLigne('prestation');
+        });
+
+        document.getElementById('btnAjouterFourniture').addEventListener('click', () => {
+            ajouterLigne('fourniture');
+        });
+
+        document.getElementById('btnAjouterDeplacement').addEventListener('click', () => {
+            ajouterLigne('deplacement');
+        });
+
+        // TVA
+        document.getElementById('inputTVA').addEventListener('input', calculerTotaux);
+
+        // Presets
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                appliquerPreset(btn.dataset.preset);
+            });
+        });
+    }
+
+    // Calculer les totaux
+    function calculerTotaux() {
+        let totalPrestation = 0;
+        let totalFourniture = 0;
+        let totalDeplacement = 0;
+
+        // Prestation
+        document.querySelectorAll('#tbodyPrestation .input-pt').forEach(input => {
+            totalPrestation += parseFloat(input.value) || 0;
+        });
+
+        // Fourniture
+        document.querySelectorAll('#tbodyFourniture .input-pt').forEach(input => {
+            totalFourniture += parseFloat(input.value) || 0;
+        });
+
+        // Déplacement
+        document.querySelectorAll('#tbodyDeplacement .input-pt').forEach(input => {
+            totalDeplacement += parseFloat(input.value) || 0;
+        });
+
+        // Mettre à jour l'affichage
+        document.getElementById('totalPrestation').textContent = totalPrestation.toFixed(2) + ' €';
+        document.getElementById('totalFourniture').textContent = totalFourniture.toFixed(2) + ' €';
+        document.getElementById('totalDeplacement').textContent = totalDeplacement.toFixed(2) + ' €';
+
+        document.getElementById('summaryPrestation').textContent = totalPrestation.toFixed(2) + ' €';
+        document.getElementById('summaryFourniture').textContent = totalFourniture.toFixed(2) + ' €';
+        document.getElementById('summaryDeplacement').textContent = totalDeplacement.toFixed(2) + ' €';
+
+        // Total HT
+        const totalHT = totalPrestation + totalFourniture + totalDeplacement;
+        document.getElementById('totalHT').textContent = totalHT.toFixed(2) + ' €';
+
+        // TVA
+        const tauxTVA = parseFloat(document.getElementById('inputTVA').value) || 0;
+        const montantTVA = (totalHT * tauxTVA / 100).toFixed(2);
+        document.getElementById('montantTVA').textContent = montantTVA + ' €';
+
+        // Total TTC
+        const totalTTC = (totalHT + parseFloat(montantTVA)).toFixed(2);
+        document.getElementById('totalTTC').textContent = totalTTC + ' €';
+    }
+
+    // Appliquer un preset
+    function appliquerPreset(preset) {
+        if (preset === 'standard') {
+            // Preset standard : prestation simple + déplacement
+            nettoyer();
+            ajouterLigne('prestation', { code: 'FORM', type: 'Prestation de formation', nbre: 1, pu_ht: 500 });
+            ajouterLigne('deplacement', { code: 'KM', type: 'Frais de déplacement', nbre: {{ prestation.distance_km or 0 }}, pu_ht: 0.50 });
+        } else if (preset === 'premium') {
+            // Preset premium : prestation + matériel + déplacement
+            nettoyer();
+            ajouterLigne('prestation', { code: 'FORM', type: 'Prestation de formation', nbre: 1, pu_ht: 750 });
+            ajouterLigne('fourniture', { code: 'DOC', type: 'Supports de formation', nbre: 10, pu_ht: 10 });
+            ajouterLigne('deplacement', { code: 'KM', type: 'Frais de déplacement', nbre: {{ prestation.distance_km or 0 }}, pu_ht: 0.50 });
+        }
+        calculerTotaux();
+    }
+
+    // Nettoyer les lignes
+    function nettoyer() {
+        document.getElementById('tbodyPrestation').innerHTML = '';
+        document.getElementById('tbodyFourniture').innerHTML = '';
+        document.getElementById('tbodyDeplacement').innerHTML = '';
+        tarifs = { prestation: [], fourniture: [], deplacement: [] };
+    }
 </script>
 {% endblock %}
