@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Calendrier - Semaine{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1><i class="bi bi-calendar3"></i> Semaine</h1>
+        <button id="prevWeek" class="btn btn-outline-primary">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+        <button id="nextWeek" class="btn btn-outline-primary">
+            <i class="bi bi-chevron-right"></i>
+        </button>
+    </div>
+
+    <!-- Grille jours de la semaine -->
+    <div class="semaine-container">
+        <div class="jours-semaine" id="jours"></div>
+    </div>
+
+    <!-- Liste des prestations de la semaine -->
+    <div class="card mt-4">
+        <div class="card-header bg-primary text-white">
+            <i class="bi bi-list"></i> Prestations de la semaine
+        </div>
+        <div class="card-body" id="prestations-list">
+            <p class="text-muted">Chargement...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .semaine-container {
+        overflow-x: auto;
+        margin-bottom: 20px;
+    }
+
+    .jours-semaine {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 8px;
+        min-width: 100%;
+        padding: 10px 0;
+    }
+
+    @media (max-width: 480px) {
+        .jours-semaine {
+            gap: 5px;
+        }
+    }
+
+    .jour-card {
+        background: white;
+        border-radius: 12px;
+        padding: 10px;
+        text-align: center;
+        border: 2px solid #ddd;
+        min-height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .jour-card:hover {
+        border-color: #007bff;
+        box-shadow: 0 4px 12px rgba(0,123,255,0.2);
+    }
+
+    .jour-card.today {
+        background: #e8f0fe;
+        border-color: #1a73e8;
+    }
+
+    .jour-card.today .jour-numero {
+        background: #1a73e8;
+        color: white;
+        border-radius: 50%;
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+    }
+
+    .jour-lettre {
+        font-weight: bold;
+        font-size: 14px;
+        color: #666;
+        text-transform: uppercase;
+    }
+
+    .jour-numero {
+        font-size: 20px;
+        font-weight: bold;
+        color: #000;
+        margin: 6px 0;
+    }
+
+    .jour-mois-annee {
+        font-size: 11px;
+        color: #999;
+    }
+
+    .jour-mois {
+        text-transform: uppercase;
+        font-weight: 500;
+    }
+
+    .jour-annee {
+        color: #ccc;
+        font-size: 10px;
+    }
+
+    .prestations-count {
+        background: #ff6b6b;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        margin: 0 auto;
+        margin-top: 4px;
+    }
+
+    .prestation-item {
+        background: white;
+        border-left: 4px solid #ff6b6b;
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 6px;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .prestation-item:hover {
+        background: #f8f9fa;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .prestation-item h6 {
+        margin: 0 0 6px 0;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .prestation-item small {
+        display: block;
+        color: #7f8c8d;
+        margin: 2px 0;
+    }
+
+    .prestation-item .badge {
+        display: inline-block;
+        margin-right: 4px;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentWeekStart = new Date();
+currentWeekStart.setDate(currentWeekStart.getDate() - currentWeekStart.getDay() + 1);
+
+async function chargerSemaine(dateDebut) {
+    try {
+        const dateStr = dateDebut.toISOString().split('T')[0];
+        const response = await fetch(`/api/semaine-jours?date=${dateStr}`);
+        const data = await response.json();
+        
+        const container = document.getElementById('jours');
+        container.innerHTML = '';
+        
+        const aujourd_hui = new Date().toISOString().split('T')[0];
+        
+        data.jours.forEach(jour => {
+            const card = document.createElement('div');
+            card.className = 'jour-card';
+            if (jour.date === aujourd_hui) card.classList.add('today');
+            
+            card.innerHTML = `
+                <div>
+                    <div class="jour-lettre">${jour.jour}</div>
+                    <div class="jour-numero">${jour.numero}</div>
+                    <div class="jour-mois-annee">
+                        <div class="jour-mois">${jour.mois}</div>
+                        <div class="jour-annee">'${jour.annee}</div>
+                    </div>
+                </div>
+            `;
+            
+            card.addEventListener('click', () => {
+                window.location.href = `/prestation/nouvelle?date=${jour.date}`;
+            });
+            
+            container.appendChild(card);
+        });
+        
+        // Charger les prestations
+        chargerPrestations(dateStr);
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+}
+
+async function chargerPrestations(dateDebut) {
+    try {
+        const response = await fetch(`/api/prestations/calendrier?date=${dateDebut}`);
+        const prestations = await response.json();
+        
+        const container = document.getElementById('prestations-list');
+        
+        if (prestations.length === 0) {
+            container.innerHTML = '<p class="text-muted">Aucune prestation cette semaine</p>';
+            return;
+        }
+        
+        let html = '';
+        prestations.forEach(p => {
+            html += `
+                <div class="prestation-item" onclick="window.location.href='/prestation/${p.id}'">
+                    <h6>${p.title}</h6>
+                    <small><i class="bi bi-calendar-event"></i> ${new Date(p.start).toLocaleDateString('fr-FR', {month: 'short', day: 'numeric'})}</small>
+                    <small><i class="bi bi-clock"></i> ${new Date(p.start).toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'})}</small>
+                    <span class="badge" style="background: ${p.backgroundColor}">${p.title.split(' - ')[0]}</span>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+}
+
+document.getElementById('prevWeek').addEventListener('click', () => {
+    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+    chargerSemaine(currentWeekStart);
+});
+
+document.getElementById('nextWeek').addEventListener('click', () => {
+    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+    chargerSemaine(currentWeekStart);
+});
+
+// Charger la semaine au démarrage
+chargerSemaine(currentWeekStart);
+</script>
+{% endblock %}
