@@ -3,67 +3,490 @@
 {% block title %}Prestations{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-calendar-check"></i> Prestations</h1>
-    <a href="/prestations/nouvelle" class="btn btn-primary">
-        <i class="bi bi-plus-circle"></i> Nouvelle prestation
-    </a>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h1><i class="bi bi-calendar-check"></i> Prestations</h1>
+        <a href="/prestation/nouvelle" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nouvelle prestation
+        </a>
+    </div>
+
+    <!-- Filtres et recherche -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Rechercher par client, lieu, type...">
+                </div>
+                <div class="col-md-3">
+                    <select id="filterStatut" class="form-select">
+                        <option value="">Tous les statuts</option>
+                        <option value="Demandée">Demandée</option>
+                        <option value="Planifiée">Planifiée</option>
+                        <option value="En cours">En cours</option>
+                        <option value="Terminée">Terminée</option>
+                        <option value="Annulée">Annulée</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button id="btnReinitialiser" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-arrow-counterclockwise"></i> Réinitialiser
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vue tableau (desktop) -->
+    <div class="card d-none d-lg-block">
+        <div class="card-header bg-light">
+            <span id="countPrestations">0</span> prestation(s)
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="tableauPrestations">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 12%;">Date</th>
+                            <th style="width: 18%;">Client</th>
+                            <th style="width: 15%;">Type</th>
+                            <th style="width: 15%;">Lieu</th>
+                            <th style="width: 12%;">Statut</th>
+                            <th style="width: 12%;">Tarif</th>
+                            <th style="width: 16%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyPrestations">
+                        <!-- Rempli par JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vue cartes (mobile) -->
+    <div class="d-lg-none" id="cartesPrestations">
+        <!-- Rempli par JavaScript -->
+    </div>
+
+    <!-- Message vide -->
+    <div class="alert alert-info d-none" id="messagevide">
+        <i class="bi bi-info-circle"></i> Aucune prestation ne correspond à vos critères de recherche.
+    </div>
 </div>
 
-<div class="card">
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Date</th>
-                        <th>Client</th>
-                        <th>Type</th>
-                        <th>Lieu</th>
-                        <th>Statut</th>
-                        <th>Tarif</th>
-                        <th style="width: 120px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for prestation in prestations %}
-                    <tr>
-                        <td>{{ prestation.date_debut.strftime('%d/%m/%Y') if prestation.date_debut else '-' }}</td>
-                        <td>{{ prestation.client.nom }}{% if prestation.client.prenom %} {{ prestation.client.prenom }}{% endif %}</td>
-                        <td>{{ prestation.type_prestation or '-' }}</td>
-                        <td>{{ prestation.lieu or '-' }}</td>
-                        <td>
-                            {% set statut = prestation.statut or 'En attente' %}
-                            {% if statut == 'Demandée' %}
-                                <span class="badge bg-secondary">{{ statut }}</span>
-                            {% elif statut == 'Planifiée' %}
-                                <span class="badge bg-primary">{{ statut }}</span>
-                            {% elif statut == 'En cours' %}
-                                <span class="badge bg-info">{{ statut }}</span>
-                            {% elif statut == 'Terminée' %}
-                                <span class="badge bg-success">{{ statut }}</span>
-                            {% elif statut == 'Annulée' %}
-                                <span class="badge bg-danger">{{ statut }}</span>
-                            {% else %}
-                                <span class="badge bg-warning">{{ statut }}</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ prestation.tarif_total }}€</td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <a href="/prestation/{{ prestation.id }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                <a href="/prestation/{{ prestation.id }}/modifier" class="btn btn-sm btn-outline-warning">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<!-- MODAL : Détails rapides -->
+<div class="modal fade" id="modalDetailsPrestations" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Détails prestation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Contenu dynamique -->
+            </div>
+            <div class="modal-footer">
+                <a href="#" id="modalLinkModifier" class="btn btn-warning">
+                    <i class="bi bi-pencil"></i> Modifier
+                </a>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Tableau responsif */
+    @media (max-width: 991px) {
+        .table {
+            font-size: 0.9rem;
+        }
+        
+        .btn-group {
+            gap: 2px;
+        }
+        
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 0.8rem;
+        }
+    }
+
+    /* Cartes mobiles */
+    .prestation-card {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 16px;
+        border: 1px solid #e0e0e0;
+        transition: all 0.3s;
+    }
+
+    .prestation-card:active {
+        transform: scale(0.98);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .prestation-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 12px;
+    }
+
+    .prestation-card-date {
+        font-weight: 600;
+        color: #2c3e50;
+        font-size: 1rem;
+    }
+
+    .prestation-card-badge {
+        margin-bottom: 8px;
+    }
+
+    .prestation-card-info {
+        margin: 8px 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .prestation-card-info-icon {
+        color: #666;
+        margin-top: 2px;
+        font-size: 0.9rem;
+    }
+
+    .prestation-card-info-text {
+        color: #555;
+        font-size: 0.9rem;
+    }
+
+    .prestation-card-info-label {
+        color: #999;
+        font-size: 0.85rem;
+    }
+
+    .prestation-card-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .prestation-card-actions a {
+        flex: 1;
+        text-align: center;
+    }
+
+    .prestation-tarif {
+        font-weight: 700;
+        color: #28a745;
+        font-size: 1.1rem;
+    }
+
+    /* Badges statut */
+    .badge-demandee { background-color: #6c757d; }
+    .badge-planifiee { background-color: #0d6efd; }
+    .badge-en-cours { background-color: #0dcaf0; }
+    .badge-terminee { background-color: #198754; }
+    .badge-annulee { background-color: #dc3545; }
+
+    /* Icônes status */
+    .status-icon {
+        display: inline-block;
+        margin-right: 4px;
+    }
+
+    /* Recherche */
+    #searchInput, #filterStatut {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+
+    #searchInput:focus, #filterStatut:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Données des prestations
+    let toutesLesPrestations = [];
+
+    // Mapping des statuts
+    const statusBadges = {
+        'Demandée': { class: 'bg-secondary badge-demandee', icon: '📋' },
+        'Planifiée': { class: 'bg-primary badge-planifiee', icon: '📅' },
+        'En cours': { class: 'bg-info badge-en-cours', icon: '⏳' },
+        'Terminée': { class: 'bg-success badge-terminee', icon: '✅' },
+        'Annulée': { class: 'bg-danger badge-annulee', icon: '❌' }
+    };
+
+    // Charger les prestations depuis l'API ou le DOM
+    async function chargerPrestations() {
+        try {
+            const response = await fetch('/api/prestations');
+            toutesLesPrestations = await response.json();
+            afficherPrestations(toutesLesPrestations);
+        } catch (error) {
+            // Fallback : utiliser les données du template
+            chargerPrestationsDOM();
+        }
+    }
+
+    // Fallback : lire les données du DOM
+    function chargerPrestationsDOM() {
+        const tbody = document.getElementById('tbodyPrestations');
+        const rows = tbody.querySelectorAll('tr');
+        
+        toutesLesPrestations = [];
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 7) {
+                toutesLesPrestations.push({
+                    id: row.querySelector('a[href*="/prestation/"]')?.href.match(/\d+/)?.[0] || 0,
+                    date_debut: cells[0].textContent.trim(),
+                    client: cells[1].textContent.trim(),
+                    type: cells[2].textContent.trim(),
+                    lieu: cells[3].textContent.trim(),
+                    statut: cells[4].textContent.trim(),
+                    tarif: cells[5].textContent.trim(),
+                });
+            }
+        });
+    }
+
+    // Afficher les prestations
+    function afficherPrestations(prestations) {
+        const count = prestations.length;
+        document.getElementById('countPrestations').textContent = count;
+
+        // Vue tableau
+        afficherTableau(prestations);
+
+        // Vue cartes mobile
+        afficherCartes(prestations);
+
+        // Afficher/masquer message vide
+        const messagevide = document.getElementById('messagevide');
+        if (count === 0) {
+            messagevide.classList.remove('d-none');
+            document.getElementById('tableauPrestations').classList.add('d-none');
+            document.getElementById('cartesPrestations').innerHTML = '';
+        } else {
+            messagevide.classList.add('d-none');
+            document.getElementById('tableauPrestations').classList.remove('d-none');
+        }
+    }
+
+    // Afficher le tableau (desktop)
+    function afficherTableau(prestations) {
+        const tbody = document.getElementById('tbodyPrestations');
+        tbody.innerHTML = '';
+
+        prestations.forEach(p => {
+            const statut = p.statut || 'En attente';
+            const badgeInfo = statusBadges[statut] || { class: 'bg-warning', icon: '❓' };
+            const tarif = typeof p.tarif === 'string' ? p.tarif : (p.tarif ? p.tarif + '€' : '-');
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>
+                    <strong>${p.date_debut || '-'}</strong>
+                </td>
+                <td>
+                    <i class="bi bi-person-circle"></i> ${p.client || '-'}
+                </td>
+                <td>${p.type || '-'}</td>
+                <td>
+                    <i class="bi bi-geo-alt"></i> ${p.lieu || '-'}
+                </td>
+                <td>
+                    <span class="badge ${badgeInfo.class}">
+                        <span class="status-icon">${badgeInfo.icon}</span>
+                        ${statut}
+                    </span>
+                </td>
+                <td>
+                    <strong class="prestation-tarif">${tarif}</strong>
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <button type="button" class="btn btn-outline-primary btn-details" data-id="${p.id}" title="Détails">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                        <a href="/prestation/${p.id}" class="btn btn-outline-info" title="Ouvrir">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                        <a href="/prestation/${p.id}/modifier" class="btn btn-outline-warning" title="Modifier">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </div>
+                </td>
+            `;
+
+            // Event listener pour les détails
+            row.querySelector('.btn-details').addEventListener('click', () => {
+                afficherDetailsPrestations(p);
+            });
+
+            tbody.appendChild(row);
+        });
+
+        // Attacher les event listeners
+        attacherEventListeners();
+    }
+
+    // Afficher les cartes (mobile)
+    function afficherCartes(prestations) {
+        const container = document.getElementById('cartesPrestations');
+        container.innerHTML = '';
+
+        prestations.forEach(p => {
+            const statut = p.statut || 'En attente';
+            const badgeInfo = statusBadges[statut] || { class: 'bg-warning', icon: '❓' };
+            const tarif = typeof p.tarif === 'string' ? p.tarif : (p.tarif ? p.tarif + '€' : '-');
+
+            const card = document.createElement('div');
+            card.className = 'prestation-card';
+            card.innerHTML = `
+                <div class="prestation-card-header">
+                    <div>
+                        <div class="prestation-card-date">${p.date_debut || '-'}</div>
+                        <span class="badge ${badgeInfo.class} prestation-card-badge">
+                            ${badgeInfo.icon} ${statut}
+                        </span>
+                    </div>
+                    <div class="prestation-tarif">${tarif}</div>
+                </div>
+
+                <div class="prestation-card-info">
+                    <i class="bi bi-person-circle prestation-card-info-icon"></i>
+                    <div>
+                        <div class="prestation-card-info-label">Client</div>
+                        <div class="prestation-card-info-text">${p.client || '-'}</div>
+                    </div>
+                </div>
+
+                <div class="prestation-card-info">
+                    <i class="bi bi-tag prestation-card-info-icon"></i>
+                    <div>
+                        <div class="prestation-card-info-label">Type</div>
+                        <div class="prestation-card-info-text">${p.type || '-'}</div>
+                    </div>
+                </div>
+
+                <div class="prestation-card-info">
+                    <i class="bi bi-geo-alt prestation-card-info-icon"></i>
+                    <div>
+                        <div class="prestation-card-info-label">Lieu</div>
+                        <div class="prestation-card-info-text">${p.lieu || '-'}</div>
+                    </div>
+                </div>
+
+                <div class="prestation-card-actions">
+                    <button type="button" class="btn btn-sm btn-outline-primary btn-details-card" data-id="${p.id}">
+                        <i class="bi bi-eye"></i> Détails
+                    </button>
+                    <a href="/prestation/${p.id}/modifier" class="btn btn-sm btn-outline-warning">
+                        <i class="bi bi-pencil"></i> Modifier
+                    </a>
+                </div>
+            `;
+
+            // Event listener pour les détails
+            card.querySelector('.btn-details-card').addEventListener('click', () => {
+                afficherDetailsPrestations(p);
+            });
+
+            container.appendChild(card);
+        });
+
+        // Attacher les event listeners
+        attacherEventListeners();
+    }
+
+    // Afficher les détails dans un modal
+    function afficherDetailsPrestations(p) {
+        const modal = new bootstrap.Modal(document.getElementById('modalDetailsPrestations'));
+        
+        document.getElementById('modalTitle').textContent = `${p.client} - ${p.type || 'Prestation'}`;
+        document.getElementById('modalLinkModifier').href = `/prestation/${p.id}/modifier`;
+
+        const statut = p.statut || 'En attente';
+        const badgeInfo = statusBadges[statut] || { class: 'bg-warning', icon: '❓' };
+
+        document.getElementById('modalBody').innerHTML = `
+            <dl class="row">
+                <dt class="col-sm-4"><i class="bi bi-calendar-event"></i> Date</dt>
+                <dd class="col-sm-8">${p.date_debut || '-'}</dd>
+
+                <dt class="col-sm-4"><i class="bi bi-person"></i> Client</dt>
+                <dd class="col-sm-8">${p.client || '-'}</dd>
+
+                <dt class="col-sm-4"><i class="bi bi-tag"></i> Type</dt>
+                <dd class="col-sm-8">${p.type || '-'}</dd>
+
+                <dt class="col-sm-4"><i class="bi bi-geo-alt"></i> Lieu</dt>
+                <dd class="col-sm-8">${p.lieu || '-'}</dd>
+
+                <dt class="col-sm-4"><i class="bi bi-info-circle"></i> Statut</dt>
+                <dd class="col-sm-8">
+                    <span class="badge ${badgeInfo.class}">
+                        ${badgeInfo.icon} ${statut}
+                    </span>
+                </dd>
+
+                <dt class="col-sm-4"><i class="bi bi-cash"></i> Tarif</dt>
+                <dd class="col-sm-8">
+                    <strong class="prestation-tarif">${typeof p.tarif === 'string' ? p.tarif : (p.tarif ? p.tarif + '€' : '-')}</strong>
+                </dd>
+            </dl>
+        `;
+
+        modal.show();
+    }
+
+    // Filtrer les prestations
+    function filtrerPrestations() {
+        const searchValue = document.getElementById('searchInput').value.toLowerCase();
+        const statutValue = document.getElementById('filterStatut').value;
+
+        const filtered = toutesLesPrestations.filter(p => {
+            const matchSearch = !searchValue || 
+                p.client.toLowerCase().includes(searchValue) ||
+                p.type.toLowerCase().includes(searchValue) ||
+                p.lieu.toLowerCase().includes(searchValue);
+            
+            const matchStatut = !statutValue || p.statut === statutValue;
+
+            return matchSearch && matchStatut;
+        });
+
+        afficherPrestations(filtered);
+    }
+
+    // Attacher les event listeners
+    function attacherEventListeners() {
+        document.getElementById('searchInput').addEventListener('input', filtrerPrestations);
+        document.getElementById('filterStatut').addEventListener('change', filtrerPrestations);
+        document.getElementById('btnReinitialiser').addEventListener('click', () => {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('filterStatut').value = '';
+            afficherPrestations(toutesLesPrestations);
+        });
+    }
+
+    // Charger au démarrage
+    document.addEventListener('DOMContentLoaded', chargerPrestations);
+</script>
 {% endblock %}
