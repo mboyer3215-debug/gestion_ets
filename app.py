@@ -1942,80 +1942,7 @@ def indisponibilite_nouvelle():
     
     return render_template('indisponibilite_form.html', indisponibilite=None, date_prefill=date_param)
 
-    # Synchroniser avec Google Calendar sur TOUS les calendriers filtrés
-    gcal_events_dict = {}
-
-        if GOOGLE_CALENDAR_AVAILABLE:
-            service = get_calendar_service()
-            if service:
-                # Récupérer tous les calendriers filtrés (professionnels uniquement)
-                calendars = get_filtered_calendars(service)
-
-                # === RAPPELS POUR INDISPONIBILITÉS ===
-                reminders_list = []
-                try:
-
-                    if date_debut:
-                        # Pour indisponibilité, prendre 8h00 le jour de début
-                        event_start_dt = datetime.combine(date_debut, datetime.min.time().replace(hour=8))
-
-                        # Rappel la veille à 19h00
-                        reminder_veille = event_start_dt.replace(hour=19, minute=0) - timedelta(days=1)
-                        minutes_veille = int((event_start_dt - reminder_veille).total_seconds() / 60)
-                        if minutes_veille > 0 and minutes_veille < 40320:
-                            reminders_list.append({'method': 'popup', 'minutes': minutes_veille})
-                except Exception as e:
-                    pass
-                # === FIN RAPPELS ===
-
-                # Créer l'événement sur chaque calendrier
-                for calendar in calendars:
-                    try:
-                        event_data = {
-                            'summary': f'🚫 INDISPONIBLE - {motif}',
-                            'description': note or f'Indisponibilité : {motif}',
-                            'start': {
-                                'date': date_debut.strftime('%Y-%m-%d'),
-                            },
-                            'end': {
-                                'date': (date_fin + timedelta(days=1)).strftime('%Y-%m-%d'),  # Date de fin exclusive
-                            },
-                            'transparency': 'opaque',  # Bloque le calendrier
-                            'colorId': '11',  # Rouge pour indisponibilité
-                            'reminders': {
-                                'useDefault': False,
-                                'overrides': reminders_list
-                            } if reminders_list else {'useDefault': True}
-                        }
-
-                        print("!!! CREATION INDISPONIBILITE - LIGNE 1807 !!!")
-                        print("event_data reminders:", event_data.get('reminders'))
-
-                        event = service.events().insert(
-                            calendarId=calendar['id'],
-                            body=event_data
-                        ).execute()
-
-                        print("!!! INDISPONIBILITE CREEE - ID:", event['id'])
-                        gcal_events_dict[calendar['id']] = event['id']
-                    except Exception as e:
-                        print(f"Erreur création événement sur calendrier {calendar.get('summary', 'Inconnu')}: {e}")
-
-        # Sauvegarder les IDs d'événements
-        indispo.gcal_events = json.dumps(gcal_events_dict)
-        db.session.commit()
-
-        nb_calendriers = len(gcal_events_dict)
-        if nb_calendriers > 0:
-            flash(f'✓ Indisponibilité créée sur {nb_calendriers} calendrier(s) !', 'success')
-        else:
-            flash('✓ Indisponibilité créée (Google Calendar non configuré)', 'success')
-
-    except Exception as e:
-        db.session.rollback()
-        flash(f'❌ Erreur : {str(e)}', 'danger')
-
-    return redirect(url_for('indisponibilite'))
+  
 
 @app.route('/indisponibilite/<int:indispo_id>/supprimer', methods=['POST'])
 def supprimer_indisponibilite(indispo_id):
@@ -5610,6 +5537,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
