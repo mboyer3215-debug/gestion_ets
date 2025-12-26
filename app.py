@@ -1879,10 +1879,10 @@ def prestation_supprimer(prestation_id):
 
 @app.route('/indisponibilite')
 @login_required
-def indisponibilites():
+def indisponibilite():
     """Page de gestion des indisponibilités"""
-    indisponibilites = Indisponibilite.query.order_by(Indisponibilite.date_debut.desc()).all()
-    return render_template('indisponibilite.html', indisponibilites=indisponibilites)
+    indisponibilite = Indisponibilite.query.order_by(Indisponibilite.date_debut.desc()).all()
+    return render_template('indisponibilite.html', indisponibilite=indisponibilite)
 
 
 @app.route('/indisponibilite/nouvelle', methods=['GET', 'POST'])
@@ -1959,7 +1959,7 @@ def indisponibilite_nouvelle():
         else:
             flash('✓ Indisponibilité créée', 'success')
         
-        return redirect(url_for('indisponibilites'))
+        return redirect(url_for('indisponibilite'))
     
     # GET - Pré-remplir avec la date cliquée
     date_param = request.args.get('date')
@@ -1988,7 +1988,7 @@ def supprimer_indisponibilite(indispo_id):
     db.session.commit()
     
     flash('✓ Indisponibilité supprimée', 'success')
-    return redirect(url_for('indisponibilites'))
+    return redirect(url_for('indisponibilite'))
 # ============================================================================
 # ROUTES CALENDRIER
 # ============================================================================
@@ -5463,6 +5463,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
