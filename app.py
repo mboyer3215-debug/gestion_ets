@@ -5507,6 +5507,119 @@ if __name__ == '__main__':
 
 
 
+@app.route('/api/rechercher-lieu')
+def api_rechercher_lieu():
+    """Rechercher un lieu/entreprise automatiquement"""
+    query = request.args.get('q', '').strip()
+    
+    if not query or len(query) < 3:
+        return jsonify({'success': False, 'message': 'Requête trop courte'})
+    
+    import requests
+    
+    try:
+        # Recherche directe Nominatim
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {
+            'q': f"{query}, France",
+            'format': 'json',
+            'limit': 10,
+            'addressdetails': 1
+        }
+        headers = {'User-Agent': 'GestionEntreprise/1.0'}
+        
+        response = requests.get(url, params=params, headers=headers, timeout=10)
+        
+        if response.status_code != 200:
+            return jsonify({'success': False})
+        
+        data = response.json()
+        resultats = []
+        
+        for result in data:
+            address = result.get('address', {})
+            numero = address.get('house_number', '')
+            rue = address.get('road', '')
+            
+            if numero and rue:
+                adresse = f"{numero} {rue}"
+            elif rue:
+                adresse = rue
+            else:
+                adresse = ''
+            
+            resultats.append({
+                'nom': result.get('display_name', '').split(',')[0].strip(),
+                'adresse': adresse,
+                'code_postal': address.get('postcode', ''),
+                'ville': address.get('city') or address.get('town') or address.get('village', ''),
+                'latitude': float(result.get('lat', 0)),
+                'longitude': float(result.get('lon', 0))
+            })
+        
+        return jsonify({'success': True, 'resultats': resultats})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/calcul-distance')
+def api_calcul_distance():
+    """Calculer distance et durée entre deux points"""
+    depart = request.args.get('depart', '').strip()
+    arrivee = request.args.get('arrivee', '').strip()
+    
+    if not depart or not arrivee:
+        return jsonify({'success': False})
+    
+    import requests
+    from math import radians, cos, sin, asin, sqrt
+    
+    try:
+        headers = {'User-Agent': 'GestionEntreprise/1.0'}
+        
+        # Géocoder départ
+        url_dep = f"https://nominatim.openstreetmap.org/search?q={depart}&format=json&limit=1"
+        resp_dep = requests.get(url_dep, headers=headers, timeout=10)
+        data_dep = resp_dep.json()
+        
+        if not data_dep:
+            return jsonify({'success': False})
+        
+        lat1 = float(data_dep[0]['lat'])
+        lon1 = float(data_dep[0]['lon'])
+        
+        # Géocoder arrivée
+        url_arr = f"https://nominatim.openstreetmap.org/search?q={arrivee}&format=json&limit=1"
+        resp_arr = requests.get(url_arr, headers=headers, timeout=10)
+        data_arr = resp_arr.json()
+        
+        if not data_arr:
+            return jsonify({'success': False})
+        
+        lat2 = float(data_arr[0]['lat'])
+        lon2 = float(data_arr[0]['lon'])
+        
+        # Haversine
+        def haversine(lon1, lat1, lon2, lat2):
+            lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+            dlon = lon2 - lon1
+            dlat = lat2 - lat1
+            a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+            c = 2 * asin(sqrt(a))
+            return c * 6371
+        
+        distance_km = round(haversine(lon1, lat1, lon2, lat2), 1)
+        duree_minutes = round((distance_km / 80) * 60)  # 80 km/h moyenne
+        
+        return jsonify({
+            'success': True,
+            'distance_km': distance_km,
+            'duree_minutes': duree_minutes
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
 
 
 
