@@ -1895,75 +1895,121 @@ def indisponibilite_nouvelle():
         motif = request.form.get('motif')
         note = request.form.get('note', '')
         
-        if not date_debut_str:
-            flash('Date de début obligatoire', 'error')
+        if not date_debut_str or not motif:
+            flash('Date de début et motif obligatoires', 'error')
             return redirect(url_for('indisponibilite_nouvelle'))
         
-        date_debut = datetime.strptime(date_debut_str, '%Y-%m-%dT%H:%M')
-        date_fin = datetime.strptime(date_fin_str, '%Y-%m-%dT%H:%M') if date_fin_str else date_debut
+        try:
+            date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
+            date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date() if date_fin_str else date_debut
+            
+            # Vérifier que fin >= début
+            if date_fin < date_debut:
+                flash('La date de fin doit être après ou égale à la date de début', 'error')
+                return redirect(url_for('indisponibilite_nouvelle'))
+            
+            # Créer l'indisponibilité
+            indispo = Indisponibilite(
+                date_debut=date_debut,
+                date_fin=date_fin,
+                motif=motif,
+                note=note
+            )
+            
+            db.session.add(indispo)
+            db.session.flush()
+            
+            # Synchronisation Google Calendar - UN SEUL calendrier
+            gcal_event_id = None
+            
+            if GOOGLE_CALENDAR_AVAILABLE:
+                try:
+                    service = get_calendar_service()
+                    if service:
+                        # Créer l'événement sur le calendrier principal UNIQUEMENT
+                        event_data = {
+                            'summary': f'🚫 INDISPONIBLE - {motif}',
+                            'description': note or f'Indisponibilité : {motif}',
+                            'start': {
+                                'date': date_debut.strftime('%Y-%m-%d'),
+                            },
+                            'end': {
+                                'date': (date_fin + timedelta(days=1)).strftime('%Y-%m-%d'),
+                            },
+                            'transparency': 'opaque',
+                            'colorId': '11',  # Couleur rouge
+                            'reminders': {'useDefault': False}
+                        }
+                        
+                        # Créer l'événement
+                        event = service.events().insert(
+                            calendarId='primary',
+                            body=event_data
+                        ).execute()
+                        
+                        gcal_event_id = event['id']
+                        indispo.gcal_event_id = gcal_event_id
+                        
+                        flash('✓ Indisponibilité créée et synchronisée avec Google Calendar', 'success')
+                    else:
+                        flash('✓ Indisponibilité créée (Google Calendar non configuré)', 'success')
+                
+                except Exception as e:
+                    flash(f'✓ Indisponibilité créée (erreur Google Calendar : {str(e)})', 'warning')
+            else:
+                flash('✓ Indisponibilité créée', 'success')
+            
+            db.session.commit()
+            return redirect(url_for('indisponibilite'))
         
-        # Créer l'indisponibilité en base
-        indispo = Indisponibilite(
-            date_debut=date_debut,
-            date_fin=date_fin,
-            motif=motif,
-            note=note
-        )
+        except Exception as e:
+            db.session.rollback()
+            flash(f'❌ Erreur : {str(e)}', 'error')
+            return redirect(url_for('indisponibilite_nouvelle'))
+    
+    # GET - Afficher le formulaire
+    date_param = request.args.get('date')
+    return render_template('indisponibilite_form.html', date_prefill=date_param)
+
+
+@app.route('/indisponibilite/<int:indispo_id>/supprimer', methods=['POST'])
+@login_required
+def supprimer_indisponibilite(indispo_id):
+    """Supprimer une indisponibilité"""
+    try:
+        indispo = Indisponibilite.query.get_or_404(indispo_id)
         
-        db.session.add(indispo)
-        db.session.commit()
-        
-        # Synchronisation Google Calendar - UN SEUL CALENDRIER
-        gcal_event_id = None
-        
-        if GOOGLE_CALENDAR_AVAILABLE:
+        # Supprimer de Google Calendar si synchronisé
+        if indispo.gcal_event_id and GOOGLE_CALENDAR_AVAILABLE:
             try:
                 service = get_calendar_service()
                 if service:
-                    # Utiliser UNIQUEMENT le calendrier principal (pas tous les calendriers)
-                    calendar_id = 'primary'
-                    
-                    # Préparer l'événement
-                    event_data = {
-                        'summary': f'🚫 INDISPONIBLE - {motif}',
-                        'description': note or f'Indisponibilité : {motif}',
-                        'start': {
-                            'date': date_debut.strftime('%Y-%m-%d'),
-                        },
-                        'end': {
-                            'date': (date_fin + timedelta(days=1)).strftime('%Y-%m-%d'),
-                        },
-                        'transparency': 'opaque',
-                        'colorId': '11',
-                        'reminders': {'useDefault': False}
-                    }
-                    
-                    # Créer l'événement
-                    event = service.events().insert(
-                        calendarId=calendar_id,
-                        body=event_data
+                    service.events().delete(
+                        calendarId='primary',
+                        eventId=indispo.gcal_event_id
                     ).execute()
-                    
-                    gcal_event_id = event['id']
-                    
-                    # Sauvegarder l'ID
-                    indispo.gcal_event_id = gcal_event_id
-                    db.session.commit()
-                    
-                    flash('✓ Indisponibilité créée et synchronisée avec Google Calendar', 'success')
-                else:
-                    flash('✓ Indisponibilité créée (Google Calendar non configuré)', 'success')
-            
+                    print(f"✓ Événement Google Calendar supprimé : {indispo.gcal_event_id}")
             except Exception as e:
-                flash(f'✓ Indisponibilité créée (erreur Google Calendar : {str(e)})', 'warning')
-        else:
-            flash('✓ Indisponibilité créée', 'success')
+                print(f"⚠️ Erreur suppression Google Calendar : {e}")
         
+        # Supprimer de la base de données
+        db.session.delete(indispo)
+        db.session.commit()
+        
+        # Retourner JSON ou redirection selon le type de requête
+        if request.is_json or request.headers.get('Accept') == 'application/json':
+            return jsonify({'success': True, 'message': '✓ Indisponibilité supprimée'})
+        
+        flash('✓ Indisponibilité supprimée', 'success')
         return redirect(url_for('indisponibilite'))
     
-    # GET - Pré-remplir avec la date cliquée
-    date_param = request.args.get('date')
-    return render_template('indisponibilite_form.html', indisponibilite=None, date_prefill=date_param)
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'message': str(e)}), 500
+        
+        flash(f'❌ Erreur : {str(e)}', 'error')
+        return redirect(url_for('indisponibilite'))
 
 
 @app.route('/indisponibilite/<int:indispo_id>/supprimer', methods=['POST'])
@@ -5463,6 +5509,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
