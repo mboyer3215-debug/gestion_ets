@@ -18,6 +18,15 @@
         </div>
     </div>
 
+// Dans le dashboard.html, corriger le JavaScript du modal
+document.getElementById('btnCreerIndispo').addEventListener('click', function() {
+    const dateStr = dateCliquee;
+    // Construire l'URL correctement
+    window.location.href = `/indisponibilite/nouvelle?date=${dateStr}`;
+});
+
+
+    
     <!-- Formulaire nouvelle indisponibilité -->
     <div class="row mb-4">
         <div class="col-lg-8">
