@@ -3,104 +3,150 @@
 {% block title %}Tableau de bord{% endblock %}
 
 {% block content %}
-<h1 class="mb-4">
-    <i class="bi bi-speedometer2 text-primary"></i> Tableau de bord
-</h1>
+<div class="container-fluid">
+    <h1 class="mb-4">
+        <i class="bi bi-speedometer2 text-primary"></i> Tableau de bord
+    </h1>
 
-<!-- KPIs -->
-<div class="row g-3 mb-4">
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="kpi-card kpi-blue">
-            <div class="kpi-number">{{ stats.nb_clients }}</div>
-            <div class="kpi-label">Clients</div>
+    <!-- KPIs -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-2 col-md-4 col-sm-6 col-xs-12">
+            <div class="kpi-card kpi-blue">
+                <div class="kpi-number">{{ stats.nb_clients }}</div>
+                <div class="kpi-label">Clients</div>
+            </div>
         </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="kpi-card kpi-green">
-            <div class="kpi-number">{{ stats.nb_prestations }}</div>
-            <div class="kpi-label">Total {{ now().year }}</div>
+        <div class="col-lg-2 col-md-4 col-sm-6 col-xs-12">
+            <div class="kpi-card kpi-green">
+                <div class="kpi-number">{{ stats.nb_prestations }}</div>
+                <div class="kpi-label">Total {{ now().year }}</div>
+            </div>
         </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="kpi-card kpi-orange">
-            <div class="kpi-number">{{ stats.nb_en_cours }}</div>
-            <div class="kpi-label">En cours</div>
+        <div class="col-lg-2 col-md-4 col-sm-6 col-xs-12">
+            <div class="kpi-card kpi-orange">
+                <div class="kpi-number">{{ stats.nb_en_cours }}</div>
+                <div class="kpi-label">En cours</div>
+            </div>
         </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="kpi-card kpi-cyan">
-            <div class="kpi-number">{{ stats.nb_ce_mois }}</div>
-            <div class="kpi-label">
-            {% set mois_fr = {
-                'January': 'Janvier', 'February': 'Février', 'March': 'Mars',
-                'April': 'Avril', 'May': 'Mai', 'June': 'Juin',
-                'July': 'Juillet', 'August': 'Août', 'September': 'Septembre',
-                'October': 'Octobre', 'November': 'Novembre', 'December': 'Décembre'
-            } %}
-            {{ mois_fr[now().strftime('%B')] }} {{ now().year }}
+        <div class="col-lg-2 col-md-4 col-sm-6 col-xs-12">
+            <div class="kpi-card kpi-cyan">
+                <div class="kpi-number">{{ stats.nb_ce_mois }}</div>
+                <div class="kpi-label">
+                {% set mois_fr = {
+                    'January': 'Janvier', 'February': 'Février', 'March': 'Mars',
+                    'April': 'Avril', 'May': 'Mai', 'June': 'Juin',
+                    'July': 'Juillet', 'August': 'Août', 'September': 'Septembre',
+                    'October': 'Octobre', 'November': 'Novembre', 'December': 'Décembre'
+                } %}
+                {{ mois_fr[now().strftime('%B')] }} {{ now().year }}
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 col-xs-12">
+            <div class="kpi-card kpi-red">
+                <div class="kpi-number" style="font-size: 1.8rem;">{{ stats.ca_total|int }} €</div>
+                <div class="kpi-label">CA {{ now().year }}</div>
+            </div>
+        </div>
+        <div class="col-lg-2 col-md-4 col-sm-6 col-xs-12">
+            <div class="kpi-card kpi-purple">
+                <div class="kpi-number">{{ stats.nb_factures_payees }}</div>
+                <div class="kpi-label">Fact. payées</div>
             </div>
         </div>
     </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="kpi-card kpi-red">
-            <div class="kpi-number" style="font-size: 2rem;">{{ stats.ca_total|int }} €</div>
-            <div class="kpi-label">CA {{ now().year }}</div>
-        </div>
-    </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-        <div class="kpi-card kpi-purple">
-            <div class="kpi-number">{{ stats.nb_factures_payees }}</div>
-            <div class="kpi-label">Fact. payées</div>
-        </div>
-    </div>
-</div>
 
-<!-- Calendrier -->
-<div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        <i class="bi bi-calendar3"></i> Calendrier des prestations
-    </div>
-    <div class="card-body">
-        <div id="calendar"></div>
-    </div>
-</div>
+    <!-- Onglets : Calendrier vs Statistiques -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-calendrier" data-bs-toggle="tab" data-bs-target="#calendrier-content" type="button" role="tab">
+                <i class="bi bi-calendar3"></i> Calendrier
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-statistiques" data-bs-toggle="tab" data-bs-target="#statistiques-content" type="button" role="tab">
+                <i class="bi bi-graph-up"></i> Statistiques
+            </button>
+        </li>
+    </ul>
 
-<!-- Tâches urgentes -->
-<div class="card">
-    <div class="card-header bg-danger text-white">
-        <i class="bi bi-exclamation-triangle"></i> Tâches urgentes
-    </div>
-    <div class="card-body">
-        {% if taches_urgentes and taches_urgentes|length > 0 %}
-            <div class="list-group">
-                {% for tache in taches_urgentes %}
-                <a href="/prestation/{{ tache.id }}/modifier" class="list-group-item list-group-item-action">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h6 class="mb-1">{{ tache.titre_tache or 'Tâche sans titre' }}</h6>
-                            <p class="mb-1 text-muted small">
-                                <i class="bi bi-person"></i> 
-                                {{ tache.client.nom }}{% if tache.client.prenom %} {{ tache.client.prenom }}{% endif %}
-                            </p>
-                        </div>
-                        <div class="text-end">
-                            <span class="badge bg-{{ 'danger' if tache.priorite_tache == 'Haute' else 'warning' if tache.priorite_tache == 'Moyenne' else 'secondary' }}">
-                                {{ tache.priorite_tache or 'Moyenne' }}
-                            </span>
-                            <br>
-                            <small class="text-muted">
-                                {{ tache.date_echeance_tache.strftime('%d/%m/%Y') if tache.date_echeance_tache else 'Pas de date' }}
-                            </small>
-                        </div>
-                    </div>
-                </a>
-                {% endfor %}
+    <div class="tab-content">
+        <!-- TAB 1 : CALENDRIER -->
+        <div class="tab-pane fade show active" id="calendrier-content" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-calendar3"></i> Calendrier des prestations</span>
+                    <a href="/calendrier" class="btn btn-sm btn-light" title="Vue agrandie">
+                        <i class="bi bi-fullscreen"></i>
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div id="calendar"></div>
+                </div>
             </div>
-        {% else %}
-            <p class="text-muted mb-0">
-                <i class="bi bi-check-circle text-success"></i> Aucune tâche urgente
-            </p>
-        {% endif %}
+        </div>
+
+        <!-- TAB 2 : STATISTIQUES -->
+        <div class="tab-pane fade" id="statistiques-content" role="tabpanel">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-graph-up"></i> Statistiques détaillées
+                </div>
+                <div class="card-body">
+                    <iframe src="/statistiques" style="width: 100%; height: 600px; border: none; border-radius: 8px;"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tâches urgentes -->
+    <div class="card mt-4">
+        <div class="card-header bg-danger text-white">
+            <i class="bi bi-exclamation-triangle"></i> Tâches urgentes
+        </div>
+        <div class="card-body">
+            {% if taches_urgentes and taches_urgentes|length > 0 %}
+                <div class="list-group">
+                    {% for tache in taches_urgentes %}
+                    <a href="/prestation/{{ tache.prestation_id }}/modifier" class="list-group-item list-group-item-action">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    {% if tache.en_retard %}
+                                        <i class="bi bi-exclamation-circle text-danger"></i>
+                                    {% endif %}
+                                    {{ tache.titre }}
+                                </h6>
+                                <p class="mb-1 text-muted small">
+                                    <i class="bi bi-person"></i> 
+                                    {{ tache.client_nom }}
+                                </p>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge bg-{{ 'danger' if tache.priorite == 'Haute' else 'warning' if tache.priorite == 'Moyenne' else 'secondary' }}">
+                                    {{ tache.priorite or 'Moyenne' }}
+                                </span>
+                                <br>
+                                <small class="text-{{ 'danger' if tache.en_retard else 'muted' }}">
+                                    {% if tache.jours_restants < 0 %}
+                                        ⏰ En retard de {{ -tache.jours_restants }} j
+                                    {% elif tache.jours_restants == 0 %}
+                                        ⏰ Aujourd'hui
+                                    {% else %}
+                                        ⏰ {{ tache.jours_restants }} j restants
+                                    {% endif %}
+                                </small>
+                            </div>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted mb-0">
+                    <i class="bi bi-check-circle text-success"></i> Aucune tâche urgente
+                </p>
+            {% endif %}
+        </div>
     </div>
 </div>
 
@@ -130,8 +176,72 @@
 {% block extra_css %}
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
 <style>
-    /* Style Google-like pour le calendrier */
-    .fc { 
+    /* Responsive pour mobile */
+    @media (max-width: 768px) {
+        .kpi-card {
+            padding: 15px !important;
+        }
+        
+        .kpi-number {
+            font-size: 1.8rem !important;
+        }
+        
+        .kpi-label {
+            font-size: 0.85rem !important;
+        }
+        
+        .fc-header-toolbar {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .fc-button-group {
+            width: 100%;
+        }
+        
+        .fc-button {
+            flex: 1;
+        }
+    }
+    
+    /* KPI Cards */
+    .kpi-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        border-left: 5px solid;
+        transition: all 0.3s ease;
+    }
+    
+    .kpi-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+    }
+    
+    .kpi-blue { border-left-color: #007bff; }
+    .kpi-green { border-left-color: #28a745; }
+    .kpi-orange { border-left-color: #fd7e14; }
+    .kpi-cyan { border-left-color: #17a2b8; }
+    .kpi-red { border-left-color: #dc3545; }
+    .kpi-purple { border-left-color: #6f42c1; }
+    
+    .kpi-number {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        line-height: 1;
+        margin-bottom: 10px;
+    }
+    
+    .kpi-label {
+        font-size: 0.95rem;
+        color: #7f8c8d;
+        font-weight: 500;
+    }
+    
+    /* Calendrier FullCalendar */
+    .fc {
         font-family: 'Segoe UI', 'Google Sans', sans-serif;
         border: none;
         background: white;
@@ -143,6 +253,10 @@
         margin-bottom: 1.5rem;
         padding-bottom: 12px;
         border-bottom: 1px solid #e0e0e0;
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
     }
     
     .fc-button {
@@ -156,7 +270,7 @@
         transition: all 0.2s;
     }
     
-    .fc-button:hover {
+    .fc-button:hover:not(:disabled) {
         background: linear-gradient(135deg, #764ba2, #667eea);
         box-shadow: 0 4px 8px rgba(0,0,0,0.15);
         transform: translateY(-1px);
@@ -229,6 +343,45 @@
     .fc-event-title {
         font-weight: 500;
     }
+    
+    /* Onglets */
+    .nav-tabs {
+        border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #666;
+        border: none;
+        border-bottom: 3px solid transparent;
+        margin-bottom: -2px;
+        transition: all 0.3s;
+    }
+    
+    .nav-tabs .nav-link:hover {
+        color: #007bff;
+        border-bottom-color: #e0e0e0;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #007bff;
+        background: transparent;
+        border-bottom-color: #007bff;
+    }
+    
+    /* Liste des tâches */
+    .list-group-item {
+        border: 1px solid #e0e0e0;
+        transition: all 0.3s;
+    }
+    
+    .list-group-item:hover {
+        background: #f8f9fa;
+        border-color: #007bff;
+    }
+    
+    .list-group-item.list-group-item-action {
+        cursor: pointer;
+    }
 </style>
 {% endblock %}
 
@@ -242,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let dateCliquee = '';
     
     const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridWeek',
+        initialView: window.innerWidth < 768 ? 'dayGridWeek' : 'dayGridMonth',
         locale: 'fr',
         headerToolbar: {
             left: 'prev,next today',
@@ -258,9 +411,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Clic sur prestation → Ouvre le DÉTAIL
         eventClick: function(info) {
-            window.location.href = '/prestation/' + info.event.id;  // ← DÉTAIL
+            window.location.href = '/prestation/' + info.event.id;
         },
-
         
         // Clic sur jour vide → Modal choix
         dateClick: function(info) {
@@ -272,6 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Hauteur automatique
         height: 'auto',
+        contentHeight: 'auto',
         
         // Affichage des événements
         displayEventTime: true,
@@ -279,7 +432,11 @@ document.addEventListener('DOMContentLoaded', function() {
             hour: '2-digit',
             minute: '2-digit',
             hour12: false
-        }
+        },
+        
+        // Responsive
+        windowResizeDelay: 200,
+        handleWindowResize: true
     });
     
     calendar.render();
