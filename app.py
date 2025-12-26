@@ -1930,12 +1930,10 @@ def indisponibilite_nouvelle():
             date_debut = datetime.strptime(date_debut_str, '%Y-%m-%d').date()
             date_fin = datetime.strptime(date_fin_str, '%Y-%m-%d').date() if date_fin_str else date_debut
             
-            # Vérifier que fin >= début
             if date_fin < date_debut:
                 flash('La date de fin doit être après ou égale à la date de début', 'error')
                 return redirect(url_for('indisponibilite_nouvelle'))
             
-            # Créer l'indisponibilité
             indispo = Indisponibilite(
                 date_debut=date_debut,
                 date_fin=date_fin,
@@ -1946,14 +1944,11 @@ def indisponibilite_nouvelle():
             db.session.add(indispo)
             db.session.flush()
             
-            # Synchronisation Google Calendar - UN SEUL calendrier
             gcal_event_id = None
-            
             if GOOGLE_CALENDAR_AVAILABLE:
                 try:
                     service = get_calendar_service()
                     if service:
-                        # Créer l'événement sur le calendrier principal UNIQUEMENT
                         event_data = {
                             'summary': f'🚫 INDISPONIBLE - {motif}',
                             'description': note or f'Indisponibilité : {motif}',
@@ -1964,11 +1959,9 @@ def indisponibilite_nouvelle():
                                 'date': (date_fin + timedelta(days=1)).strftime('%Y-%m-%d'),
                             },
                             'transparency': 'opaque',
-                            'colorId': '11',  # Couleur rouge
-                            'reminders': {'useDefault': False}
+                            'colorId': '11',
                         }
                         
-                        # Créer l'événement
                         event = service.events().insert(
                             calendarId='primary',
                             body=event_data
@@ -1976,13 +1969,11 @@ def indisponibilite_nouvelle():
                         
                         gcal_event_id = event['id']
                         indispo.gcal_event_id = gcal_event_id
-                        
-                        flash('✓ Indisponibilité créée et synchronisée avec Google Calendar', 'success')
+                        flash('✓ Indisponibilité créée et synchronisée', 'success')
                     else:
-                        flash('✓ Indisponibilité créée (Google Calendar non configuré)', 'success')
-                
+                        flash('✓ Indisponibilité créée', 'success')
                 except Exception as e:
-                    flash(f'✓ Indisponibilité créée (erreur Google Calendar : {str(e)})', 'warning')
+                    flash(f'✓ Indisponibilité créée (Google Calendar: {str(e)})', 'warning')
             else:
                 flash('✓ Indisponibilité créée', 'success')
             
@@ -1994,7 +1985,7 @@ def indisponibilite_nouvelle():
             flash(f'❌ Erreur : {str(e)}', 'error')
             return redirect(url_for('indisponibilite_nouvelle'))
     
-    # GET - Afficher le formulaire
+    # GET
     date_param = request.args.get('date')
     return render_template('indisponibilite_form.html', date_prefill=date_param)
 
@@ -5513,6 +5504,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
