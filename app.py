@@ -2207,17 +2207,15 @@ def api_demandeurs():
 @app.route('/statistiques')
 def statistiques():
     """Page statistiques avec graphiques"""
-    # Statistiques par client (nombre de prestations)
     from sqlalchemy import func
+    
     stats_clients_raw = db.session.query(
         Client.nom,
         func.count(Prestation.id).label('nombre')
     ).join(Prestation).group_by(Client.id).order_by(func.count(Prestation.id).desc()).limit(10).all()
 
-    # Convertir les Row en liste de tuples pour JSON serialization
     stats_clients = [(row[0], row[1]) for row in stats_clients_raw]
 
-    # Statistiques par mois (prestations et CA) sur l'année en cours
     annee_en_cours = datetime.now().year
     stats_mois = []
 
@@ -2228,52 +2226,14 @@ def statistiques():
         else:
             fin_mois = datetime(annee_en_cours, mois + 1, 1)
 
-        # Récupérer les prestations du mois
-        nb_ce_mois_count = Prestation.query.filter(
-            Prestation.date_debut >= debut_mois,
-            Prestation.date_debut < fin_mois
-        ).count()
-        
-        print("🔍 DEBUG CE MOIS:")
-        print("  Début mois: {debut_mois}")
-        print("  Fin mois: {fin_mois}")
-        print("  Prestations trouvées: {nb_ce_mois_count}")
-        
-        # Afficher les prestations de décembre
-        prestations_decembre = Prestation.query.filter(
+        prestations_mois = Prestation.query.filter(
             Prestation.date_debut >= debut_mois,
             Prestation.date_debut < fin_mois
         ).all()
-        for p in prestations_decembre:
-            print("  - {p.id}: {p.date_debut} - {p.type_prestation}")
-        
-        stats = {
-            'nb_clients': Client.query.filter_by(actif=True).count(),
-            'nb_prestations': Prestation.query.filter(
-                Prestation.date_debut >= debut_annee,
-                Prestation.date_debut <= fin_annee
-            ).count(),
-            'nb_en_cours': Prestation.query.filter_by(statut='En cours').count(),
-             print("Prestations En cours =", nb_en_cours)
-            
-            # Afficher TOUS les statuts existants
-             statuts_uniques = db.session.query(Prestation.statut).distinct().all()
-             print("Statuts dans la BDD: {[s[0] for s in statuts_uniques]}")
-            
-            'nb_ce_mois': nb_ce_mois_count,
-            'ca_total': int(db.session.query(func.sum(Prestation.tarif_total)).filter(
-                Prestation.date_debut >= debut_annee,
-                Prestation.date_debut <= fin_annee
-            ).scalar() or 0),
-            'nb_factures_payees': Facture.query.filter_by(statut='Payée').count() if 'Facture' in globals() else 0
-        }
-        # Nombre de prestations du mois
-        nb_prestations = len(prestations_mois)
 
-        # CA du mois
+        nb_prestations = len(prestations_mois)
         ca = sum(p.tarif_total or 0 for p in prestations_mois)
 
-        # Statistiques logistiques du mois
         distance_mois = 0
         repas_mois = 0
         hebergements_mois = 0
@@ -2302,37 +2262,29 @@ def statistiques():
             'hebergements': hebergements_mois
         })
 
-    # Statistiques logistiques sur l'année en cours
     prestations_annee = Prestation.query.filter(
         Prestation.date_debut >= datetime(annee_en_cours, 1, 1),
         Prestation.date_debut < datetime(annee_en_cours + 1, 1, 1),
         Prestation.statut != 'Annulée'
     ).all()
 
-    # Calculer les totaux logistiques
     total_distance = 0
     total_repas = 0
     total_hebergements = 0
     nb_jours_formation = 0
 
     for p in prestations_annee:
-        # Distance : calculer aller-retour par jour de formation
         if p.distance_km:
-            # Calculer le nombre de jours de formation
-            jours = 1  # Par défaut 1 jour
+            jours = 1
             if p.date_debut and p.date_fin:
                 delta = p.date_fin.date() - p.date_debut.date()
-                jours = max(1, delta.days + 1)  # +1 car inclus les deux bornes
-
-            # Distance aller-retour = distance × 2 × nombre de jours
+                jours = max(1, delta.days + 1)
             total_distance += p.distance_km * 2 * jours
             nb_jours_formation += jours
 
-        # Repas
         if p.nb_repas:
             total_repas += p.nb_repas
 
-        # Hébergements
         if p.nb_hebergements:
             total_hebergements += p.nb_hebergements
 
@@ -5508,6 +5460,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
