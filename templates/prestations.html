@@ -99,23 +99,6 @@
 
 {% block extra_css %}
 <style>
-    /* Tableau responsif */
-    @media (max-width: 991px) {
-        .table {
-            font-size: 0.9rem;
-        }
-        
-        .btn-group {
-            gap: 2px;
-        }
-        
-        .btn-sm {
-            padding: 4px 8px;
-            font-size: 0.8rem;
-        }
-    }
-
-    /* Cartes mobiles */
     .prestation-card {
         background: white;
         border-radius: 12px;
@@ -191,78 +174,34 @@
         font-size: 1.1rem;
     }
 
-    /* Badges statut */
-    .badge-demandee { background-color: #6c757d; }
-    .badge-planifiee { background-color: #0d6efd; }
-    .badge-en-cours { background-color: #0dcaf0; }
-    .badge-terminee { background-color: #198754; }
-    .badge-annulee { background-color: #dc3545; }
-
-    /* Icônes status */
-    .status-icon {
-        display: inline-block;
-        margin-right: 4px;
-    }
-
-    /* Recherche */
-    #searchInput, #filterStatut {
-        border: 1px solid #ddd;
-        border-radius: 8px;
-    }
-
-    #searchInput:focus, #filterStatut:focus {
-        border-color: #007bff;
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    .badge {
+        padding: 6px 12px;
+        border-radius: 20px;
     }
 </style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Données des prestations
     let toutesLesPrestations = [];
 
-    // Mapping des statuts
     const statusBadges = {
-        'Demandée': { class: 'bg-secondary badge-demandee', icon: '📋' },
-        'Planifiée': { class: 'bg-primary badge-planifiee', icon: '📅' },
-        'En cours': { class: 'bg-info badge-en-cours', icon: '⏳' },
-        'Terminée': { class: 'bg-success badge-terminee', icon: '✅' },
-        'Annulée': { class: 'bg-danger badge-annulee', icon: '❌' }
+        'Demandée': { class: 'bg-secondary', icon: '📋' },
+        'Planifiée': { class: 'bg-primary', icon: '📅' },
+        'En cours': { class: 'bg-info', icon: '⏳' },
+        'Terminée': { class: 'bg-success', icon: '✅' },
+        'Annulée': { class: 'bg-danger', icon: '❌' }
     };
 
-    // Charger les prestations depuis l'API ou le DOM
+    // Charger les prestations
     async function chargerPrestations() {
         try {
             const response = await fetch('/api/prestations');
             toutesLesPrestations = await response.json();
             afficherPrestations(toutesLesPrestations);
         } catch (error) {
-            // Fallback : utiliser les données du template
-            chargerPrestationsDOM();
+            console.error('Erreur:', error);
         }
-    }
-
-    // Fallback : lire les données du DOM
-    function chargerPrestationsDOM() {
-        const tbody = document.getElementById('tbodyPrestations');
-        const rows = tbody.querySelectorAll('tr');
-        
-        toutesLesPrestations = [];
-        rows.forEach(row => {
-            const cells = row.querySelectorAll('td');
-            if (cells.length >= 7) {
-                toutesLesPrestations.push({
-                    id: row.querySelector('a[href*="/prestation/"]')?.href.match(/\d+/)?.[0] || 0,
-                    date_debut: cells[0].textContent.trim(),
-                    client: cells[1].textContent.trim(),
-                    type: cells[2].textContent.trim(),
-                    lieu: cells[3].textContent.trim(),
-                    statut: cells[4].textContent.trim(),
-                    tarif: cells[5].textContent.trim(),
-                });
-            }
-        });
     }
 
     // Afficher les prestations
@@ -270,25 +209,21 @@
         const count = prestations.length;
         document.getElementById('countPrestations').textContent = count;
 
-        // Vue tableau
         afficherTableau(prestations);
-
-        // Vue cartes mobile
         afficherCartes(prestations);
 
-        // Afficher/masquer message vide
         const messagevide = document.getElementById('messagevide');
         if (count === 0) {
             messagevide.classList.remove('d-none');
-            document.getElementById('tableauPrestations').classList.add('d-none');
+            document.getElementById('tableauPrestations').closest('.card').classList.add('d-none');
             document.getElementById('cartesPrestations').innerHTML = '';
         } else {
             messagevide.classList.add('d-none');
-            document.getElementById('tableauPrestations').classList.remove('d-none');
+            document.getElementById('tableauPrestations').closest('.card').classList.remove('d-none');
         }
     }
 
-    // Afficher le tableau (desktop)
+    // Afficher le tableau
     function afficherTableau(prestations) {
         const tbody = document.getElementById('tbodyPrestations');
         tbody.innerHTML = '';
@@ -300,25 +235,16 @@
 
             const row = document.createElement('tr');
             row.innerHTML = `
-                <td>
-                    <strong>${p.date_debut || '-'}</strong>
-                </td>
-                <td>
-                    <i class="bi bi-person-circle"></i> ${p.client || '-'}
-                </td>
+                <td><strong>${p.date_debut || '-'}</strong></td>
+                <td><i class="bi bi-person-circle"></i> ${p.client || '-'}</td>
                 <td>${p.type || '-'}</td>
-                <td>
-                    <i class="bi bi-geo-alt"></i> ${p.lieu || '-'}
-                </td>
+                <td><i class="bi bi-geo-alt"></i> ${p.lieu || '-'}</td>
                 <td>
                     <span class="badge ${badgeInfo.class}">
-                        <span class="status-icon">${badgeInfo.icon}</span>
-                        ${statut}
+                        ${badgeInfo.icon} ${statut}
                     </span>
                 </td>
-                <td>
-                    <strong class="prestation-tarif">${tarif}</strong>
-                </td>
+                <td><strong class="prestation-tarif">${tarif}</strong></td>
                 <td>
                     <div class="btn-group btn-group-sm" role="group">
                         <button type="button" class="btn btn-outline-primary btn-details" data-id="${p.id}" title="Détails">
@@ -334,19 +260,15 @@
                 </td>
             `;
 
-            // Event listener pour les détails
             row.querySelector('.btn-details').addEventListener('click', () => {
                 afficherDetailsPrestations(p);
             });
 
             tbody.appendChild(row);
         });
-
-        // Attacher les event listeners
-        attacherEventListeners();
     }
 
-    // Afficher les cartes (mobile)
+    // Afficher les cartes
     function afficherCartes(prestations) {
         const container = document.getElementById('cartesPrestations');
         container.innerHTML = '';
@@ -403,19 +325,15 @@
                 </div>
             `;
 
-            // Event listener pour les détails
             card.querySelector('.btn-details-card').addEventListener('click', () => {
                 afficherDetailsPrestations(p);
             });
 
             container.appendChild(card);
         });
-
-        // Attacher les event listeners
-        attacherEventListeners();
     }
 
-    // Afficher les détails dans un modal
+    // Afficher détails dans modal
     function afficherDetailsPrestations(p) {
         const modal = new bootstrap.Modal(document.getElementById('modalDetailsPrestations'));
         
@@ -475,16 +393,14 @@
         afficherPrestations(filtered);
     }
 
-    // Attacher les event listeners
-    function attacherEventListeners() {
-        document.getElementById('searchInput').addEventListener('input', filtrerPrestations);
-        document.getElementById('filterStatut').addEventListener('change', filtrerPrestations);
-        document.getElementById('btnReinitialiser').addEventListener('click', () => {
-            document.getElementById('searchInput').value = '';
-            document.getElementById('filterStatut').value = '';
-            afficherPrestations(toutesLesPrestations);
-        });
-    }
+    // Event listeners
+    document.getElementById('searchInput').addEventListener('input', filtrerPrestations);
+    document.getElementById('filterStatut').addEventListener('change', filtrerPrestations);
+    document.getElementById('btnReinitialiser').addEventListener('click', () => {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('filterStatut').value = '';
+        afficherPrestations(toutesLesPrestations);
+    });
 
     // Charger au démarrage
     document.addEventListener('DOMContentLoaded', chargerPrestations);
