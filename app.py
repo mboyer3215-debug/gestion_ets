@@ -2039,29 +2039,6 @@ def supprimer_indisponibilite(indispo_id):
         return redirect(url_for('indisponibilite'))
 
 
-@app.route('/indisponibilite/<int:indispo_id>/supprimer', methods=['POST'])
-@login_required
-def supprimer_indisponibilite(indispo_id):
-    """Supprimer une indisponibilité"""
-    indispo = Indisponibilite.query.get_or_404(indispo_id)
-    
-    # Supprimer de Google Calendar si synchronisé
-    if indispo.gcal_event_id and GOOGLE_CALENDAR_AVAILABLE:
-        try:
-            service = get_calendar_service()
-            if service:
-                service.events().delete(
-                    calendarId='primary',
-                    eventId=indispo.gcal_event_id
-                ).execute()
-        except Exception as e:
-            print(f"Erreur suppression Google Calendar: {e}")
-    
-    db.session.delete(indispo)
-    db.session.commit()
-    
-    flash('✓ Indisponibilité supprimée', 'success')
-    return redirect(url_for('indisponibilite'))
 # ============================================================================
 # ROUTES CALENDRIER
 # ============================================================================
@@ -5536,6 +5513,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
