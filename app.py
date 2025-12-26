@@ -1942,8 +1942,8 @@ def indisponibilite_nouvelle():
     
     return render_template('indisponibilite_form.html', indisponibilite=None, date_prefill=date_param)
 
-        # Synchroniser avec Google Calendar sur TOUS les calendriers filtrés
-        gcal_events_dict = {}
+    # Synchroniser avec Google Calendar sur TOUS les calendriers filtrés
+    gcal_events_dict = {}
 
         if GOOGLE_CALENDAR_AVAILABLE:
             service = get_calendar_service()
@@ -5610,6 +5610,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
