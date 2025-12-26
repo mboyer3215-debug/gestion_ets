@@ -83,8 +83,8 @@ if getattr(sys, 'frozen', False):
     os.makedirs(instance_dir, exist_ok=True)
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
-    print(f">> Mode executable: Base de donnees = {db_path}")
-    print(f">> Verification base de donnees: {'EXISTE' if os.path.exists(db_path) else 'INEXISTANTE'}")
+    print(">> Mode executable: Base de donnees = {db_path}")
+    print(">> Verification base de donnees: {'EXISTE' if os.path.exists(db_path) else 'INEXISTANTE'}")
 else:
     # Mode développement Python normal
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///gestion_entreprise.db'
@@ -668,7 +668,7 @@ def verifier_statuts_prestations():
     
     for p in prestations:
         p.statut = 'Terminée'
-        print(f"✅ Prestation {p.id} passée en Terminée")
+        print("✅ Prestation {p.id} passée en Terminée")
     
     if prestations:
         db.session.commit()
@@ -685,7 +685,7 @@ def verifier_statuts_prestations():
     
     for p in prestations:
         p.statut = 'Terminée'
-        print(f"✅ Prestation {p.id} passée en Terminée")
+        print("✅ Prestation {p.id} passée en Terminée")
     
     if prestations:
         db.session.commit()
@@ -1613,7 +1613,7 @@ def prestation_nouvelle():
             journee_complete = str(i + 1) in sessions_journee_complete or creneau == 'Journée'
             duree = float(sessions_durees[i]) if i < len(sessions_durees) and sessions_durees[i] else None
 
-            print(f"⚡ SESSION {i+1}: creneau='{creneau}', journee_complete={journee_complete}")
+            print("⚡ SESSION {i+1}: creneau='{creneau}', journee_complete={journee_complete}")
 
             session = SessionPrestation(
                 prestation_id=prestation.id,
@@ -1657,7 +1657,7 @@ def prestation_nouvelle():
                 flash(f'⚠️ Prestation créée mais sync Google Calendar échouée : {message}', 'warning')
 
         except Exception as ex:
-            print(f"❌ ERREUR sync Google Calendar: {str(ex)}")
+            print("❌ ERREUR sync Google Calendar: {str(ex)}")
             import traceback
             traceback.print_exc()
             flash('Prestation créée avec succès (sync Google Calendar échouée)', 'warning')
@@ -1962,7 +1962,7 @@ def supprimer_indisponibilite(indispo_id):
                             eventId=event_id
                         ).execute()
                     except Exception as e:
-                        print(f"Erreur suppression événement {event_id}: {e}")
+                        print("Erreur suppression événement {event_id}: {e}")
             except:
                 pass
 
@@ -2263,10 +2263,10 @@ def statistiques():
             Prestation.date_debut < fin_mois
         ).count()
         
-        print(f"🔍 DEBUG CE MOIS:")
-        print(f"  Début mois: {debut_mois}")
-        print(f"  Fin mois: {fin_mois}")
-        print(f"  Prestations trouvées: {nb_ce_mois_count}")
+        print("🔍 DEBUG CE MOIS:")
+        print("  Début mois: {debut_mois}")
+        print("  Fin mois: {fin_mois}")
+        print("  Prestations trouvées: {nb_ce_mois_count}")
         
         # Afficher les prestations de décembre
         prestations_decembre = Prestation.query.filter(
@@ -2274,7 +2274,7 @@ def statistiques():
             Prestation.date_debut < fin_mois
         ).all()
         for p in prestations_decembre:
-            print(f"  - {p.id}: {p.date_debut} - {p.type_prestation}")
+            print("  - {p.id}: {p.date_debut} - {p.type_prestation}")
         
         stats = {
             'nb_clients': Client.query.filter_by(actif=True).count(),
@@ -2283,11 +2283,11 @@ def statistiques():
                 Prestation.date_debut <= fin_annee
             ).count(),
             'nb_en_cours': Prestation.query.filter_by(statut='En cours').count(),
-             print(f"Prestations En cours: {nb_en_cours}")
+             print("Prestations En cours: {nb_en_cours}")
             
             # Afficher TOUS les statuts existants
              statuts_uniques = db.session.query(Prestation.statut).distinct().all()
-             print(f"Statuts dans la BDD: {[s[0] for s in statuts_uniques]}")
+             print("Statuts dans la BDD: {[s[0] for s in statuts_uniques]}")
             
             'nb_ce_mois': nb_ce_mois_count,
             'ca_total': int(db.session.query(func.sum(Prestation.tarif_total)).filter(
@@ -3196,7 +3196,7 @@ def sauvegarde_creer():
                         uploads_backup_gdrive = os.path.join(app.config['GDRIVE_BACKUP_PATH'], f'uploads_{timestamp}')
                         shutil.copytree('uploads', uploads_backup_gdrive, dirs_exist_ok=True)
             except Exception as e:
-                print(f"Erreur lors de la copie des uploads: {e}")
+                print("Erreur lors de la copie des uploads: {e}")
 
             # Enregistrer la sauvegarde dans la base
             sauvegarde = Sauvegarde(
@@ -3798,7 +3798,7 @@ def rechercher_entreprises_nominatim_direct(query):
         return entreprises
 
     except Exception as e:
-        print(f"Erreur Nominatim direct: {e}")
+        print("Erreur Nominatim direct: {e}")
         return []
 
 def rechercher_entreprises_nominatim(query, ville):
@@ -3861,7 +3861,7 @@ def rechercher_entreprises_nominatim(query, ville):
         return entreprises
 
     except Exception as e:
-        print(f"Erreur Nominatim: {e}")
+        print("Erreur Nominatim: {e}")
         return []
 
 def rechercher_entreprises_overpass(query, latitude=None, longitude=None, rayon_km=10):
@@ -3916,20 +3916,20 @@ def rechercher_entreprises_overpass(query, latitude=None, longitude=None, rayon_
             out body center 100;
             """
 
-        print(f"[OVERPASS] Requête Overpass:\n{overpass_query}")
+        print("[OVERPASS] Requête Overpass:\n{overpass_query}")
 
         # Appeler l'API Overpass
         url = "https://overpass-api.de/api/interpreter"
         response = requests.post(url, data={'data': overpass_query}, timeout=30)
 
-        print(f"[OVERPASS] Statut réponse: {response.status_code}")
+        print("[OVERPASS] Statut réponse: {response.status_code}")
 
         if response.status_code != 200:
-            print(f"[OVERPASS] Erreur HTTP: {response.text[:200]}")
+            print("[OVERPASS] Erreur HTTP: {response.text[:200]}")
             return []
 
         data = response.json()
-        print(f"[OVERPASS] Éléments trouvés: {len(data.get('elements', []))}")
+        print("[OVERPASS] Éléments trouvés: {len(data.get('elements', []))}")
         entreprises = []
 
         # Extraire les informations
@@ -4002,7 +4002,7 @@ def rechercher_entreprises_overpass(query, latitude=None, longitude=None, rayon_
         return entreprises
 
     except Exception as e:
-        print(f"Erreur Overpass API: {e}")
+        print("Erreur Overpass API: {e}")
         return []
 
 def rechercher_par_zone(ville, secteur=None, rayon_km=20):
@@ -4115,7 +4115,7 @@ def rechercher_par_zone(ville, secteur=None, rayon_km=20):
         return entreprises
 
     except Exception as e:
-        print(f"Erreur recherche par zone: {e}")
+        print("Erreur recherche par zone: {e}")
         return []
 
 # ============================================================================
@@ -4178,9 +4178,9 @@ def creer_evenement_avec_rappels_personnalises(prestation, client, calendar_id='
             return False, "Impossible de se connecter à Google Calendar", None
 
         # 2. Récupérer les informations de la prestation
-        print(f"📋 Prestation: {prestation.titre}")
-        print(f"👤 Client: {client.prenom} {client.nom}")
-        print(f"📧 Email: {client.email}")
+        print("📋 Prestation: {prestation.titre}")
+        print("👤 Client: {client.prenom} {client.nom}")
+        print("📧 Email: {client.email}")
 
         # 3. Construire le titre
         client_nom_complet = f"{client.prenom} {client.nom}" if client.prenom else client.nom
@@ -4208,7 +4208,7 @@ def creer_evenement_avec_rappels_personnalises(prestation, client, calendar_id='
         events_created = []
 
         for idx, session in enumerate(prestation.sessions):
-            print(f"\n📍 Session {idx + 1}/{len(prestation.sessions)}")
+            print("\n📍 Session {idx + 1}/{len(prestation.sessions)}")
 
             # Titre avec numéro de session si plusieurs
             titre_session = titre
@@ -4219,8 +4219,8 @@ def creer_evenement_avec_rappels_personnalises(prestation, client, calendar_id='
             start_time = session.date_debut
             end_time = session.date_fin if session.date_fin else start_time + timedelta(hours=session.duree_heures or 1)
 
-            print(f"🕐 Début: {start_time}")
-            print(f"🕐 Fin: {end_time}")
+            print("🕐 Début: {start_time}")
+            print("🕐 Fin: {end_time}")
 
             # 6. CALCUL DES RAPPELS PERSONNALISÉS
             reminders_list = []
@@ -4231,31 +4231,31 @@ def creer_evenement_avec_rappels_personnalises(prestation, client, calendar_id='
                 # Si c'est une date seule, mettre 8h00
                 event_start_dt = datetime.combine(start_time, datetime.min.time().replace(hour=8))
 
-            print(f"\n🔔 Calcul des rappels pour: {event_start_dt}")
+            print("\n🔔 Calcul des rappels pour: {event_start_dt}")
 
             # Rappel la veille à 19h00
             reminder_veille_datetime = event_start_dt.replace(hour=19, minute=0, second=0) - timedelta(days=1)
             minutes_veille = int((event_start_dt - reminder_veille_datetime).total_seconds() / 60)
-            print(f"   📢 Rappel veille (19h): {minutes_veille} minutes avant")
+            print("   📢 Rappel veille (19h): {minutes_veille} minutes avant")
 
             if 0 < minutes_veille < 40320:  # Google limite: 4 semaines
                 reminders_list.append({'method': 'popup', 'minutes': minutes_veille})
-                print(f"   ✅ Rappel veille AJOUTÉ")
+                print("   ✅ Rappel veille AJOUTÉ")
             else:
-                print(f"   ⚠️  Rappel veille IGNORÉ (hors limites)")
+                print("   ⚠️  Rappel veille IGNORÉ (hors limites)")
 
             # Rappel le jour même à 7h00
             reminder_jour_datetime = event_start_dt.replace(hour=7, minute=0, second=0)
             minutes_jour = int((event_start_dt - reminder_jour_datetime).total_seconds() / 60)
-            print(f"   📢 Rappel jour (7h): {minutes_jour} minutes avant")
+            print("   📢 Rappel jour (7h): {minutes_jour} minutes avant")
 
             if 0 < minutes_jour < 1440:  # Max 24h
                 reminders_list.append({'method': 'popup', 'minutes': minutes_jour})
-                print(f"   ✅ Rappel jour AJOUTÉ")
+                print("   ✅ Rappel jour AJOUTÉ")
             else:
-                print(f"   ⚠️  Rappel jour IGNORÉ (hors limites)")
+                print("   ⚠️  Rappel jour IGNORÉ (hors limites)")
 
-            print(f"\n📋 Rappels finaux: {reminders_list}")
+            print("\n📋 Rappels finaux: {reminders_list}")
 
             # 7. Créer l'événement
             event_data = {
@@ -4276,9 +4276,9 @@ def creer_evenement_avec_rappels_personnalises(prestation, client, calendar_id='
                 }
             }
 
-            print(f"\n📤 Envoi à Google Calendar...")
-            print(f"   Calendrier: {calendar_id}")
-            print(f"   Rappels: {event_data['reminders']}")
+            print("\n📤 Envoi à Google Calendar...")
+            print("   Calendrier: {calendar_id}")
+            print("   Rappels: {event_data['reminders']}")
 
             created_event = service.events().insert(
                 calendarId=calendar_id,
@@ -4288,28 +4288,28 @@ def creer_evenement_avec_rappels_personnalises(prestation, client, calendar_id='
             event_id = created_event['id']
             events_created.append(event_id)
 
-            print(f"✅ Événement créé ! ID: {event_id}")
-            print(f"🔗 URL: {created_event.get('htmlLink')}")
+            print("✅ Événement créé ! ID: {event_id}")
+            print("🔗 URL: {created_event.get('htmlLink')}")
 
             # Vérifier les rappels enregistrés
-            print(f"\n🔍 Vérification des rappels enregistrés...")
+            print("\n🔍 Vérification des rappels enregistrés...")
             event_check = service.events().get(
                 calendarId=calendar_id,
                 eventId=event_id
             ).execute()
 
             rappels_enregistres = event_check.get('reminders', {})
-            print(f"   useDefault: {rappels_enregistres.get('useDefault')}")
-            print(f"   overrides: {rappels_enregistres.get('overrides')}")
+            print("   useDefault: {rappels_enregistres.get('useDefault')}")
+            print("   overrides: {rappels_enregistres.get('overrides')}")
 
         print("\n" + "=" * 80)
-        print(f"✅ SUCCÈS ! {len(events_created)} événement(s) créé(s)")
+        print("✅ SUCCÈS ! {len(events_created)} événement(s) créé(s)")
         print("=" * 80)
 
         return True, f"{len(events_created)} événement(s) créé(s)", events_created[0] if events_created else None
 
     except Exception as e:
-        print(f"\n❌ ERREUR: {str(e)}")
+        print("\n❌ ERREUR: {str(e)}")
         import traceback
         traceback.print_exc()
         return False, f"Erreur: {str(e)}", None
@@ -4330,7 +4330,7 @@ def get_calendar_service():
     for path in ['/etc/secrets/credentials.json', 'credentials.json']:
         if os.path.exists(path):
             credentials_path = path
-            print(f"✅ Credentials trouvés : {path}")
+            print("✅ Credentials trouvés : {path}")
             break
     
     if not credentials_path:
@@ -4342,16 +4342,16 @@ def get_calendar_service():
     for path in ['/etc/secrets/token.json', 'token.json', '/tmp/token.json']:
         if os.path.exists(path):
             token_path = path
-            print(f"✅ Token trouvé : {path}")
+            print("✅ Token trouvé : {path}")
             break
     
     # Charger les credentials existants
     if token_path:
         try:
             creds = Credentials.from_authorized_user_file(token_path, SCOPES)
-            print(f"✅ Token chargé depuis {token_path}")
+            print("✅ Token chargé depuis {token_path}")
         except Exception as e:
-            print(f"⚠️ Erreur chargement token : {e}")
+            print("⚠️ Erreur chargement token : {e}")
             creds = None
 
 # Si pas de credentials valides
@@ -4365,9 +4365,9 @@ def get_calendar_service():
                 save_path = '/tmp/token.json'
                 with open(save_path, 'w') as token:
                     token.write(creds.to_json())
-                print(f"✅ Token rafraîchi et sauvegardé : {save_path}")
+                print("✅ Token rafraîchi et sauvegardé : {save_path}")
             except Exception as e:
-                print(f"❌ Erreur refresh token : {e}")
+                print("❌ Erreur refresh token : {e}")
                 return None
         else:
             # Pas de token valide - authentification requise
@@ -4429,7 +4429,7 @@ def get_filtered_calendars(service):
         return filtered
 
     except Exception as e:
-        print(f"Erreur lors de la récupération des calendriers: {e}")
+        print("Erreur lors de la récupération des calendriers: {e}")
         return []
 
 
@@ -4524,13 +4524,13 @@ def creer_blocages_autres_calendriers(service, prestation, calendar_id_principal
                         )
                         db.session.add(nouveau_blocage)
                     except HttpError as e:
-                        print(f"Erreur blocage calendrier {cal.get('summary', 'Inconnu')}: {e}")
+                        print("Erreur blocage calendrier {cal.get('summary', 'Inconnu')}: {e}")
                         pass
 
             db.session.commit()
 
     except Exception as e:
-        print(f"Erreur création blocages: {e}")
+        print("Erreur création blocages: {e}")
 
 
 def creer_event_gcal_session(service, calendar_id, session, titre, description, start_time, end_time):
@@ -4598,11 +4598,11 @@ def creer_event_gcal_session(service, calendar_id, session, titre, description, 
 
             # Calculer le nombre de jours
             nb_jours = (end_date - start_date).days + 1
-            print(f"📅 Nombre de jours : {nb_jours} (du {start_date} au {end_date})")
+            print("📅 Nombre de jours : {nb_jours} (du {start_date} au {end_date})")
 
             if nb_jours > 1:
                 # MULTI-JOURS : Créer un événement pour chaque jour
-                print(f"🔄 MULTI-JOURS : Création de {nb_jours} événements séparés")
+                print("🔄 MULTI-JOURS : Création de {nb_jours} événements séparés")
 
                 event_ids = []
                 current_date = start_date
@@ -4632,7 +4632,7 @@ def creer_event_gcal_session(service, calendar_id, session, titre, description, 
                     if 0 < minutes_jour_rappel < 1440:  # Max 24h
                         rappels_jour.append({'method': 'popup', 'minutes': minutes_jour_rappel})
 
-                    print(f"   📌 Jour {jour_num}/{nb_jours} : {current_date} avec {len(rappels_jour)} rappels")
+                    print("   📌 Jour {jour_num}/{nb_jours} : {current_date} avec {len(rappels_jour)} rappels")
 
                     # Créer l'événement pour ce jour
                     event_data = {
@@ -4659,12 +4659,12 @@ def creer_event_gcal_session(service, calendar_id, session, titre, description, 
                     ).execute()
 
                     event_ids.append(created_event['id'])
-                    print(f"   ✅ Événement créé - ID: {created_event['id']}")
+                    print("   ✅ Événement créé - ID: {created_event['id']}")
 
                     # Passer au jour suivant
                     current_date += timedelta(days=1)
 
-                print(f"✅ {len(event_ids)} événements créés pour prestation multi-jours")
+                print("✅ {len(event_ids)} événements créés pour prestation multi-jours")
                 # Retourner le premier ID (pour compatibilité)
                 return event_ids[0] if event_ids else None
 
@@ -4729,7 +4729,7 @@ def creer_event_gcal_session(service, calendar_id, session, titre, description, 
         return created_event['id']
 
     except Exception as e:
-        print(f"Erreur création événement session: {e}")
+        print("Erreur création événement session: {e}")
         return None
 
 
@@ -4918,8 +4918,8 @@ def sync_prestation_to_gcal(prestation_id):
             start_datetime = datetime.combine(start_date, datetime.min.time().replace(hour=8, minute=0))
             end_datetime = datetime.combine(end_date, datetime.min.time().replace(hour=20, minute=0))
 
-            print(f"Start: {start_datetime}")
-            print(f"End: {end_datetime}")
+            print("Start: {start_datetime}")
+            print("End: {end_datetime}")
             print("="*80)
 
             event_data = {
@@ -5087,7 +5087,7 @@ def sync_prestation_to_gcal(prestation_id):
                             db.session.add(nouveau_blocage)
                         except HttpError as e:
                             # Ignorer les erreurs de calendriers individuels
-                            print(f"Erreur blocage calendrier {cal['nom']}: {e}")
+                            print("Erreur blocage calendrier {cal['nom']}: {e}")
                             pass
                     db.session.commit()
             except:
@@ -5142,7 +5142,7 @@ def delete_gcal_event(prestation_id):
         else:
             calendar_id = calendrier_principal_id
 
-        print(f"🗑️ Suppression événement - calendar_id: {calendar_id}")
+        print("🗑️ Suppression événement - calendar_id: {calendar_id}")
 
         # Supprimer l'événement
         try:
@@ -5169,9 +5169,9 @@ def delete_gcal_event(prestation_id):
                         nb_blocages_supprimes += 1
                     except HttpError as e:
                         if e.resp.status != 404:  # Ignorer si l'événement n'existe déjà plus
-                            print(f"Erreur suppression blocage {blocage.calendar_name}: {e}")
+                            print("Erreur suppression blocage {blocage.calendar_name}: {e}")
                     except Exception as e:
-                        print(f"Erreur suppression blocage {blocage.calendar_name}: {e}")
+                        print("Erreur suppression blocage {blocage.calendar_name}: {e}")
 
                     # Supprimer l'enregistrement du blocage de la base de données
                     db.session.delete(blocage)
@@ -5179,7 +5179,7 @@ def delete_gcal_event(prestation_id):
                 db.session.commit()
             except Exception as e:
                 # Si la table gcal_blocages n'existe pas encore (migration non faite), ignorer
-                print(f"Note: Impossible de supprimer les blocages: {e}")
+                print("Note: Impossible de supprimer les blocages: {e}")
                 pass
 
             message = "Événement supprimé de Google Calendar"
@@ -5454,9 +5454,9 @@ def quitter():
                     db.session.add(sauvegarde)
                     db.session.commit()
 
-                print(f"\n✅ Sauvegarde automatique créée : {nom_fichier}")
+                print("\n✅ Sauvegarde automatique créée : {nom_fichier}")
         except Exception as e:
-            print(f"\n⚠️ Erreur lors de la sauvegarde automatique : {e}")
+            print("\n⚠️ Erreur lors de la sauvegarde automatique : {e}")
 
         # Attendre un peu puis fermer le serveur
         time.sleep(1.5)
@@ -5519,7 +5519,7 @@ with app.app_context():
             db.session.commit()
             print("✅ Utilisateur admin créé")
     except Exception as e:
-        print(f"Note: {e}")
+        print("Note: {e}")
 
 with app.app_context():
     db.create_all()
@@ -5537,6 +5537,7 @@ with app.app_context():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)       
+
 
 
 
